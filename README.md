@@ -1,5 +1,6 @@
 # KiCad Monkey
 
+```text
             ▓▓▓▓▓▓▓▓▓▓
           ▓▓▓▓▓▓▓▓▓▓▓▓▓▓
         ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
@@ -15,6 +16,7 @@
     ▓▓▓▓    ▓▓▓▓▓▓▓▓▓▓
       ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
           ▓▓▓▓░░▓▓░░▓▓▓▓
+```
 
 `kicad_monkey` is a focused Python package for KiCad source-file parsing,
 round-trip modeling, close-to-format utilities, and IR-backed 2D rendering.
