@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -19,6 +20,17 @@ def _prepend_pythonpath(env: dict[str, str], *paths: Path | None) -> None:
     env["PYTHONPATH"] = os.pathsep.join(entries)
 
 
+def _find_rack_executable(name: str) -> Path | None:
+    # Keep the venv path intact; resolving it follows Linux python symlinks to /usr/bin.
+    sibling = Path(sys.executable).with_name(name)
+    if sibling.exists():
+        return sibling
+    located = shutil.which(name)
+    if located:
+        return Path(located)
+    return None
+
+
 def main() -> int:
     env = os.environ.copy()
     env["RACK_TESTS_DIR"] = str(TESTS_DIR)
@@ -27,10 +39,10 @@ def main() -> int:
     _prepend_pythonpath(env, KICAD_PACKAGE_ROOT / "src" / "py")
 
     rack_exe_name = "rack.exe" if os.name == "nt" else "rack"
-    rack_exe = Path(sys.executable).resolve().with_name(rack_exe_name)
-    if not rack_exe.exists():
+    rack_exe = _find_rack_executable(rack_exe_name)
+    if rack_exe is None:
         raise SystemExit(
-            f"Rack executable not found at '{rack_exe}'. "
+            f"Rack executable not found near '{sys.executable}' or on PATH. "
             "Run 'uv sync --group dev' from this package to install wn-rack."
         )
 
