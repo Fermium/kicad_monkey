@@ -39,8 +39,8 @@ uv run --extra test pyright
 Before the first public push:
 
 1. Keep `src/py/kicad_monkey` package-wide ruff and pyright clean.
-2. Keep package pyright at zero while internal `toolz`/`appz` consumers move to
-   the public API surface.
+2. Keep package pyright at zero while downstream consumers move to the public
+   API surface.
 3. Add conformance contracts under `docs/contracts/` for any stable JSON,
    corpus manifest, or cruncher-facing output that leaves the package.
 4. Use the first `kicad-cruncher` integration pass to decide which provisional
