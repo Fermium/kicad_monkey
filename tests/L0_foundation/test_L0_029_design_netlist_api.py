@@ -239,7 +239,7 @@ def test_to_netlist_json_returns_kicad_native_dict(tmp_path):
     design._netlist = _make_synthetic_netlist()
 
     payload = design.to_netlist_json()
-    assert payload["schema"] == "kicad_monkey.netlist.a1"
+    assert payload["schema"] == "kicad_monkey.netlist.a0"
     assert payload["generator"] == "kicad_monkey"
     assert payload["design"]["tool"] == "kicad_monkey"
 

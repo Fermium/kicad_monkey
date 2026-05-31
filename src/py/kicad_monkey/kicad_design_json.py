@@ -26,7 +26,7 @@ if TYPE_CHECKING:  # pragma: no cover - typing only
 
 
 KICAD_DESIGN_JSON_SCHEMA = "kicad_monkey.design.a1"
-KICAD_NETLIST_JSON_SCHEMA = "kicad_monkey.netlist.a1"
+KICAD_NETLIST_JSON_SCHEMA = "kicad_monkey.netlist.a0"
 KICAD_SCHEMATIC_HIERARCHY_SCHEMA = "kicad_monkey.schematic_hierarchy.a1"
 KICAD_DESIGN_JSON_GENERATOR = "kicad_monkey"
 

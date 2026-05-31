@@ -129,7 +129,7 @@ def test_public_kicad_netlist_json_uses_raw_netlist_contract():
     design = KiCadDesign.from_project_file(_CANBOB_PRO)
     payload = design.to_kicad_netlist_json()
 
-    assert payload["schema"] == "kicad_monkey.netlist.a1"
+    assert payload["schema"] == "kicad_monkey.netlist.a0"
     assert payload["generator"] == "kicad_monkey"
     assert payload["components"]
     assert payload["nets"]
