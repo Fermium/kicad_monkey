@@ -207,7 +207,7 @@ def get_kicad_pcb_foundation_case_reference_output_dir(case_name: str) -> Path:
 def get_kicad_upstream_qa_dir() -> Path:
     """Mirrored KiCad ``qa/data/`` tree (curated 41-file slice).
 
-    Refresh via ``toolz/kicad_monkey/scripts/sync_upstream_qa_fixtures.py``.
+    Refresh via the package-local upstream QA fixture sync script.
     """
     return _require_dir(
         get_kicad_corpus_root() / "upstream_qa",
@@ -263,7 +263,7 @@ def iter_kicad_sexpr_files(
 def get_kicad_netlist_upstream_qa_dir() -> Path:
     """Mirrored KiCad ``qa/data/eeschema/netlists/`` tree (14 cases).
 
-    Refresh via ``toolz/kicad_monkey/scripts/sync_upstream_qa_netlist_fixtures.py``.
+    Refresh via ``scripts/sync_upstream_qa_netlist_fixtures.py``.
     Each subdirectory is one case with a ``.kicad_sch`` (+ optional sub-
     schematics, ``.kicad_pro``) and a golden ``.net`` produced by
     upstream's own KiCad build.

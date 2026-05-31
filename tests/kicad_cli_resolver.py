@@ -15,10 +15,7 @@ def _corpus_roots() -> list[Path]:
     env_corpus = os.environ.get("WN_TEST_CORPUS")
     if env_corpus:
         roots.append(Path(env_corpus))
-    roots.append(Path(r"C:\eli\wn_test_corpus"))
-    roots.append(
-        Path(r"C:\Users\EliHughes\OneDrive - Wavenumber LLC\wn_test_corpus")
-    )
+    roots.append(Path(__file__).resolve().parent / "corpus")
 
     out: list[Path] = []
     seen: set[Path] = set()

@@ -36,7 +36,7 @@ uv run --extra test pyright
 -> 0 errors, 0 warnings, 0 informations
 ```
 
-Before the first public push:
+Ongoing release expectations:
 
 1. Keep `src/py/kicad_monkey` package-wide ruff and pyright clean.
 2. Keep package pyright at zero while downstream consumers move to the public

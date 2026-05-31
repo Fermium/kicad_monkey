@@ -24,8 +24,8 @@ from generate_cli_svg_comparison import (
 from synthetic_board_svg_oracle import export_svg_with_kicad_cli, find_kicad_cli
 
 
-WORKTREE_ROOT = Path(__file__).resolve().parents[4]
-LOCAL_KICAD_MONKEY_SRC = WORKTREE_ROOT / "toolz" / "kicad_monkey" / "src" / "py"
+REPO_ROOT = Path(__file__).resolve().parents[1]
+LOCAL_KICAD_MONKEY_SRC = REPO_ROOT / "src" / "py"
 if LOCAL_KICAD_MONKEY_SRC.exists() and str(LOCAL_KICAD_MONKEY_SRC) not in sys.path:
     sys.path.insert(0, str(LOCAL_KICAD_MONKEY_SRC))
 

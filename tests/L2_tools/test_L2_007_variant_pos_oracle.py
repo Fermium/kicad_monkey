@@ -32,12 +32,12 @@ from __future__ import annotations
 
 import csv
 import subprocess
-import sys
 import tempfile
 from pathlib import Path
 
 import pytest
 
+from kicad_cli_resolver import resolve_kicad_cli
 from kicad_monkey import KiCadSchematic, KiCadPcb, assemble
 from kicad_monkey.testing.corpus import get_kicad_upstream_qa_dir
 
@@ -60,36 +60,15 @@ def _variants_pcb() -> Path:
 
 
 # ---------------------------------------------------------------------------
-# kicad-cli resolution (shared with L2_005 / L2_006 via oracle_diff harness)
+# kicad-cli resolution
 # ---------------------------------------------------------------------------
-
-
-_RESEARCH = (
-    Path(__file__).resolve().parents[5]
-    / "toolz" / "kicad_monkey" / "docs" / "research"
-)
-if str(_RESEARCH) not in sys.path:
-    sys.path.insert(0, str(_RESEARCH))
-
-try:
-    from oracle_diff import _resolve_cli  # type: ignore
-except Exception as exc:  # pragma: no cover
-    _resolve_cli = None  # type: ignore
-    _IMPORT_ERR = exc
-else:
-    _IMPORT_ERR = None
 
 
 @pytest.fixture(scope="module")
 def kicad_cli() -> Path:
-    if _resolve_cli is None:
-        pytest.skip(f"oracle_diff harness not importable: {_IMPORT_ERR!r}")
-    cli = _resolve_cli(None)
+    cli = resolve_kicad_cli()
     if cli is None or not Path(cli).exists():
-        pytest.skip(
-            "no kicad-cli resolvable on this machine; "
-            "see toolz-tests/tools/kicad-cli/README.md"
-        )
+        pytest.skip("no kicad-cli resolvable on this machine")
     return Path(cli)
 
 

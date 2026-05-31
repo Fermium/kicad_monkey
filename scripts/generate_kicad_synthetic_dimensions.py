@@ -421,11 +421,12 @@ def _write_case(corpus_root: Path, case: DimensionCase, *, force: bool, dry_run:
 
 
 def main(argv: list[str] | None = None) -> int:
+    repo_root = Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--corpus-root",
         type=Path,
-        default=Path(os.environ.get("WN_TEST_CORPUS", r"C:\eli\wn_test_corpus")),
+        default=Path(os.environ.get("WN_TEST_CORPUS", repo_root / "tests" / "corpus")),
     )
     parser.add_argument(
         "--cases",

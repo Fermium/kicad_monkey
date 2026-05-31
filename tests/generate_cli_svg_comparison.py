@@ -30,8 +30,8 @@ from kicad_cli_resolver import resolve_kicad_cli
 from svg.svg_diff_helpers import compare_svg_bounds, create_overlay_diff
 
 
-WORKTREE_ROOT = Path(__file__).resolve().parents[4]
-LOCAL_KICAD_MONKEY_SRC = WORKTREE_ROOT / "toolz" / "kicad_monkey" / "src" / "py"
+REPO_ROOT = Path(__file__).resolve().parents[1]
+LOCAL_KICAD_MONKEY_SRC = REPO_ROOT / "src" / "py"
 if LOCAL_KICAD_MONKEY_SRC.exists() and str(LOCAL_KICAD_MONKEY_SRC) not in sys.path:
     sys.path.insert(0, str(LOCAL_KICAD_MONKEY_SRC))
 
@@ -50,18 +50,7 @@ TEXT_SVG_PRECISION_EQUIV_MM = 0.001
 # attribute delta is retained as raw data but is not a semantic mismatch.
 TEXT_LENGTH_SVG_PRECISION_EQUIV_MM = 0.0001
 SVG_PAN_ZOOM_ASSET = "svg-pan-zoom.min.js"
-SVG_PAN_ZOOM_VENDOR_CANDIDATES = (
-    WORKTREE_ROOT
-    / "appz"
-    / "lib_cruncher"
-    / "src"
-    / "py"
-    / "lib_cruncher"
-    / "static"
-    / "vendor"
-    / "svg-pan-zoom"
-    / SVG_PAN_ZOOM_ASSET,
-)
+SVG_PAN_ZOOM_VENDOR_CANDIDATES: tuple[Path, ...] = ()
 
 _PANZOOM_CSS = """
 body { font-family: Segoe UI, Arial, sans-serif; margin: 0; color: #1f2933; background: #f7f8fa; }
@@ -309,8 +298,7 @@ def _require_text_metric_dependencies() -> None:
             "dependencies: "
             + ", ".join(missing)
             + ". Run this with the package project environment, for example: "
-            "`uv run --project ..\\toolz\\kicad_monkey python "
-            "suites\\kicad_monkey\\tests\\generate_cli_svg_comparison.py ...`."
+            "`uv run python tests\\generate_cli_svg_comparison.py ...`."
         )
 
 
@@ -318,7 +306,7 @@ def _default_kicad_root() -> Path:
     corpus = os.environ.get("WN_TEST_CORPUS")
     if corpus:
         return Path(corpus) / "kicad"
-    return Path(r"C:\eli\wn_test_corpus\kicad")
+    return REPO_ROOT / "tests" / "corpus" / "kicad"
 
 
 def _html(value: object) -> str:
@@ -340,10 +328,7 @@ def _svg_pan_zoom_script() -> str:
             if "svgPanZoom" not in script:
                 raise RuntimeError(f"Vendored {SVG_PAN_ZOOM_ASSET} did not look valid: {candidate}")
             return script
-    raise RuntimeError(
-        f"Unable to find vendored {SVG_PAN_ZOOM_ASSET}. "
-        "Expected it under appz/lib_cruncher/static/vendor/svg-pan-zoom."
-    )
+    return ""
 
 
 def _inline_script_block(script: str) -> str:
@@ -1814,7 +1799,7 @@ def main() -> int:
         "--kicad-root",
         type=Path,
         default=_default_kicad_root(),
-        help="KiCad corpus root. Defaults to $WN_TEST_CORPUS/kicad or C:/eli/wn_test_corpus/kicad.",
+        help="KiCad corpus root. Defaults to $WN_TEST_CORPUS/kicad or tests/corpus/kicad.",
     )
     parser.add_argument(
         "--output",

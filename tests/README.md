@@ -1,22 +1,21 @@
 # KiCad Monkey Tests
 
-This suite follows the same hygiene model as `altium_monkey`:
+This suite follows the package-local corpus model:
 - persistent file-backed fixtures resolve through `WN_TEST_CORPUS`
 - the default public-repo corpus mirror lives under `tests/corpus`
 - synthetic tests may stay local
 - `input/`, `reference_output/`, and `output/` are the standard case buckets
 - `output/` is transient
 
-`toolz-tests/suites/kicad_monkey/tests/rack.py` is only a thin delegating wrapper to the installed `wn-rack`
-CLI. It is not a local fork of the rack framework.
+`tests/rack.py` is a thin delegating wrapper to the installed `wn-rack` CLI. It
+is not a local fork of the rack framework.
 
 ## Quick Start
 
 ```powershell
-cd C:\ELI\wn-hw-workspace\toolz\kicad_monkey
-$env:WN_TEST_SUITES_ROOT = "C:\ELI\wn-hw-workspace\toolz-tests"
+cd kicad_monkey
 uv sync --group dev
-uv run python "$env:WN_TEST_SUITES_ROOT\suites\kicad_monkey\tests\rack.py" list
+uv run python tests/rack.py list
 ```
 
 `tests/conftest.py` points `WN_TEST_CORPUS` at `tests/corpus` when no usable
@@ -26,19 +25,19 @@ override the package-local mirror.
 Run a stratum:
 
 ```powershell
-uv run python "$env:WN_TEST_SUITES_ROOT\suites\kicad_monkey\tests\rack.py" run L1_parsing
+uv run python tests/rack.py run L1_parsing
 ```
 
 Regenerate the manifest-driven SVG review page:
 
 ```powershell
-uv run python "$env:WN_TEST_SUITES_ROOT\suites\kicad_monkey\tests\generate_manifest_svg_review.py"
+uv run python tests/generate_manifest_svg_review.py
 ```
 
 Generate the downstream KiCad CLI vs IR SVG comparison report:
 
 ```powershell
-uv run python "$env:WN_TEST_SUITES_ROOT\suites\kicad_monkey\tests\generate_cli_svg_comparison.py"
+uv run python tests/generate_cli_svg_comparison.py
 ```
 
 ## Strata

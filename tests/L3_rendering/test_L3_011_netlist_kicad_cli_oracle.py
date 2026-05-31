@@ -22,8 +22,8 @@ Gated by:
 * a kicad-cli binary resolvable via ``$KICAD_CLI`` /
   ``$WN_TEST_CORPUS/tools/kicad-cli/<hash>/bin/kicad-cli.exe`` /
   installed KiCad. Resolution mirrors ``oracle_diff.py::_resolve_cli``.
-* the corpus root being present (env ``WN_TEST_CORPUS`` or fallback
-  paths).
+* the corpus root being present (env ``WN_TEST_CORPUS`` or package-local
+  corpus).
 
 Run cost: one ``kicad-cli`` invocation per project (cached on disk
 between sessions under ``<corpus>/kicad/netlist/reference_output/<stem>.net``).
@@ -59,10 +59,7 @@ def _resolve_corpus() -> Path | None:
     candidates: list[Path] = []
     if env:
         candidates.append(Path(env))
-    candidates.append(Path(r"C:\eli\wn_test_corpus"))
-    candidates.append(
-        Path(r"C:\Users\EliHughes\OneDrive - Wavenumber LLC\wn_test_corpus")
-    )
+    candidates.append(Path(__file__).resolve().parents[1] / "corpus")
     for cand in candidates:
         if (cand / "kicad" / "projects").is_dir():
             return cand

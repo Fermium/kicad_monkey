@@ -19,7 +19,6 @@ uses that path as the default `WN_TEST_CORPUS`.
 
 Source snapshot:
 
-- Source root: `C:\eli\wn_test_corpus\kicad`
 - Mirrored root: `tests/corpus/kicad`
 - Excluded generated/local-only directories: `output`, `review`,
   `review_tmp`, `.git`, `.history`

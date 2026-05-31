@@ -1,4 +1,4 @@
-"""Mirror KiCad upstream-QA netlist fixtures into wn_test_corpus.
+"""Mirror KiCad upstream-QA netlist fixtures into the test corpus.
 
 Phase G - Slice N-8. Copies discovered KiCad 9/10-format test cases from
 ``<kicad_src>/qa/data/eeschema/netlists/<case>/`` into
@@ -10,7 +10,7 @@ fixture was committed.
 Usage::
 
     python scripts/sync_upstream_qa_netlist_fixtures.py
-        [--kicad-src C:/eli/kicad_build/kicad]
+        --kicad-src <local KiCad source checkout>
         [--corpus  "<wn_test_corpus root>"]
         [--dry-run]
 
@@ -30,6 +30,8 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 MIN_SUPPORTED_SCHEMATIC_VERSION = 20240716
@@ -115,13 +117,12 @@ def _resolve_corpus(arg: Path | None) -> Path:
     candidates: list[Path] = []
     if env:
         candidates.append(Path(env))
-    candidates.append(Path(r"C:\eli\wn_test_corpus"))
-    candidates.append(Path(r"C:\Users\EliHughes\OneDrive - Wavenumber LLC\wn_test_corpus"))
+    candidates.append(REPO_ROOT / "tests" / "corpus")
     for cand in candidates:
         if (cand / "kicad").exists():
             return cand
     raise SystemExit(
-        f"Could not locate wn_test_corpus root. Tried: {[str(c) for c in candidates]}"
+        f"Could not locate corpus root. Tried: {[str(c) for c in candidates]}"
     )
 
 
@@ -177,12 +178,12 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--kicad-src", type=Path,
-        default=Path(r"C:\eli\kicad_build\kicad"),
+        default=None,
         help="Path to the local KiCad source checkout.",
     )
     parser.add_argument(
         "--corpus", type=Path, default=None,
-        help="wn_test_corpus root (defaults to $WN_TEST_CORPUS, then C:\\eli\\wn_test_corpus, then OneDrive).",
+        help="Corpus root (defaults to $WN_TEST_CORPUS, then tests/corpus).",
     )
     parser.add_argument(
         "--dry-run", action="store_true",
@@ -190,6 +191,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
+    if args.kicad_src is None:
+        raise SystemExit("--kicad-src is required")
     kicad_src: Path = args.kicad_src.resolve()
     if not (kicad_src / ".git").exists():
         print(f"Not a git checkout: {kicad_src}", file=sys.stderr)

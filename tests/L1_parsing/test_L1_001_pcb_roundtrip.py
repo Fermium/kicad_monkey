@@ -599,8 +599,7 @@ class TestRoundTrip:
 
         KiCad's `(generated ...)` block uses `(id <bare-uuid>)` as the FIRST
         child (NOT `(uuid ...)`) and bare-token members (NOT quoted).
-        Misordering or quoting causes kicad-cli to segfault on parse — see
-        ``toolz/kicad_monkey/docs/research/2026-05-08-drift-inventory.md``.
+        Misordering or quoting causes kicad-cli to segfault on parse.
         """
         pcb_text = """(kicad_pcb
 \t(version 20260206)

@@ -5,9 +5,9 @@ Date: 2026-05-31
 
 ## Context
 
-`kicad-monkey` is moving from the private `toolz` workspace into a public
-library package. Downstream tools, including `kicad-cruncher`, need a stable
-parser/model/rendering surface with clear intent before depending on it.
+`kicad-monkey` is being released as a public library package. Downstream tools,
+including `kicad-cruncher`, need a stable parser/model/rendering surface with
+clear intent before depending on it.
 
 The package intentionally keeps a broad package-root export surface while the
 first cruncher workflows prove what should become durable public API. The
@@ -37,11 +37,11 @@ easy to inspect with text tooling.
 Stable machine-readable contracts that leave the package boundary belong under
 `docs/contracts/` and need conformance tests before release.
 
-Planning notes are local working artifacts, not public release artifacts. When a
-plan completes, the relevant durable decisions, API intent, status, and test
-ownership move into ADRs, design docs, release notes, or contracts as
-appropriate. `docs/plans/` is ignored to keep future planning scratch work out
-of public commits.
+Planning notes and research notes are local working artifacts, not public
+release artifacts. When a plan or research spike completes, the relevant
+durable decisions, API intent, status, and test ownership move into ADRs,
+design docs, release notes, or contracts as appropriate. `docs/plans/` and
+`docs/research/` are ignored to keep future scratch work out of public commits.
 
 ## Consequences
 

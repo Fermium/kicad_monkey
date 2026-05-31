@@ -1,9 +1,10 @@
-# KiCad Module Requirements
+# KiCad Monkey Requirements
 
-**Version**: 1.0
-**Last Updated**: 2025-12-18
+**Version**: 2026.5.31
+**Last Updated**: 2026-05-31
 
-This document defines formal requirements for the KiCad module.
+This document defines formal requirements for the public `kicad-monkey`
+package.
 Requirements use the format `REQ-KICAD-XXX` for traceability in code and tests.
 
 ---
@@ -41,7 +42,7 @@ Requirements use the format `REQ-KICAD-XXX` for traceability in code and tests.
 
 **Rationale**:
 - Different consumers may have different filtering requirements
-- Filtering belongs in higher-level modules (bom_cruncher)
+- Filtering belongs in downstream applications
 - Enables parser to be a general-purpose library
 
 **Verification**: Code review - no filtering logic in parser modules.
@@ -57,19 +58,19 @@ Requirements use the format `REQ-KICAD-XXX` for traceability in code and tests.
 | **Added** | 2025-12-18 |
 | **Implemented** | 2025-12-18 |
 
-**Requirement**: Conversion from typed KiCad footprint objects to `PcbComponent` MUST be in `data_models/converters/kicad.py`, NOT in the parser.
+**Requirement**: Conversion from typed KiCad footprint objects to neutral
+component models MUST be outside the parser.
 
 **Rationale**:
-- Consistent with Altium architecture
 - Separation of concerns (parsing vs. conversion)
-- Allows converter to add metadata (`_source_cad`)
+- Allows downstream converters to add application-specific metadata
 
 **Implementation**:
-- `data_models/converters/kicad.py` exposes `pcb_component_from_kicad_footprint()` and `pcb_components_from_kicad_pcb()`
 - Legacy `KiCadPcbComponent.to_pcb_component()` and `KiCadPcbDoc.to_pcb_components()` conversion hooks were removed
-- Updated `bom_cruncher/extraction/kicad.py` to use the typed `KiCadPcb` converter path
+- Application code should parse with `KiCadPcb` and adapt from the typed object
+  graph
 
-**Verification**: Code structure matches Altium pattern.
+**Verification**: Parser modules do not own neutral component-model policy.
 
 ---
 
@@ -82,22 +83,17 @@ Requirements use the format `REQ-KICAD-XXX` for traceability in code and tests.
 | **Added** | 2026-02-28 |
 | **Implemented** | 2026-02-28 |
 
-**Requirement**: Shared PCB SVG contract definitions MUST be sourced from `../wn_pcb/tools/data_models/contracts/pcb_svg`.
-
-**Canonical Artifacts**:
-- `SPEC.md` (normative terminology, relationships, and versioning policy)
-- `pcb_svg_enrichment_a0.schema.json` (normative schema)
+**Requirement**: Stable SVG metadata emitted by `kicad-monkey` MUST have a
+documented package contract and conformance tests.
 
 **Rules**:
-- `tools/kicad` MUST treat the data_models contract as authoritative.
-- Any local `tools/kicad` schema/doc copies MUST remain semantically synchronized with the canonical artifacts.
-- Contract changes MUST be authored in the canonical location first, then propagated to KiCad implementation/tests.
-- KiCad documentation MUST reference the canonical location instead of redefining shared field semantics.
-- SVG element-level metadata (`data-*` attributes) and board outline/cutout semantics MUST follow canonical `SPEC.md`.
+- Contract files belong under `docs/contracts/` once promoted.
+- Contract changes need matching conformance tests.
+- SVG element-level metadata (`data-*` attributes) and board outline/cutout
+  semantics must not drift silently.
 
 **Verification**:
-- [x] `tools/kicad/ARCHITECTURE.md` references canonical contract location.
-- [x] `tools/kicad/REQUIREMENTS.md` defines this governance requirement.
+- [x] `L99_signoff` checks the current contract/design-doc manifest.
 
 ---
 
@@ -110,24 +106,24 @@ Requirements use the format `REQ-KICAD-XXX` for traceability in code and tests.
 | **Added** | 2026-03-16 |
 | **Implemented** | 2026-03-16 |
 
-**Requirement**: Significant `KiCad source -> pcb_a0 -> IPC` expansion work in
-`tools/data_models` MUST be gated on an explicit source-model readiness review
-of the `tools/kicad` OOP parser/model.
+**Requirement**: Significant downstream neutral-model expansion work MUST be
+gated on an explicit source-model readiness review of the `kicad-monkey` OOP
+parser/model.
 
 **Scope**:
 - Review the real `KiCadPcb` / `KiCadFootprint` / related OOP API surfaces
   that downstream converters depend on
 - Validate the parser/model on a curated shared KiCad corpus, not just legacy
   parser fixtures
-- Record current parser/model gaps separately from `data_models` converter gaps
+- Record current parser/model gaps separately from downstream converter gaps
 - Treat the KiCad OOP model as the source-truth boundary for Track D, not the
   legacy `KiCadPcbDoc` component extractor
 
 **Rationale**:
 - Converter work is only worth doing if the underlying KiCad source model is
   trustworthy and stable
-- Recent Track D probing showed that the real `KiCadPcb` object already carries
-  more board data than the current `data_models` converter is using
+- Source-model probing showed that the real `KiCadPcb` object already carries
+  more board data than early downstream converters used
 - We need to avoid misclassifying converter-contract drift as parser failure
 
 **Verification**:
@@ -424,7 +420,9 @@ elements.
 | **Priority** | HIGH |
 | **Added** | 2026-02-28 |
 
-**Requirement**: A shared SVG contract conformance suite MUST be executable by both Altium and KiCad pipelines and MUST fail CI on semantic drift in required metadata fields.
+**Requirement**: A shared SVG contract conformance suite MUST be executable by
+supported CAD pipelines and MUST fail CI on semantic drift in required metadata
+fields.
 
 ---
 
@@ -442,11 +440,12 @@ elements.
 **Requirement**: All `PcbComponent` instances from KiCad MUST include `_source_cad: "kicad"` in params.
 
 **Rationale**:
-- Allows bom_cruncher to identify source CAD system
+- Allows downstream consumers to identify source CAD system
 - Enables CAD-specific filtering logic
 - Required by REQ-BOM-002
 
-**Implementation**: `pcb_component_from_kicad_footprint()` in `data_models/converters/kicad.py` adds `_source_cad: "kicad"` to all components.
+**Implementation**: Downstream component converters should add `_source_cad:
+"kicad"` to neutral component outputs derived from KiCad footprints.
 
 **Verification**: Unit test `test_source_cad_set` in `test_converters_kicad.py`.
 
@@ -465,7 +464,8 @@ elements.
 
 **Rationale**: Allows downstream BOM filtering to respect DNP status.
 
-**Implementation**: `pcb_component_from_kicad_footprint()` in `data_models/converters/kicad.py` adds `DNP: True` to params when the KiCad footprint has the DNP attribute.
+**Implementation**: The typed `Footprint` parser preserves KiCad's `dnp`
+attribute so downstream converters can map it to neutral component metadata.
 
 **Verification**: Unit tests `test_dnp_true_preserved` and `test_dnp_false_not_added` in `test_converters_kicad.py`.
 
@@ -483,8 +483,8 @@ elements.
 **Requirement**: Components with KiCad's `exclude_from_bom` attribute MUST have `exclude_from_bom: True` in `PcbComponent.params`.
 
 **Rationale**:
-- KiCad's equivalent to Altium's STANDARD_NO_BOM
-- Allows bom_cruncher to filter without knowledge of KiCad internals
+- KiCad's source-level no-BOM flag
+- Allows downstream BOM consumers to filter without knowledge of KiCad internals
 
 **Implementation**:
 - The typed `Footprint` parser extracts KiCad's `exclude_from_bom` attribute
@@ -672,11 +672,11 @@ tests/test_cases/svg/
 | **Priority** | HIGH |
 | **Added** | 2025-12-18 |
 
-**Requirement**: All KiCad module tests MUST be in `tools/kicad/tests/`.
+**Requirement**: Public package tests MUST be in `tests/`.
 
 **Rationale**: Module can be extracted with tests intact.
 
-**Verification**: No KiCad tests in `tools/tests/`.
+**Verification**: Release CI runs Rack from the package-local `tests/` tree.
 
 ---
 
@@ -982,4 +982,4 @@ class SvgRenderContext:
 |---------|------|---------|
 | 1.2 | 2025-12-25 | REQ-KICAD-071, 072, 074 marked IMPLEMENTED (SVG refactor complete) |
 | 1.1 | 2025-12-25 | Added REQ-KICAD-070 through 075 for SVG refactoring |
-| 1.0 | 2025-12-18 | Initial requirements based on Altium module pattern |
+| 1.0 | 2025-12-18 | Initial requirements baseline |

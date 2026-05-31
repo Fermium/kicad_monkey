@@ -15,8 +15,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-PY_SRC = REPO_ROOT / "kicad_monkey" / "src" / "py"
+REPO_ROOT = Path(__file__).resolve().parents[1]
+PY_SRC = REPO_ROOT / "src" / "py"
 if str(PY_SRC) not in sys.path:
     sys.path.insert(0, str(PY_SRC))
 
@@ -147,14 +147,10 @@ def _project_case(kicad_root: Path, project_dir: Path) -> dict[str, Any] | None:
     output_root = project_dir / "output"
     reference_output_root = project_dir / "reference_output"
 
-    source_path_by_id = {
-        "fenton_fum": "C:/eli/prj/voltvision/fenton-fum/fenton-fum-hw/HARDWARE/Fenton-FUM-HW-Rev-A/src",
-        "speedy_processing_module": "C:/eli/prj/magnitude_instruments/speedy/speedy_processing_module/tracks/A",
-    }
     provenance = {
-        "source_kind": "internal_project_copy",
-        "source_path": source_path_by_id.get(project_dir.name),
-        "license_usage": "internal_validation_only",
+        "source_kind": "corpus_project_copy",
+        "source_path": None,
+        "license_usage": "test_fixture",
     }
     provenance.update(metadata.get("provenance") or {})
 
@@ -400,7 +396,7 @@ def _topic_cases(kicad_root: Path) -> list[dict[str, Any]]:
         )
 
     for sym in sorted((kicad_root / "symbol_svg" / "input").glob("*.kicad_sym")):
-        origin = "internal_library" if sym.stem == "MIMXRT685SFVKB" else "synthetic"
+        origin = "fixture" if sym.stem == "MIMXRT685SFVKB" else "synthetic"
         cases.append(
             _topic_case(
                 kicad_root,
@@ -412,15 +408,11 @@ def _topic_cases(kicad_root: Path) -> list[dict[str, Any]]:
                 extra={
                     "symbol_unit_count": _symbol_unit_count(sym),
                     "provenance": {
-                        "source_kind": "internal_library_copy"
-                        if origin == "internal_library"
+                        "source_kind": "library_fixture"
+                        if origin == "fixture"
                         else "synthetic",
-                        "source_path": "C:/eli/wn-hw/libz/wn-general/symbols/kicad/MIMXRT685SFVKB.kicad_sym"
-                        if sym.stem == "MIMXRT685SFVKB"
-                        else None,
-                        "license_usage": "internal_validation_only"
-                        if origin == "internal_library"
-                        else "test_fixture",
+                        "source_path": None,
+                        "license_usage": "test_fixture",
                     },
                 },
             )
@@ -434,7 +426,7 @@ def _topic_cases(kicad_root: Path) -> list[dict[str, Any]]:
                 case_id=fp.stem,
                 input_file=fp,
                 domains=["footprint_ir", "footprint_svg", "footprint_library"],
-                origin="internal_library",
+                origin="fixture",
             )
         )
 
@@ -728,19 +720,6 @@ def _real_world_recorder_cases(kicad_root: Path) -> list[dict[str, Any]]:
             short=0,
             long=0,
             first="",
-        ),
-        "fenton_fum.1": active(
-            "fenton_fum",
-            "projects/fenton_fum/input/vov1577_fum.kicad_sch",
-            canvas=[0, 0],
-            matched=127,
-            ratio=1.0,
-            short=0,
-            long=0,
-            first="",
-            recorder_only=["PlotImage", "StrokedTextRun"],
-            monkey_only=["PlotPoly"],
-            required=["Rect", "Text"],
         ),
         "icepi_sbc.1": reference(
             "icepi_sbc",
@@ -1166,7 +1145,7 @@ def build_manifest(kicad_root: Path) -> dict[str, Any]:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    default_corpus = Path(os.environ.get("WN_TEST_CORPUS", r"C:\eli\wn_test_corpus"))
+    default_corpus = Path(os.environ.get("WN_TEST_CORPUS", REPO_ROOT / "tests" / "corpus"))
     parser.add_argument("--corpus-root", type=Path, default=default_corpus)
     parser.add_argument("--output", type=Path, default=None)
     args = parser.parse_args()

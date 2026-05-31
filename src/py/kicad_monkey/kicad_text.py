@@ -457,14 +457,6 @@ def _find_harfbuzz_dll() -> Optional[Path]:
     if env_path and Path(env_path).is_file():
         return Path(env_path)
 
-    candidates = [
-        Path("C:/eli/kicad_build/kicad/build/msvc-win64-release/vcpkg_installed/x64-windows/bin/harfbuzz.dll"),
-        Path("C:/eli/kicad_build/kicad/build/msvc-win64-debug/vcpkg_installed/x64-windows/bin/harfbuzz.dll"),
-        Path("C:/eli/kicad_build/kicad-win-builder/.out/x64-windows-Release/bin/harfbuzz.dll"),
-    ]
-    for candidate in candidates:
-        if candidate.is_file():
-            return candidate
     return None
 
 

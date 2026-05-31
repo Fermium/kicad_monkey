@@ -8,7 +8,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from _suite_paths import KICAD_PACKAGE_ROOT, TESTS_DIR, TESTS_REPO_ROOT, TOOLZ_ROOT
+from _suite_paths import KICAD_PACKAGE_ROOT, TESTS_DIR, TESTS_REPO_ROOT
 
 
 def _prepend_pythonpath(env: dict[str, str], *paths: Path | None) -> None:
@@ -24,7 +24,7 @@ def main() -> int:
     env["RACK_TESTS_DIR"] = str(TESTS_DIR)
     env["WN_RACK_TESTS_DIR"] = str(TESTS_DIR)
     env.setdefault("WN_TEST_SUITES_ROOT", str(TESTS_REPO_ROOT))
-    _prepend_pythonpath(env, KICAD_PACKAGE_ROOT / "src" / "py", TOOLZ_ROOT)
+    _prepend_pythonpath(env, KICAD_PACKAGE_ROOT / "src" / "py")
 
     rack_exe_name = "rack.exe" if os.name == "nt" else "rack"
     rack_exe = Path(sys.executable).resolve().with_name(rack_exe_name)

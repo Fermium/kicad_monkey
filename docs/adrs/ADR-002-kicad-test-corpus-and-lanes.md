@@ -6,9 +6,12 @@ Accepted
 
 ## Context
 
-The old KiCad test setup mixed repo-local `tests/test_cases/...` fixtures with broader shared-corpus data. The current migration goal is to make the private KiCad suite trivial to relocate by changing one environment variable instead of rewriting Python path logic.
+The old KiCad test setup mixed repo-local `tests/test_cases/...` fixtures with
+broader corpus data. The current package needs a corpus layout that works both
+from the checked-in archive and from an externally supplied corpus root.
 
-KiCad also needs to follow the same lane model used by the broader `toolz` migration so smoke runs and heavier validations are predictable across modules.
+KiCad also needs a lane model so smoke runs and heavier validations are
+predictable.
 
 ## Decision
 
@@ -35,4 +38,5 @@ Lane model:
 - Moving the shared KiCad corpus should require changing only `WN_TEST_CORPUS`.
 - New persistent fixtures should not be introduced under repo-local `tests/test_cases/...` unless they are synthetic/local-only by design.
 - Focused feature boards should not pollute the broad common board corpus when that would widen unrelated parser-equivalency sweeps.
-- Future strata should record shared assets in `toolz-tests/manifests/test-assets.json` and deferred behavior drift in `DEFERRED_FAILURES.toml`.
+- Future strata should record durable corpus ownership in package-local
+  manifests or design docs before release.

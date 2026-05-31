@@ -1,7 +1,4 @@
-"""
-Modular KiCad conversion functions for single parts.
-Extracted from lib_cruncher__migrate_kicad.py to support per-part conversion.
-"""
+"""Modular KiCad conversion functions for single parts."""
 import importlib
 import logging
 import re

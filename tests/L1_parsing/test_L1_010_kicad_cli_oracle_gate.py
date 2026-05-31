@@ -5,9 +5,7 @@ Purpose: Per-root-cause regression gate — for a curated set of minimal
 reproducers, parse with kicad_monkey, emit, and assert that
 ``kicad-cli * upgrade --force`` accepts the result.
 
-Each root cause from
-``toolz/kicad_monkey/docs/research/2026-05-08-drift-inventory.md`` has at
-least one fixture here. Cases that are known-broken pre-fix are marked
+Each root cause has at least one fixture here. Cases that are known-broken pre-fix are marked
 ``xfail(strict=True)`` so they flip to **XPASS** (a hard failure) the
 moment the fix lands — at which point the marker should be removed.
 
@@ -19,11 +17,11 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
-import sys
 from pathlib import Path
 
 import pytest
 
+from kicad_cli_resolver import resolve_kicad_cli
 from kicad_monkey import KiCadSchematic, KiCadSymbolLib
 
 try:
@@ -34,40 +32,35 @@ except Exception:
 
 
 # ---------------------------------------------------------------------------
-# Resolve kicad-cli (re-uses the harness logic in oracle_diff)
+# Resolve kicad-cli
 # ---------------------------------------------------------------------------
 
-_RESEARCH = Path(__file__).resolve().parents[5] / "toolz" / "kicad_monkey" / "docs" / "research"
-if str(_RESEARCH) not in sys.path:
-    sys.path.insert(0, str(_RESEARCH))
+CLI_VERB = {
+    ".kicad_sch": ("sch", "upgrade"),
+    ".kicad_sym": ("sym", "upgrade"),
+    ".kicad_pcb": ("pcb", "upgrade"),
+}
 
-try:
-    from oracle_diff import _resolve_cli, _stage_file_with_siblings, CLI_VERB  # type: ignore
-except Exception as exc:  # pragma: no cover - import-time only
-    _resolve_cli = None  # type: ignore
-    _stage_file_with_siblings = None  # type: ignore
-    CLI_VERB = {}  # type: ignore
-    _IMPORT_ERR = exc
-else:
-    _IMPORT_ERR = None
+
+def _stage_file_with_siblings(src: Path, stage: Path) -> Path:
+    shutil.copytree(src.parent, stage, dirs_exist_ok=True)
+    return stage / src.name
 
 
 # ---------------------------------------------------------------------------
-# Corpus root resolution (same dual-path convention as oracle_diff)
+# Corpus root resolution
 # ---------------------------------------------------------------------------
 
-_ONEDRIVE_CORPUS = Path(
-    r"C:\Users\EliHughes\OneDrive - Wavenumber LLC\wn_test_corpus"
-)
+_PACKAGE_CORPUS = Path(__file__).resolve().parents[1] / "corpus"
 
 
 def _find_fixture(rel: str) -> Path | None:
-    """Look up a fixture under either ``$WN_TEST_CORPUS`` or the OneDrive corpus."""
+    """Look up a fixture under ``$WN_TEST_CORPUS`` or the package corpus."""
     candidates: list[Path] = []
     env = os.environ.get("WN_TEST_CORPUS")
     if env:
         candidates.append(Path(env) / rel)
-    candidates.append(_ONEDRIVE_CORPUS / rel)
+    candidates.append(_PACKAGE_CORPUS / rel)
     for p in candidates:
         if p.is_file():
             return p
@@ -135,11 +128,9 @@ CASES = [
 
 @pytest.fixture(scope="module")
 def kicad_cli() -> Path:
-    if _resolve_cli is None:
-        pytest.skip(f"oracle_diff harness not importable: {_IMPORT_ERR!r}")
-    cli = _resolve_cli(None)
+    cli = resolve_kicad_cli()
     if cli is None or not Path(cli).exists():
-        pytest.skip("no kicad-cli resolvable on this machine; see toolz-tests/tools/kicad-cli/README.md")
+        pytest.skip("no kicad-cli resolvable on this machine")
     return Path(cli)
 
 
@@ -183,7 +174,7 @@ def test_kicad_cli_accepts_emitted(
     ``kicad-cli * upgrade --force`` returns 0."""
     src = _find_fixture(rel)
     if src is None:
-        pytest.skip(f"fixture {rel!r} not found in $WN_TEST_CORPUS or OneDrive corpus")
+        pytest.skip(f"fixture {rel!r} not found in $WN_TEST_CORPUS or package corpus")
 
     # Stage the source's parent directory (siblings — `.kicad_pro`, `sym-lib-table`, etc.).
     stage = tmp_path / "ours"

@@ -7,8 +7,8 @@ The default target layout matches the KiCad corpus manifest builder:
     kicad/board_svg/input/<case_id>/<case_id>.kicad_sch
     kicad/board_svg/input/<case_id>/case_metadata.json
 
-Use a staging corpus root while developing, then run against
-``C:\eli\wn_test_corpus`` once the corpus maintenance window is clear.
+Use a staging corpus root while developing, then run against the package-local
+or external corpus root once the corpus maintenance window is clear.
 """
 
 from __future__ import annotations
@@ -37,6 +37,8 @@ from kicad_monkey.kicad_pcb_routing import FrontBackOptBool, Via
 from kicad_monkey.kicad_primitives import Effects as PropertyEffects
 from kicad_monkey.kicad_primitives import Font as PropertyFont
 from kicad_monkey.kicad_property import Property
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 BOARD_VERSION = 20241229
@@ -1129,7 +1131,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--corpus-root",
         type=Path,
-        default=Path(os.environ.get("WN_TEST_CORPUS", r"C:\eli\wn_test_corpus")),
+        default=Path(os.environ.get("WN_TEST_CORPUS", REPO_ROOT / "tests" / "corpus")),
         help="Root containing the kicad corpus folder.",
     )
     parser.add_argument(

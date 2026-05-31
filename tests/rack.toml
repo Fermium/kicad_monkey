@@ -2,7 +2,7 @@
 name = "KiCad Module Tests"
 version = "1.0"
 description = "Test suite for KiCad file format parsing, tools, and rendering"
-note = "Private toolz suite. Shared corpus is mounted locally from WN_TEST_CORPUS."
+note = "Public package suite. Uses the package-local corpus archive unless WN_TEST_CORPUS overrides it."
 default_lane = "fast"
 
 [strata]
@@ -98,7 +98,7 @@ python_packages = [
     "wn-rack",
 ]
 
-[[dependencies.internal_tools]]
+[[dependencies.external_tools]]
 name = "kicad-cli"
 purpose = "Generate reference SVG outputs (ground truth)"
 required_for = ["L3_rendering"]

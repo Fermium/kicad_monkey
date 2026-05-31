@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 from collections import Counter
 from dataclasses import dataclass, field
@@ -904,7 +905,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--kicad-root",
         type=Path,
-        default=Path("C:/eli/wn_test_corpus/kicad"),
+        default=Path(os.environ.get("WN_TEST_CORPUS", "tests/corpus")) / "kicad",
         help="Path to the KiCad corpus root containing manifest.json.",
     )
     parser.add_argument(

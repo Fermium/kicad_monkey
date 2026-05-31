@@ -45,10 +45,7 @@ def _resolve_corpus() -> Path | None:
     env = os.environ.get("WN_TEST_CORPUS")
     if env:
         candidates.append(Path(env))
-    candidates.append(Path(r"C:\eli\wn_test_corpus"))
-    candidates.append(
-        Path(r"C:\Users\EliHughes\OneDrive - Wavenumber LLC\wn_test_corpus")
-    )
+    candidates.append(Path(__file__).resolve().parents[1] / "corpus")
     for candidate in candidates:
         if (candidate / "kicad").is_dir():
             return candidate

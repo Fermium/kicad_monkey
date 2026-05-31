@@ -12,7 +12,6 @@ TESTS_REPO_ROOT = KICAD_PACKAGE_ROOT
 TEST_CORPUS_DIR = TESTS_DIR / "corpus"
 TEST_CORPUS_ARCHIVE = TEST_CORPUS_DIR / "kicad.zip"
 TEST_CORPUS_UNPACKED_DIR = TEST_CORPUS_DIR / ".unpacked"
-WORKSPACE_ROOT = KICAD_PACKAGE_ROOT.parent
 
 
 def _is_inside(child: Path, parent: Path) -> bool:
@@ -79,20 +78,8 @@ def _ensure_local_test_corpus() -> Path:
 TEST_CORPUS_ROOT = _ensure_local_test_corpus()
 
 
-def _find_optional_toolz_root() -> Path | None:
-    for candidate in (KICAD_PACKAGE_ROOT.parent, *KICAD_PACKAGE_ROOT.parents):
-        if (candidate / "kicad_monkey" / "src" / "py" / "kicad_monkey").is_dir():
-            return candidate
-    return None
-
-
-TOOLZ_ROOT = _find_optional_toolz_root()
-
-
 def ensure_import_paths() -> None:
     paths = [TESTS_DIR, KICAD_PACKAGE_ROOT / "src" / "py"]
-    if TOOLZ_ROOT is not None:
-        paths.append(TOOLZ_ROOT)
     for path in paths:
         path_text = str(path)
         if path_text not in sys.path:

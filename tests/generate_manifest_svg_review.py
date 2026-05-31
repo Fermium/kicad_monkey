@@ -46,7 +46,7 @@ def _default_kicad_root() -> Path:
     env_root = os.environ.get("WN_TEST_CORPUS")
     if env_root:
         return Path(env_root) / "kicad"
-    return Path("C:/eli/wn_test_corpus/kicad")
+    return Path(__file__).resolve().parents[1] / "tests" / "corpus" / "kicad"
 
 
 def _html(value: object) -> str:
@@ -369,7 +369,7 @@ def main() -> int:
         "--kicad-root",
         type=Path,
         default=_default_kicad_root(),
-        help="KiCad corpus root. Defaults to $WN_TEST_CORPUS/kicad or C:/eli/wn_test_corpus/kicad.",
+        help="KiCad corpus root. Defaults to $WN_TEST_CORPUS/kicad or tests/corpus/kicad.",
     )
     parser.add_argument(
         "--output",

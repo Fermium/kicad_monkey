@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
@@ -524,7 +525,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--kicad-root",
         type=Path,
-        default=Path("C:/eli/wn_test_corpus/kicad"),
+        default=Path(os.environ.get("WN_TEST_CORPUS", "tests/corpus")) / "kicad",
         help="Path to the KiCad corpus root containing manifest.json.",
     )
     parser.add_argument(

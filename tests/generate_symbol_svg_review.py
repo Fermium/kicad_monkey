@@ -24,8 +24,8 @@ from generate_cli_svg_comparison import (
 )
 
 
-WORKTREE_ROOT = Path(__file__).resolve().parents[4]
-LOCAL_KICAD_MONKEY_SRC = WORKTREE_ROOT / "toolz" / "kicad_monkey" / "src" / "py"
+REPO_ROOT = Path(__file__).resolve().parents[1]
+LOCAL_KICAD_MONKEY_SRC = REPO_ROOT / "src" / "py"
 if LOCAL_KICAD_MONKEY_SRC.exists() and str(LOCAL_KICAD_MONKEY_SRC) not in sys.path:
     sys.path.insert(0, str(LOCAL_KICAD_MONKEY_SRC))
 
@@ -374,7 +374,7 @@ def main() -> int:
         "--kicad-root",
         type=Path,
         default=_default_kicad_root(),
-        help="KiCad corpus root. Defaults to $WN_TEST_CORPUS/kicad or C:/eli/wn_test_corpus/kicad.",
+        help="KiCad corpus root. Defaults to $WN_TEST_CORPUS/kicad or tests/corpus/kicad.",
     )
     parser.add_argument(
         "--output",

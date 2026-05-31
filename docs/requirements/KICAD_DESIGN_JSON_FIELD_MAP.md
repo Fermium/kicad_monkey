@@ -3,11 +3,9 @@
 Status: active contract reference as of 2026-05-12.
 
 This document maps the KiCad-native payloads used by `kicad_monkey` to the
-existing Altium-native design JSON shape and to the generic
-`tools/data_models` contracts. The goal is practical parity for future
-three-way conversion: keep KiCad source semantics intact, keep the Altium shape
-recognizable, and make the generic `wn.design.a0` / `wn.netlist.a0` bridge
-straightforward.
+current neutral design/netlist JSON bridge. The goal is practical parity for
+future conversion: keep KiCad source semantics intact and make the generic
+`wn.design.a0` / `wn.netlist.a0` bridge straightforward.
 
 ## Scope
 
@@ -15,10 +13,8 @@ straightforward.
   `KiCadDesign.to_json(include_indexes=True)`.
 - KiCad native netlist JSON: produced by `KiCadDesign.to_kicad_netlist_json()`.
 - Generic netlist JSON: produced by `KiCadDesign.to_netlist_json()`.
-- Generic design/netlist: `data_models.converters.design_from_kicad_design_json()`
-  into `wn.design.a0` with embedded `wn.netlist.a0`.
-- Altium native JSON is the reference shape. Do not change `altium_monkey` for
-  this alignment work.
+- Generic design/netlist bridge: `wn.design.a0` with embedded
+  `wn.netlist.a0`.
 
 ## Mapping Principles
 
@@ -34,7 +30,7 @@ straightforward.
 
 ## Top-Level Design Payload
 
-| KiCad `kicad_monkey.design.a1` | Altium design JSON equivalent | Generic `wn.design.a0` mapping |
+| KiCad `kicad_monkey.design.a1` | Portable design concept | Generic `wn.design.a0` mapping |
 |---|---|---|
 | `schema` | `schema` | `source.source_schema`, `metadata.source_schema` |
 | `generator` | `generator` | `source.generator`, `netlist.source.generator` |
@@ -52,16 +48,16 @@ straightforward.
 
 ## Components
 
-| KiCad component field | Altium equivalent | Generic mapping |
+| KiCad component field | Portable concept | Generic mapping |
 |---|---|---|
 | `designator` | `designator` | `DesignComponent.designator` |
 | `svg_id` | `svg_id` | `DesignComponent.links[]` as `sch-svg` / `component` |
 | `value` | `value` | `DesignComponent.value` |
 | `footprint` | `footprint` | `DesignComponent.footprint` |
 | `description` | `description` | `DesignComponent.description` |
-| `library_ref` | Altium library/source fields | `DesignComponent.parameters` as KiCad source metadata |
-| `hierarchy` | Altium hierarchy/source paths | KiCad-native field; portable hierarchy is top-level metadata |
-| `classification` | Altium component metadata | `DesignComponent.parameters` until a generic classification model exists |
+| `library_ref` | library/source fields | `DesignComponent.parameters` as KiCad source metadata |
+| `hierarchy` | hierarchy/source paths | KiCad-native field; portable hierarchy is top-level metadata |
+| `classification` | component classification metadata | `DesignComponent.parameters` until a generic classification model exists |
 | `parameters` | `parameters` | `DesignComponent.parameters` |
 
 Component pin references are created from net terminals and graphical pin refs.
@@ -71,7 +67,7 @@ and `DesignNet.connections`.
 
 ## Nets
 
-| KiCad net field | Altium equivalent | Generic mapping |
+| KiCad net field | Portable concept | Generic mapping |
 |---|---|---|
 | `name` | `name` | `DesignNet.name` |
 | `aliases` | `aliases` | `DesignNet.aliases` |
@@ -85,31 +81,29 @@ and `DesignNet.connections`.
 | `graphical.pins` | `graphical.pins` | `DesignNet.links[]` and `DesignComponentPin.links[]` role `pin` |
 | `net_class` / `net_name_to_classes` | `net_name_to_classes` | `DesignNet.net_class`, `DesignNetClass.nets` |
 | `endpoints` | `endpoints` | Native source tracing; useful fields are also represented as artifact links |
-| `driver_priority`, `driver_kind`, `source_sheets` | No stable Altium peer | KiCad-native only for now |
+| `driver_priority`, `driver_kind`, `source_sheets` | No stable portable peer | KiCad-native only for now |
 
-The generic converter treats `net_name_to_classes` as the primary class lookup
-because it matches the existing Altium converter behavior. `net_classes` is
-also imported so class descriptions and explicit memberships are retained.
+The generic converter treats `net_name_to_classes` as the primary class lookup.
+`net_classes` is also imported so class descriptions and explicit memberships
+are retained.
 
 ### Pin and Endpoint Identity
 
-Altium pin graphical refs use an actual pin SVG object ID. KiCad schematic SVG
-now emits the placed symbol as the stable top-level SVG group and visible pins
-as nested `symbol_pin` SVG groups. KiCad uses this shape:
+KiCad schematic SVG emits the placed symbol as the stable top-level SVG group
+and visible pins as nested `symbol_pin` SVG groups. KiCad uses this shape:
 
 - `graphical.pins[].svg_id`: visible pin SVG group ID when rendered; hidden or
   otherwise unrendered pins fall back to the placed symbol SVG group UUID.
 - `graphical.pins[].source_pin_id`: KiCad placed-symbol pin UUID when it differs
   from `svg_id`. When the pin group itself is keyed by that UUID, `svg_id`
   already carries the source identity.
-- `endpoints[].endpoint_id`: `pin:<designator>:<pin>`, matching Altium's pin
-  endpoint convention.
+- `endpoints[].endpoint_id`: `pin:<designator>:<pin>`.
 - `endpoints[].element_id`: current render target, normally the pin SVG group
   for visible pins.
 - `endpoints[].object_id`: source electrical object ID; for KiCad pins this is
   the placed-symbol pin UUID when available.
-- Non-pin semantic endpoints use the Altium role vocabulary:
-  `power_port`, `port`, and `sheet_entry`.
+- Non-pin semantic endpoints use portable role names: `power_port`, `port`,
+  and `sheet_entry`.
 - Non-pin `endpoints[].element_id` is the current render target
   (for example the power symbol or sheet group), while `object_id` is the
   source electrical object (for example the placed power pin or sheet pin).
@@ -138,13 +132,13 @@ conversion to `wn.design.a0`.
 
 ## Variants
 
-| KiCad variant field | Altium equivalent | Generic mapping |
+| KiCad variant field | Portable concept | Generic mapping |
 |---|---|---|
 | `name` | `name` | `DesignVariant.name` |
 | `dnp` | `dnp` | `DesignVariant.dnp` |
 | `parameter_overrides` | `parameter_overrides` | `DesignVariant.parameter_overrides` |
-| KiCad schematic/PCB effective overrides | Altium variation rows | Native entries plus generic overrides where portable |
-| `kicad_project_variant` | Altium project variant metadata | `Design.metadata.kicad_project_variants[]` |
+| KiCad schematic/PCB effective overrides | variation rows | Native entries plus generic overrides where portable |
+| `kicad_project_variant` | project variant metadata | `Design.metadata.kicad_project_variants[]` |
 
 The generic `DesignVariant` remains intentionally small. KiCad-native project
 variant catalog data is preserved in design metadata so it is not lost during
@@ -154,9 +148,8 @@ future conversion to richer generic variant models.
 
 KiCad hierarchy is exported in `schematic_hierarchy` with KiCad sheet/document
 semantics. The generic converter stores it at
-`Design.metadata.kicad_schematic_hierarchy`. This mirrors the existing Altium
-converter behavior, which stores `altium_schematic_hierarchy`, while keeping
-the source-specific namespaces distinct.
+`Design.metadata.kicad_schematic_hierarchy` while keeping the source-specific
+namespace distinct.
 
 ## Netlist Payloads
 
@@ -165,25 +158,21 @@ the source-specific namespaces distinct.
 - `KiCadDesign.to_netlist_json()` is the generic `netlist_a0` bridge for
   downstream logical consumers.
 - `KiCadDesign.to_json(include_indexes=True)` embeds logical net data in the
-  Altium-style design JSON shape so `design_from_kicad_design_json()` can map
-  it into `wn.design.a0` / `wn.netlist.a0`.
+  design JSON shape so downstream converters can map it into `wn.design.a0` /
+  `wn.netlist.a0`.
 
-Native raw netlist JSON (`kicad_monkey.netlist.a1`) follows the Altium raw
-netlist vocabulary for `components`, `nets`, `terminals`, `graphical`,
-`aliases`, and `endpoints`. KiCad adds `net_classes` and `design` metadata so
-the JSON remains a useful peer of the KiCad S-expression export without
-dropping project/class context.
+Native raw netlist JSON (`kicad_monkey.netlist.a1`) uses `components`, `nets`,
+`terminals`, `graphical`, `aliases`, and `endpoints`. KiCad adds `net_classes`
+and `design` metadata so the JSON remains a useful peer of the KiCad
+S-expression export without dropping project/class context.
 
 ## Current Test Locks
 
-- `data_models/tests/L2_converters/test_converters_kicad_design.py` locks the
-  KiCad design JSON to generic `Design` mapping, including source labels,
-  hierarchy metadata, variant metadata, net classes, component links, net links,
-  pin links, and KiCad source-pin link metadata.
-- `toolz-tests/suites/kicad_monkey/tests/L3_rendering/test_L3_013_design_json_contract.py`
-  locks real fixture design JSON shape and generic conversion availability.
-- `toolz-tests/suites/kicad_monkey/tests/L0_foundation/test_L0_029_design_netlist_api.py`
-  locks KiCad pin and non-pin endpoint ID/object/render-target semantics.
-- `toolz-tests/suites/kicad_monkey/tests/L0_foundation/test_L0_024_netlist_single_sheet.py`
-  and `test_L0_025_netlist_multi_sheet.py` lock compiler endpoint materialization
-  for power ports, hierarchical ports, and sheet entries.
+- `tests/L3_rendering/test_L3_013_design_json_contract.py` locks real fixture
+  design JSON shape and generic conversion availability.
+- `tests/L0_foundation/test_L0_029_design_netlist_api.py` locks KiCad pin and
+  non-pin endpoint ID/object/render-target semantics.
+- `tests/L0_foundation/test_L0_024_netlist_single_sheet.py` and
+  `tests/L0_foundation/test_L0_025_netlist_multi_sheet.py` lock compiler
+  endpoint materialization for power ports, hierarchical ports, and sheet
+  entries.

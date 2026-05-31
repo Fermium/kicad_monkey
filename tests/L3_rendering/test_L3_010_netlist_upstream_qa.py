@@ -21,7 +21,7 @@ invalidated whenever the source schematic's mtime advances.
 Gated by:
 * kicad-cli resolvable (``$KICAD_CLI`` / corpus-staged / installed
   KiCad). Resolution mirrors L3_011's ``_resolve_cli``.
-* corpus root present (env ``WN_TEST_CORPUS`` or fallback paths).
+* corpus root present (env ``WN_TEST_CORPUS`` or package-local corpus).
 """
 
 from __future__ import annotations
@@ -53,10 +53,7 @@ def _resolve_corpus_root() -> Path | None:
     candidates: list[Path] = []
     if env:
         candidates.append(Path(env))
-    candidates.append(Path(r"C:\eli\wn_test_corpus"))
-    candidates.append(
-        Path(r"C:\Users\EliHughes\OneDrive - Wavenumber LLC\wn_test_corpus")
-    )
+    candidates.append(Path(__file__).resolve().parents[1] / "corpus")
     for cand in candidates:
         if (cand / "kicad" / "netlist" / "upstream_qa").is_dir():
             return cand
