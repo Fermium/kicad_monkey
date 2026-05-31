@@ -100,7 +100,7 @@ import subprocess
 from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, cast
+from typing import Any, Callable, Dict, List, Optional, Tuple, cast
 
 import freetype
 import uharfbuzz as hb
@@ -415,8 +415,12 @@ class _HarfBuzzFtApi:
 
     def __init__(self, dll_path: Path) -> None:
         self._dll_directory_handle = None
-        if hasattr(os, "add_dll_directory"):
-            self._dll_directory_handle = os.add_dll_directory(str(dll_path.parent))
+        add_dll_directory = cast(
+            "Callable[[str], object] | None",
+            getattr(os, "add_dll_directory", None),
+        )
+        if add_dll_directory is not None:
+            self._dll_directory_handle = add_dll_directory(str(dll_path.parent))
         self.lib = ctypes.CDLL(str(dll_path))
         self.lib.hb_buffer_create.restype = ctypes.c_void_p
         self.lib.hb_buffer_add_utf8.argtypes = [
