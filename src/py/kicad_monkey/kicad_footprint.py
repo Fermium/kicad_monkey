@@ -525,8 +525,7 @@ class KiCadFootprint:
         Compute the bounding box of the entire footprint.
 
         Includes all pads (all layers), text elements, and graphic elements.
-        This matches KiCad's ComputeBoundingBox behavior for SVG viewBox.
-        REQ-KICAD-071.
+        This matches KiCad's ComputeBoundingBox behavior for SVG viewBox..
         """
         from .kicad_geometry import BoundingBox
 
@@ -570,7 +569,7 @@ class KiCadFootprint:
         """
         Render footprint to SVG format matching KiCad's output.
 
-        Uses the plotter-IR pipeline under the hood. REQ-KICAD-072.
+        Uses the plotter-IR pipeline under the hood..
 
         Args:
             layers: List of layer names to include (e.g., ["F.Cu", "F.SilkS"]).

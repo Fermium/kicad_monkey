@@ -1,7 +1,7 @@
 """
 KiCad Footprint Text Element
 
-REQ-KICAD-070: One class per file.
+One class per file.
 """
 
 from __future__ import annotations
@@ -66,7 +66,7 @@ class FpText:
         )
 
     def get_bounds(self) -> 'BoundingBox':
-        """Get bounding box of this text element. REQ-KICAD-071."""
+        """Get bounding box of this text element.."""
         from .kicad_geometry import BoundingBox, rotate_point
 
         # Get font size (default to 1.27mm - KiCad default)
@@ -175,7 +175,7 @@ class FpText:
         )
 
     def to_svg(self, ctx: 'SvgRenderContext | None' = None) -> List[str]:
-        """Render this text element to SVG. REQ-KICAD-072.
+        """Render this text element to SVG..
 
         Note: KiCad footprint SVG exports do not render text as <text> elements.
         Text is converted to stroked outlines for CAM output. This method returns

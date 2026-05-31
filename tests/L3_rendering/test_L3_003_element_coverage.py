@@ -1,7 +1,7 @@
 """
 Subtest: Element Coverage
 Stratum: L3_rendering
-Purpose: REQ-KICAD-032: All element types render correctly
+Purpose: All element types render correctly
 
 This module tracks which KiCad PCB file format elements are supported
 and which need additional test cases.

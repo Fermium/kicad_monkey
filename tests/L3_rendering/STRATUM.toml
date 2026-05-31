@@ -12,11 +12,11 @@ concerns = ["rendering", "rendering.board", "rendering.footprint", "rendering.te
 
 # Stratum-level objectives
 objectives = [
-    "Board SVG matches kicad-cli output (REQ-KICAD-039)",
+    "Board SVG matches kicad-cli output",
     "Footprint SVG matches kicad-cli output",
-    "All element types render correctly (REQ-KICAD-032)",
-    "All standard layers supported (REQ-KICAD-031)",
-    "Coordinate accuracy within 0.5mm tolerance (REQ-KICAD-030)"
+    "All element types render correctly",
+    "All standard layers supported",
+    "Coordinate accuracy within 0.5mm tolerance"
 ]
 
 # =============================================================================
@@ -83,7 +83,7 @@ secondary = [
 [[subtests]]
 file = "test_L3_003_element_coverage.py"
 name = "Element Coverage"
-description = "REQ-KICAD-032: All element types render correctly"
+description = "All element types render correctly"
 test_cases = "${WN_TEST_CORPUS}/kicad/board_svg"
 test_case_type = "reference"
 

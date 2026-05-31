@@ -1,7 +1,7 @@
 """
 KiCad Footprint Circle Element
 
-REQ-KICAD-070: One class per file.
+One class per file.
 """
 
 from __future__ import annotations
@@ -63,7 +63,7 @@ class FpCircle:
         )
 
     def get_bounds(self) -> 'BoundingBox':
-        """Get bounding box of this circle. REQ-KICAD-071."""
+        """Get bounding box of this circle.."""
         from .kicad_geometry import BoundingBox
 
         width = self.stroke.width if self.stroke else 0.12
@@ -78,7 +78,7 @@ class FpCircle:
         )
 
     def to_svg(self, ctx: 'SvgRenderContext | None' = None) -> List[str]:
-        """Render this circle to SVG elements. REQ-KICAD-072."""
+        """Render this circle to SVG elements.."""
         from .kicad_geometry import SvgRenderContext
 
         if ctx is None:

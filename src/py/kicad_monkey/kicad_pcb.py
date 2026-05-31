@@ -871,7 +871,7 @@ class KiCadPcb:
 
     def get_bounds(self, layers: Optional[List[str]] = None) -> 'BoundingBox':
         """
-        Get bounding box of this PCB. REQ-KICAD-071.
+        Get bounding box of this PCB..
 
         Args:
             layers: List of layer names to include. If None, all layers.
@@ -1013,7 +1013,7 @@ class KiCadPcb:
         stroke: str = "#000000",
     ) -> List[str]:
         """
-        Render PCB to SVG elements using decentralized to_svg() methods. REQ-KICAD-072.
+        Render PCB to SVG elements using decentralized to_svg() methods..
 
         This composes SVG from element-level to_svg() calls. For full kicad-cli
         compatible output with drill layers, mask expansion, etc., use to_svg().

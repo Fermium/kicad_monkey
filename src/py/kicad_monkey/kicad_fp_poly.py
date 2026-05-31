@@ -1,7 +1,7 @@
 """
 KiCad Footprint Polygon Element
 
-REQ-KICAD-070: One class per file.
+One class per file.
 """
 
 from __future__ import annotations
@@ -63,7 +63,7 @@ class FpPoly:
         )
 
     def get_bounds(self) -> 'BoundingBox':
-        """Get bounding box of this polygon. REQ-KICAD-071."""
+        """Get bounding box of this polygon.."""
         from .kicad_geometry import BoundingBox
 
         width = self.stroke.width if self.stroke else 0.12
@@ -77,7 +77,7 @@ class FpPoly:
         return bbox
 
     def to_svg(self, ctx: 'SvgRenderContext | None' = None) -> List[str]:
-        """Render this polygon to SVG elements. REQ-KICAD-072."""
+        """Render this polygon to SVG elements.."""
         from .kicad_geometry import SvgRenderContext
 
         if ctx is None:

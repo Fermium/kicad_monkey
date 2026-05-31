@@ -702,14 +702,14 @@ class TextParams:
 
 
 # =============================================================================
-# Protocols (REQ-KICAD-071, REQ-KICAD-072)
+# Protocols
 # =============================================================================
 
 @runtime_checkable
 class Bounded(Protocol):
     """Protocol for elements with spatial bounds.
 
-    REQ-KICAD-071: All spatial elements MUST implement get_bounds().
+    All spatial elements MUST implement get_bounds().
 
     Used by:
     - SVG rendering (viewport calculation)
@@ -733,7 +733,7 @@ class Bounded(Protocol):
 class SvgRenderable(Protocol):
     """Protocol for elements that can render to SVG.
 
-    REQ-KICAD-072: All renderable elements MUST implement to_svg().
+    All renderable elements MUST implement to_svg().
 
     Each element renders itself, returning SVG element strings.
     Parent containers compose child elements.
@@ -758,14 +758,14 @@ class SvgRenderable(Protocol):
 
 
 # =============================================================================
-# SVG Render Context (REQ-KICAD-073)
+# SVG Render Context
 # =============================================================================
 
 @dataclass(slots=True)
 class SvgRenderContext:
     """Context for SVG rendering operations.
 
-    REQ-KICAD-073: SVG rendering MUST use SvgRenderContext.
+    SVG rendering MUST use SvgRenderContext.
 
     Carries transform, style, and filter options through the render tree.
     Enables nested transforms (e.g., footprint elements within a PCB).
@@ -852,7 +852,7 @@ class SvgRenderContext:
 
 
 # =============================================================================
-# Geometry Utilities (REQ-KICAD-075)
+# Geometry Utilities
 # =============================================================================
 
 def rotate_point(

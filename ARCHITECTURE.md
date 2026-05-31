@@ -6,6 +6,18 @@ Last updated: 2026-05-31
 This document describes the public architecture for the standalone
 `kicad-monkey` package.
 
+## Decision Sources
+
+This root document is the package-level architecture overview. Normative
+architecture decisions live in `docs/adrs/`:
+
+- `ADR-001`: source layout and API conventions;
+- `ADR-002`: test corpus layout and Rack lane model;
+- `ADR-003`: design documentation and test-ownership signoff.
+
+Detailed interface intent lives in `docs/design/api/`. Stable machine-readable
+contracts live in `docs/contracts/`.
+
 ## Package Boundary
 
 `kicad-monkey` owns KiCad source parsing, round-trip modeling, close-to-format
@@ -131,5 +143,6 @@ Rack lanes:
 
 - KiCad file formats: https://dev-docs.kicad.org/en/file-formats/
 - KiCad source format code: https://gitlab.com/kicad/code/kicad/-/tree/master/common/
+- Architecture decisions: `docs/adrs/`
 - Public API design docs: `docs/design/api/`
 - Release signoff status: `docs/design/quality-signoff-status.md`

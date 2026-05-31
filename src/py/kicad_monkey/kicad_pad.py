@@ -1,7 +1,7 @@
 """
 KiCad Pad Element
 
-REQ-KICAD-070: One class per file.
+One class per file.
 """
 
 from __future__ import annotations
@@ -460,7 +460,7 @@ class Pad:
         )
 
     def get_bounds(self) -> 'BoundingBox':
-        """Get bounding box of this pad. REQ-KICAD-071."""
+        """Get bounding box of this pad.."""
         from .kicad_geometry import BoundingBox, rotate_point
 
         half_w = self.size_x / 2
@@ -529,7 +529,7 @@ class Pad:
             return bbox
 
     def to_svg(self, ctx: 'SvgRenderContext | None' = None) -> List[str]:
-        """Render this pad to SVG elements. REQ-KICAD-072."""
+        """Render this pad to SVG elements.."""
         from .kicad_geometry import SvgRenderContext, rotate_point
 
         if ctx is None:

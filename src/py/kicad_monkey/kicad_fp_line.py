@@ -1,7 +1,7 @@
 """
 KiCad Footprint Line Element
 
-REQ-KICAD-070: One class per file.
+One class per file.
 """
 
 from __future__ import annotations
@@ -52,7 +52,7 @@ class FpLine:
         )
 
     def get_bounds(self) -> 'BoundingBox':
-        """Get bounding box of this line. REQ-KICAD-071."""
+        """Get bounding box of this line.."""
         from .kicad_geometry import BoundingBox
 
         width = self.stroke.width if self.stroke else 0.12
@@ -66,7 +66,7 @@ class FpLine:
         )
 
     def to_svg(self, ctx: 'SvgRenderContext | None' = None) -> List[str]:
-        """Render this line to SVG elements. REQ-KICAD-072."""
+        """Render this line to SVG elements.."""
         from .kicad_geometry import SvgRenderContext
 
         if ctx is None:

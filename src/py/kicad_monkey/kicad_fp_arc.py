@@ -1,7 +1,7 @@
 """
 KiCad Footprint Arc Element
 
-REQ-KICAD-070: One class per file.
+One class per file.
 """
 
 from __future__ import annotations
@@ -57,7 +57,7 @@ class FpArc:
         )
 
     def get_bounds(self) -> 'BoundingBox':
-        """Get bounding box of this arc. REQ-KICAD-071."""
+        """Get bounding box of this arc.."""
         from .kicad_geometry import BoundingBox
 
         width = self.stroke.width if self.stroke else 0.12
@@ -72,7 +72,7 @@ class FpArc:
         return bbox
 
     def to_svg(self, ctx: 'SvgRenderContext | None' = None) -> List[str]:
-        """Render this arc to SVG elements. REQ-KICAD-072."""
+        """Render this arc to SVG elements.."""
         from .kicad_geometry import SvgRenderContext
         import math
 

@@ -4,7 +4,7 @@ KiCad PCB Footprint - Footprint container and element re-exports
 This file contains the Footprint class (PCB-embedded footprint) and re-exports
 all footprint element classes for backward compatibility.
 
-REQ-KICAD-070: One class per file - element classes split into individual files.
+One class per file - element classes split into individual files.
 """
 
 from __future__ import annotations
@@ -552,7 +552,7 @@ class Footprint:
         return iter(self.properties)
 
     def get_bounds(self) -> 'BoundingBox':
-        """Get bounding box of this footprint in board coordinates. REQ-KICAD-071."""
+        """Get bounding box of this footprint in board coordinates.."""
         from .kicad_geometry import BoundingBox, rotate_point
 
         bbox = BoundingBox()
@@ -694,7 +694,7 @@ class Footprint:
         return len(self.variants) != before
 
     def to_svg(self, ctx: 'SvgRenderContext | None' = None) -> List[str]:
-        """Render this footprint to SVG elements. REQ-KICAD-072."""
+        """Render this footprint to SVG elements.."""
         from .kicad_geometry import SvgRenderContext
 
         if ctx is None:

@@ -90,7 +90,7 @@ class GrText:
         return result
 
     def get_bounds(self) -> 'BoundingBox':
-        """Get bounding box of this text. REQ-KICAD-071."""
+        """Get bounding box of this text.."""
         from .kicad_geometry import BoundingBox
 
         # Estimate text size based on font size and text length
@@ -111,7 +111,7 @@ class GrText:
         )
 
     def to_svg(self, ctx: 'SvgRenderContext | None' = None) -> List[str]:
-        """Render this text to SVG elements. REQ-KICAD-072.
+        """Render this text to SVG elements..
 
         Note: Full text rendering requires stroke font support.
         This is a placeholder that returns bounds rectangle for now.
@@ -180,7 +180,7 @@ class GrLine:
         return result
 
     def get_bounds(self) -> 'BoundingBox':
-        """Get bounding box of this line. REQ-KICAD-071."""
+        """Get bounding box of this line.."""
         from .kicad_geometry import BoundingBox
 
         width = self.stroke.width if self.stroke else 0.12
@@ -194,7 +194,7 @@ class GrLine:
         )
 
     def to_svg(self, ctx: 'SvgRenderContext | None' = None) -> List[str]:
-        """Render this line to SVG elements. REQ-KICAD-072."""
+        """Render this line to SVG elements.."""
         from .kicad_geometry import SvgRenderContext
 
         if ctx is None:
@@ -267,7 +267,7 @@ class GrRect:
         return result
 
     def get_bounds(self) -> 'BoundingBox':
-        """Get bounding box of this rectangle. REQ-KICAD-071."""
+        """Get bounding box of this rectangle.."""
         from .kicad_geometry import BoundingBox
 
         width = self.stroke.width if self.stroke else 0.12
@@ -281,7 +281,7 @@ class GrRect:
         )
 
     def to_svg(self, ctx: 'SvgRenderContext | None' = None) -> List[str]:
-        """Render this rectangle to SVG elements. REQ-KICAD-072."""
+        """Render this rectangle to SVG elements.."""
         from .kicad_geometry import SvgRenderContext
 
         if ctx is None:
@@ -360,7 +360,7 @@ class GrArc:
         return result
 
     def get_bounds(self) -> 'BoundingBox':
-        """Get bounding box of this arc. REQ-KICAD-071."""
+        """Get bounding box of this arc.."""
         from .kicad_geometry import BoundingBox
         from .kicad_pcb_polygon_ops import arc_to_polygon
 
@@ -378,7 +378,7 @@ class GrArc:
         return bbox
 
     def to_svg(self, ctx: 'SvgRenderContext | None' = None) -> List[str]:
-        """Render this arc to SVG elements. REQ-KICAD-072."""
+        """Render this arc to SVG elements.."""
         from .kicad_geometry import SvgRenderContext
 
         if ctx is None:
@@ -508,7 +508,7 @@ class GrCircle:
         return result
 
     def get_bounds(self) -> 'BoundingBox':
-        """Get bounding box of this circle. REQ-KICAD-071."""
+        """Get bounding box of this circle.."""
         from .kicad_geometry import BoundingBox
 
         # Radius is distance from center to end point
@@ -527,7 +527,7 @@ class GrCircle:
         )
 
     def to_svg(self, ctx: 'SvgRenderContext | None' = None) -> List[str]:
-        """Render this circle to SVG elements. REQ-KICAD-072."""
+        """Render this circle to SVG elements.."""
         from .kicad_geometry import SvgRenderContext
 
         if ctx is None:
@@ -597,7 +597,7 @@ class GrPoly:
         return result
 
     def get_bounds(self) -> 'BoundingBox':
-        """Get bounding box of this polygon. REQ-KICAD-071."""
+        """Get bounding box of this polygon.."""
         from .kicad_geometry import BoundingBox
 
         if not self.points:
@@ -613,7 +613,7 @@ class GrPoly:
         return bbox
 
     def to_svg(self, ctx: 'SvgRenderContext | None' = None) -> List[str]:
-        """Render this polygon to SVG elements. REQ-KICAD-072."""
+        """Render this polygon to SVG elements.."""
         from .kicad_geometry import SvgRenderContext
 
         if ctx is None:
@@ -682,7 +682,7 @@ class GrCurve:
         return result
 
     def get_bounds(self) -> 'BoundingBox':
-        """Get bounding box of this curve. REQ-KICAD-071."""
+        """Get bounding box of this curve.."""
         from .kicad_geometry import BoundingBox
 
         if not self.points:
@@ -699,7 +699,7 @@ class GrCurve:
         return bbox
 
     def to_svg(self, ctx: 'SvgRenderContext | None' = None) -> List[str]:
-        """Render this curve to SVG elements. REQ-KICAD-072."""
+        """Render this curve to SVG elements.."""
         from .kicad_geometry import SvgRenderContext
 
         if ctx is None:
@@ -1095,7 +1095,7 @@ class GrTextBox:
         return PolygonSet()
 
     def get_bounds(self) -> 'BoundingBox':
-        """Get bounding box of this text box. REQ-KICAD-071."""
+        """Get bounding box of this text box.."""
         from .kicad_geometry import BoundingBox
 
         width = self.stroke.width if self.stroke else 0.12
@@ -1109,7 +1109,7 @@ class GrTextBox:
         )
 
     def to_svg(self, ctx: 'SvgRenderContext | None' = None) -> List[str]:
-        """Render this text box to SVG elements. REQ-KICAD-072.
+        """Render this text box to SVG elements..
 
         Note: Full text rendering requires stroke font support.
         This renders the border only for now.

@@ -395,7 +395,7 @@ class Zone:
         return result
 
     def get_bounds(self) -> 'BoundingBox':
-        """Get bounding box of this zone. REQ-KICAD-071."""
+        """Get bounding box of this zone.."""
         from .kicad_geometry import BoundingBox
 
         bbox = BoundingBox()
@@ -413,7 +413,7 @@ class Zone:
         return bbox
 
     def to_svg(self, ctx: 'SvgRenderContext | None' = None) -> List[str]:
-        """Render this zone to SVG elements. REQ-KICAD-072."""
+        """Render this zone to SVG elements.."""
         from .kicad_geometry import SvgRenderContext
 
         if ctx is None:

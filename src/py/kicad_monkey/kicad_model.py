@@ -1,7 +1,7 @@
 """
 KiCad 3D Model and Embedded File Elements
 
-REQ-KICAD-070: One class per file.
+One class per file.
 Note: Model and EmbeddedFile are kept together as they're closely related.
 """
 

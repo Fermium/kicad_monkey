@@ -96,7 +96,7 @@ class Segment(ToPolyMixin):
         return PolygonSet(outlines=[contour])
 
     def get_bounds(self) -> 'BoundingBox':
-        """Get bounding box of this segment. REQ-KICAD-071."""
+        """Get bounding box of this segment.."""
         from .kicad_geometry import BoundingBox
 
         hw = self.width / 2
@@ -108,7 +108,7 @@ class Segment(ToPolyMixin):
         )
 
     def to_svg(self, ctx: 'SvgRenderContext | None' = None) -> List[str]:
-        """Render this segment to SVG elements. REQ-KICAD-072."""
+        """Render this segment to SVG elements.."""
         from .kicad_geometry import SvgRenderContext
 
         if ctx is None:
@@ -335,7 +335,7 @@ class Via(ToPolyMixin):
         return result
 
     def get_bounds(self) -> 'BoundingBox':
-        """Get bounding box of this via. REQ-KICAD-071."""
+        """Get bounding box of this via.."""
         from .kicad_geometry import BoundingBox
 
         r = self.size / 2
@@ -347,7 +347,7 @@ class Via(ToPolyMixin):
         )
 
     def to_svg(self, ctx: 'SvgRenderContext | None' = None) -> List[str]:
-        """Render this via to SVG elements. REQ-KICAD-072."""
+        """Render this via to SVG elements.."""
         from .kicad_geometry import SvgRenderContext
 
         if ctx is None:
@@ -430,7 +430,7 @@ class Arc(ToPolyMixin):
         return PolygonSet(outlines=[contour])
 
     def get_bounds(self) -> 'BoundingBox':
-        """Get bounding box of this arc. REQ-KICAD-071."""
+        """Get bounding box of this arc.."""
         from .kicad_geometry import BoundingBox
 
         # Use _to_poly for accurate arc bounds including width
@@ -444,7 +444,7 @@ class Arc(ToPolyMixin):
         return bbox
 
     def to_svg(self, ctx: 'SvgRenderContext | None' = None) -> List[str]:
-        """Render this arc to SVG elements. REQ-KICAD-072."""
+        """Render this arc to SVG elements.."""
         from .kicad_geometry import SvgRenderContext
 
         if ctx is None:

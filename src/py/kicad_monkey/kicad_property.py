@@ -1,7 +1,7 @@
 """
 KiCad Property Element
 
-REQ-KICAD-070: One class per file.
+One class per file.
 """
 
 from __future__ import annotations
@@ -62,7 +62,7 @@ class Property:
         )
 
     def get_bounds(self) -> 'BoundingBox':
-        """Get bounding box of this property. REQ-KICAD-071."""
+        """Get bounding box of this property.."""
         from .kicad_geometry import BoundingBox, rotate_point
 
         font_width = KICAD_DEFAULT_TEXT_SIZE_MM
@@ -169,7 +169,7 @@ class Property:
         )
 
     def to_svg(self, ctx: 'SvgRenderContext | None' = None) -> List[str]:
-        """Render this property to SVG. REQ-KICAD-072.
+        """Render this property to SVG..
 
         Note: KiCad footprint SVG exports do not render property text as <text> elements.
         Text is converted to stroked outlines for CAM output. This method returns
