@@ -46,6 +46,7 @@ import math
 import os
 from pathlib import Path
 import re
+import subprocess
 import tempfile
 from typing import TYPE_CHECKING, Any, Callable, List, Optional, Tuple, cast
 
@@ -1602,6 +1603,9 @@ def _system_outline_font_files() -> tuple[Path, ...]:
         Path("C:/Windows/Fonts"),
         Path.home() / "AppData/Local/Microsoft/Windows/Fonts",
         Path.home() / ".fonts",
+        Path.home() / ".local/share/fonts",
+        Path("/usr/share/fonts"),
+        Path("/usr/local/share/fonts"),
     ]
     if local_appdata := os.environ.get("LOCALAPPDATA"):
         search_dirs.append(Path(local_appdata) / "fonts")
@@ -1610,7 +1614,7 @@ def _system_outline_font_files() -> tuple[Path, ...]:
         if not directory.exists():
             continue
         try:
-            children = directory.iterdir()
+            children = directory.rglob("*")
         except OSError:
             continue
         for font_path in children:
@@ -1654,6 +1658,44 @@ def _system_outline_font_paths() -> dict[tuple[str, bool, bool], list[str]]:
             out.setdefault((key, bold, italic), []).append(str(font_path))
             out.setdefault((key, False, False), []).append(str(font_path))
     return out
+
+
+@lru_cache(maxsize=128)
+def _fontconfig_outline_font_path(
+    font_face: str,
+    *,
+    bold: bool = False,
+    italic: bool = False,
+) -> Optional[str]:
+    query = (font_face or "").strip() or "sans-serif"
+    styles: list[str] = []
+    if bold:
+        styles.append("Bold")
+    if italic:
+        styles.append("Italic")
+    if styles:
+        query = f"{query}:style={','.join(styles)}"
+
+    try:
+        completed = subprocess.run(
+            ["fc-match", "-f", "%{file}\n", query],
+            capture_output=True,
+            check=False,
+            text=True,
+            timeout=2.0,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if completed.returncode != 0:
+        return None
+
+    path_text = completed.stdout.splitlines()[0].strip() if completed.stdout.splitlines() else ""
+    if not path_text:
+        return None
+    path = Path(path_text)
+    if path.exists() and path.suffix.casefold() in {".ttf", ".otf", ".ttc"}:
+        return str(path)
+    return None
 
 
 def _font_style_lookup_order(
@@ -1700,7 +1742,9 @@ def _outline_font_path(
             return candidate
 
     if not face or face == "arial":
-        return _arial_outline_font_path(bool(bold))
+        arial_path = _arial_outline_font_path(bool(bold))
+        if arial_path is not None:
+            return arial_path
 
     windows = Path("C:/Windows/Fonts")
     user_fonts = Path.home() / "AppData/Local/Microsoft/Windows/Fonts"
@@ -1752,6 +1796,14 @@ def _outline_font_path(
             )
             if candidate is not None:
                 return candidate
+
+        fontconfig_path = _fontconfig_outline_font_path(
+            font_face or "Arial",
+            bold=bool(bold),
+            italic=bool(italic),
+        )
+        if fontconfig_path is not None:
+            return fontconfig_path
 
     return _arial_outline_font_path(bool(bold))
 

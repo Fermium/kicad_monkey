@@ -25,6 +25,11 @@ jobs:
       - uses: astral-sh/setup-uv@v5
       - name: Set up Python
         run: uv python install ${{ matrix.python-version }}
+      - name: Install public font dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fontconfig fonts-dejavu-core fonts-liberation
       - name: Prepare public corpus archive
         run: |
           uv run --extra test python scripts/package_kicad_corpus.py --check

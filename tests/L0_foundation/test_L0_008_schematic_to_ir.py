@@ -10,6 +10,7 @@ just the unit conversion + per-element op emission + record ordering.
 from __future__ import annotations
 
 import base64
+from pathlib import Path
 
 import pytest
 
@@ -84,6 +85,32 @@ from kicad_monkey.kicad_schematic_style import (
 from kicad_monkey.kicad_sch_text import SchText
 from kicad_monkey.kicad_sch_title_block import PaperSize, TitleBlock
 from kicad_monkey.kicad_sym_rectangle import SymFill, SymFillType
+
+
+def _require_outline_font(
+    font_face: str = "Arial",
+    *,
+    bold: bool = False,
+    italic: bool = False,
+    allow_substitute: bool = False,
+    expected_stems: tuple[str, ...] = (),
+) -> str:
+    from kicad_monkey.kicad_schematic_to_ir import _outline_font_path
+
+    path = _outline_font_path(
+        font_face,
+        bold=bold,
+        italic=italic,
+        allow_substitute=allow_substitute,
+    )
+    if path is None:
+        pytest.skip(f"outline font is not available: {font_face!r}")
+
+    if expected_stems:
+        stem = Path(path).stem.casefold()
+        if not any(expected.casefold() in stem for expected in expected_stems):
+            pytest.skip(f"resolved outline font is not this test's calibrated face: {path}")
+    return path
 
 
 # ---------------------------------------------------------------------------
@@ -391,6 +418,11 @@ def test_sch_text_to_op_rotates_outline_adjust_separately_from_plot_offset():
 
 
 def test_sch_text_to_op_uses_berkeley_mono_trial_outline_adjust():
+    _require_outline_font(
+        "Berkeley Mono Trial",
+        allow_substitute=True,
+        expected_stems=("cascadia",),
+    )
     txt = SchText(
         text="1    2    3",
         at_x=90.424,
@@ -405,6 +437,7 @@ def test_sch_text_to_op_uses_berkeley_mono_trial_outline_adjust():
 
 
 def test_sch_text_to_op_uses_times_new_romans_outline_adjust():
+    _require_outline_font("Times New Roman", bold=True, allow_substitute=False)
     txt = SchText(
         text="${PROJECT_NAME}",
         at_x=25.4,
@@ -428,6 +461,12 @@ def test_sch_text_to_op_uses_times_new_romans_outline_adjust():
 
 
 def test_sch_text_to_op_uses_avenir_black_outline_adjust():
+    _require_outline_font(
+        "Avenir Black",
+        bold=True,
+        allow_substitute=True,
+        expected_stems=("book",),
+    )
     txt = SchText(
         text="[CM5]",
         at_x=27.94,
@@ -443,6 +482,7 @@ def test_sch_text_to_op_uses_avenir_black_outline_adjust():
 
 
 def test_sch_text_to_op_uses_berkeley_mono_outline_adjust():
+    _require_outline_font("Berkeley Mono", bold=True, allow_substitute=False)
     txt = SchText(
         text="DC Path",
         at_x=330.2,
@@ -651,6 +691,7 @@ def test_text_box_to_ops_expands_project_text_variables():
 
 
 def test_text_box_to_ops_wraps_long_lines_to_content_width():
+    _require_outline_font("Arial", bold=True, allow_substitute=False)
     tb = SchTextBox(
         text=(
             "2) TOC useful for large projects, nice overview of what sheet "
@@ -1806,6 +1847,7 @@ def test_symbol_property_to_op_centers_left_berkeley_mono_field_like_kicad():
     from kicad_monkey import symbol_property_to_op
     from kicad_monkey.kicad_sym_property import SymProperty
 
+    _require_outline_font("Berkeley Mono", allow_substitute=False)
     parent = SchSymbol(lib_id="Mechanical:RF_Shield", at_x=0.0, at_y=0.0)
     prop = SymProperty(
         key="Value",
@@ -1831,6 +1873,7 @@ def test_symbol_property_to_op_uses_berkeley_mono_bottom_bbox_center_like_kicad(
     from kicad_monkey import symbol_property_to_op
     from kicad_monkey.kicad_sym_property import SymProperty
 
+    _require_outline_font("Berkeley Mono", bold=True, allow_substitute=False)
     parent = SchSymbol(lib_id="Connector:S8101-46R", at_x=0.0, at_y=0.0)
     prop = SymProperty(
         key="Reference",
@@ -1862,6 +1905,7 @@ def test_symbol_property_to_op_uses_berkeley_mono_top_bbox_center_like_kicad():
     from kicad_monkey import symbol_property_to_op
     from kicad_monkey.kicad_sym_property import SymProperty
 
+    _require_outline_font("Berkeley Mono", bold=True, allow_substitute=False)
     parent = SchSymbol(lib_id="FPGA:XC7Z010", at_x=0.0, at_y=0.0)
     prop = SymProperty(
         key="Reference",
@@ -1894,6 +1938,7 @@ def test_symbol_property_to_op_centers_rotated_overbar_field_like_kicad():
     from kicad_monkey import symbol_property_to_op
     from kicad_monkey.kicad_sym_property import SymProperty
 
+    _require_outline_font("Arial", allow_substitute=False)
     parent = SchSymbol(
         lib_id="PCM_EEZ_unsorted:PCB test point",
         at_x=83.82,

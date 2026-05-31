@@ -96,6 +96,7 @@ import ctypes
 import math
 import os
 import re
+import subprocess
 from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
@@ -255,6 +256,9 @@ def _system_font_files() -> Tuple[Path, ...]:
         Path("C:/Windows/Fonts"),
         Path.home() / "AppData/Local/Microsoft/Windows/Fonts",
         Path.home() / ".fonts",
+        Path.home() / ".local/share/fonts",
+        Path("/usr/share/fonts"),
+        Path("/usr/local/share/fonts"),
     ]
     if local_appdata := os.environ.get("LOCALAPPDATA"):
         search_dirs.append(Path(local_appdata) / "fonts")
@@ -264,7 +268,7 @@ def _system_font_files() -> Tuple[Path, ...]:
         if not directory.exists():
             continue
         try:
-            children = directory.iterdir()
+            children = directory.rglob("*")
         except OSError:
             continue
         for font_path in children:
@@ -304,6 +308,39 @@ def _system_font_paths() -> Dict[Tuple[str, bool, bool], Tuple[str, ...]]:
             out.setdefault((key, bold, italic), []).append(str(font_path))
 
     return {key: tuple(value) for key, value in out.items()}
+
+
+@lru_cache(maxsize=128)
+def _fontconfig_match_path(font_name: str, bold: bool = False, italic: bool = False) -> Optional[str]:
+    query = font_name.strip() or "sans-serif"
+    styles: List[str] = []
+    if bold:
+        styles.append("Bold")
+    if italic:
+        styles.append("Italic")
+    if styles:
+        query = f"{query}:style={','.join(styles)}"
+
+    try:
+        completed = subprocess.run(
+            ["fc-match", "-f", "%{file}\n", query],
+            capture_output=True,
+            check=False,
+            text=True,
+            timeout=2.0,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if completed.returncode != 0:
+        return None
+
+    path_text = completed.stdout.splitlines()[0].strip() if completed.stdout.splitlines() else ""
+    if not path_text:
+        return None
+    path = Path(path_text)
+    if path.exists() and path.suffix.casefold() in {".ttf", ".otf", ".ttc"}:
+        return str(path)
+    return None
 
 
 # =============================================================================
@@ -554,7 +591,8 @@ class KiCadTextRenderer:
     ) -> Optional[str]:
         """Find the font file path for a given font name.
 
-        First checks embedded fonts, then system fonts, then falls back to Arial.
+        First checks embedded fonts, then known local files, system font
+        indexes, fontconfig, and finally the Windows Arial fallback.
         """
         # Check embedded fonts first
         base_name: str = font_name.lower()
@@ -610,6 +648,10 @@ class KiCadTextRenderer:
                 for candidate in system_fonts.get(style_key, ()):
                     if Path(candidate).exists():
                         return candidate
+
+        fontconfig_path = _fontconfig_match_path(font_name, bold=bold, italic=italic)
+        if fontconfig_path is not None:
+            return fontconfig_path
 
         # Fallback to Arial
         for path in WINDOWS_FONT_PATHS:

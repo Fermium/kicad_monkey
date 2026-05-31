@@ -17,6 +17,10 @@ jobs:
         with:
           lfs: true
       - uses: astral-sh/setup-uv@v5
+      - name: Install public font dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fontconfig fonts-dejavu-core fonts-liberation
       - name: Verify tag matches package version
         shell: bash
         run: |

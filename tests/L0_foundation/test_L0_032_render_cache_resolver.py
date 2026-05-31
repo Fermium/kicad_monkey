@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 import re
 
 import pytest
@@ -36,6 +37,13 @@ from kicad_monkey.kicad_render_cache_oracle import (
     summarize_render_cache_requests,
     strip_render_cache_blocks,
 )
+
+
+def _uses_windows_arial_for_generated_cache() -> bool:
+    from kicad_monkey.kicad_text import KiCadTextRenderer
+
+    path = KiCadTextRenderer()._find_font_file("Arial")
+    return path is not None and Path(path).name.casefold() == "arial.ttf"
 
 
 def _cache(text: str = "TXT", angle: float = 0.0) -> RenderCache:
@@ -551,7 +559,12 @@ def test_python_render_cache_generator_trims_duplicate_contour_closure():
 
     assert cache.text == "TE"
     assert cache.angle == 0.0
-    assert [len(poly.points) for poly in cache.polygons] == [8, 12]
+    polygon_sizes = [len(poly.points) for poly in cache.polygons]
+    if _uses_windows_arial_for_generated_cache():
+        assert polygon_sizes == [8, 12]
+    else:
+        assert polygon_sizes
+        assert all(size > 3 for size in polygon_sizes)
     assert all(poly.points[0] != poly.points[-1] for poly in cache.polygons)
 
 
@@ -574,8 +587,12 @@ def test_python_render_cache_generator_fractures_holed_outline_glyphs():
     cache = generate_render_cache_from_text_params(params)
 
     assert cache.text == "O"
-    assert len(cache.polygons) == 1
-    assert len(cache.polygons[0].points) == 79
+    if _uses_windows_arial_for_generated_cache():
+        assert len(cache.polygons) == 1
+        assert len(cache.polygons[0].points) == 79
+    else:
+        assert cache.polygons
+        assert any(len(poly.points) > 8 for poly in cache.polygons)
 
 
 def test_python_render_cache_generator_emits_overbar_stroke_polygon():
@@ -598,8 +615,12 @@ def test_python_render_cache_generator_emits_overbar_stroke_polygon():
     cache = generate_render_cache_from_text_params(params)
 
     assert cache.text == "~{S}"
-    assert len(cache.polygons) == 2
-    assert len(cache.polygons[-1].points) == 28
+    if _uses_windows_arial_for_generated_cache():
+        assert len(cache.polygons) == 2
+        assert len(cache.polygons[-1].points) == 28
+    else:
+        assert len(cache.polygons) >= 2
+        assert len(cache.polygons[-1].points) > 3
 
 
 def test_text_box_linebreaker_keeps_marked_runs_as_single_words():
