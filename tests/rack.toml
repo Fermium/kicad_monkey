@@ -1,0 +1,105 @@
+[rack]
+name = "KiCad Module Tests"
+version = "1.0"
+description = "Test suite for KiCad file format parsing, tools, and rendering"
+note = "Private toolz suite. Shared corpus is mounted locally from WN_TEST_CORPUS."
+default_lane = "fast"
+
+[strata]
+order = [
+    "L0_foundation",
+    "L1_parsing",
+    "L2_tools",
+    "L3_rendering",
+    "L4_applications",
+    "L99_signoff",
+]
+default_enabled = [
+    "L0_foundation",
+    "L1_parsing",
+    "L2_tools",
+    "L3_rendering",
+    "L4_applications",
+    "L99_signoff",
+]
+
+# =============================================================================
+# Concerns Hierarchy
+# =============================================================================
+
+[concerns.sexpr]
+description = "S-expression parsing and building"
+
+[concerns.parsing]
+description = "File parsing and data model validation"
+
+[concerns."parsing.pcb"]
+description = "PCB file parsing"
+
+[concerns."parsing.footprint"]
+description = "Footprint file parsing"
+
+[concerns.tools]
+description = "Lower-level file manipulation tools"
+
+[concerns."tools.extraction"]
+description = "Symbol/footprint extraction"
+
+[concerns."tools.splitting"]
+description = "Library splitting"
+
+[concerns."tools.merging"]
+description = "Library merging"
+
+[concerns.rendering]
+description = "SVG rendering pipeline"
+
+[concerns."rendering.board"]
+description = "Board SVG rendering"
+
+[concerns."rendering.footprint"]
+description = "Footprint SVG rendering"
+
+[concerns."rendering.text"]
+description = "Text/font rendering"
+
+[concerns.applications]
+description = "High-level application workflows"
+
+[concerns.docs]
+description = "Design documentation and contract coverage"
+
+[concerns.release]
+description = "Package release checks"
+
+[concerns.signoff]
+description = "Final release quality gates"
+
+[lanes.fast]
+description = "Default smoke lane for structural/path verification"
+
+[lanes.full]
+description = "Broader routine-validation lane"
+
+[lanes.strict]
+description = "Heavier or stricter validation lane"
+
+# =============================================================================
+# Dependencies
+# =============================================================================
+
+[dependencies]
+python_packages = [
+    "pytest",
+    "pytest-json-report",
+    "tomli-w",
+    "pyright",
+    "ruff",
+    "wn-rack",
+]
+
+[[dependencies.internal_tools]]
+name = "kicad-cli"
+purpose = "Generate reference SVG outputs (ground truth)"
+required_for = ["L3_rendering"]
+note = "System-installed KiCad CLI tool"

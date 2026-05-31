@@ -1,0 +1,3235 @@
+(kicad_sch
+	(version 20250114)
+	(generator "eeschema")
+	(generator_version "9.0")
+	(uuid "8347ee09-e946-49b6-9ae5-d2ec032ef52f")
+	(paper "D")
+	(lib_symbols
+		(symbol "speedy:ST1L05BPUR"
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(property "Reference" "U"
+				(at -7.112 10.414 0)
+				(effects
+					(font
+						(size 1.27 1.27) ) ) )
+			(property "Value" "ST1L05BPUR"
+				(at -2.032 8.636 0)
+				(effects
+					(font
+						(size 1.27 1.27) ) ) )
+			(property "Footprint" "speedy:SON95P300X300X100-7N"
+				(at -0.254 20.828 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Datasheet" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Description" "Linear Voltage Regulator IC Positive Adjustable 1 Output 1.3A 6-DFN (3x3)"
+				(at 4.826 16.764 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Manufacturer" "STMicroelectronics"
+				(at 0 22.098 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Manufacturer Part Number" "ST1L05BPUR"
+				(at 0.254 32.766 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "ki_keywords" "Linear Voltage Regulator IC Positive Adjustable 1 Output 1.3A 6-DFN (3x3)"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(symbol "ST1L05BPUR_1_1"
+				(rectangle
+					(start -7.62 7.62)
+					(end 7.62 -7.62)
+					(stroke
+						(width 0)
+						(type solid) )
+					(fill
+						(type background) ) )
+				(pin power_in line
+					(at -10.16 5.08 0)
+					(length 2.54)
+					(name "VI"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) )
+					(number "6"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) ) )
+				(pin input line
+					(at -10.16 0 0)
+					(length 2.54)
+					(name "EN"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) )
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) ) )
+				(pin passive line
+					(at -10.16 -5.08 0)
+					(length 2.54)
+					(name "GND"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) )
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) ) )
+				(pin passive line
+					(at 0 -10.16 90)
+					(length 2.54)
+					(name "EP"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) )
+					(number "7"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) ) )
+				(pin power_out line
+					(at 10.16 5.08 180)
+					(length 2.54)
+					(name "Vo"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) )
+					(number "4"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) ) )
+				(pin input line
+					(at 10.16 0 180)
+					(length 2.54)
+					(name "ADJ"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) )
+					(number "5"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) ) )
+				(pin open_collector line
+					(at 10.16 -5.08 180)
+					(length 2.54)
+					(name "PG"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) )
+					(number "3"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) ) ) )
+			(embedded_fonts no) )
+		(symbol "speedy:Test_Point_GND"
+			(exclude_from_sim no)
+			(in_bom no)
+			(on_board yes)
+			(property "Reference" "TP"
+				(at 0.254 4.064 0)
+				(effects
+					(font
+						(size 1.27 1.27) ) ) )
+			(property "Value" "GND"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) ) ) )
+			(property "Footprint" "speedy:SMT_TP-25_GND"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Datasheet" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Description" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(symbol "Test_Point_GND_1_0"
+				(circle
+					(center -5.08 0)
+					(radius 0.889)
+					(stroke
+						(width 0)
+						(type solid)
+						(color 0 0 0 1) )
+					(fill
+						(type outline) ) )
+				(pin passive line
+					(at 0 0 180)
+					(length 5.08)
+					(name ""
+						(effects
+							(font
+								(size 1.27 1.27) ) ) )
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) ) ) )
+			(symbol "Test_Point_GND_1_1"
+				(circle
+					(center -5.08 0)
+					(radius 1.7961)
+					(stroke
+						(width 0.254)
+						(type solid) )
+					(fill
+						(type none) ) ) )
+			(embedded_fonts no) )
+		(symbol "wn__wavenumber:ERJ-2RKF1002X"
+			(pin_numbers
+				(hide yes) )
+			(pin_names
+				(hide yes) )
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(property "Reference" "R"
+				(at 2.54 1.27 0)
+				(effects
+					(font
+						(size 1.8288 1.8288) ) ) )
+			(property "Value" "10kΩ"
+				(at 2.54 -3.81 0)
+				(effects
+					(font
+						(size 1.8288 1.8288) )
+					(justify left bottom) ) )
+			(property "Footprint" "R0402_0.40MM_HD:R0402_0.40MM_HD"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Datasheet" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Description" "RES 10K OHM 1/10W 1% 0402 SMD"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Package Power" "PACKAGE (POWER)"
+				(at 5.08 -6.35 0)
+				(effects
+					(font
+						(size 1.4478 1.4478) )
+					(justify left bottom)
+					(hide yes) ) )
+			(property "Assembly Notes" ""
+				(at -0.508 3.81 0)
+				(effects
+					(font
+						(size 2.1844 2.1844) )
+					(justify left bottom)
+					(hide yes) ) )
+			(property "Internal Part Number" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Manufacturer" "Panasonic Electronic Components"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Manufacturer Part Number" "ERJ-2RKF1002X"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "cad-reference" "ERJ-2RKF1002X"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "flags" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "ki_keywords" "R_2P"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(symbol "ERJ-2RKF1002X_1_0"
+				(polyline
+					(pts
+						(xy 7.62 0)
+						(xy 6.604 0)
+						(xy 6.35 -0.508)
+						(xy 5.842 0.508)
+						(xy 5.334 -0.508)
+						(xy 4.826 0.508)
+						(xy 4.318 -0.508)
+						(xy 3.81 0.508)
+						(xy 3.556 0)
+						(xy 2.54 0) )
+					(stroke
+						(width 0)
+						(type solid) )
+					(fill
+						(type none) ) )
+				(pin passive line
+					(at 0 0 0)
+					(length 2.54)
+					(name "1"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) )
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) ) )
+				(pin passive line
+					(at 10.16 0 180)
+					(length 2.54)
+					(name "2"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) )
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) ) ) )
+			(embedded_fonts no) )
+		(symbol "wn__wavenumber:ERJ-2RKF4701X"
+			(pin_numbers
+				(hide yes) )
+			(pin_names
+				(hide yes) )
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(property "Reference" "R"
+				(at 2.54 1.27 0)
+				(effects
+					(font
+						(size 1.8288 1.8288) ) ) )
+			(property "Value" "4.7kΩ"
+				(at 2.54 -3.81 0)
+				(effects
+					(font
+						(size 1.8288 1.8288) )
+					(justify left bottom) ) )
+			(property "Footprint" "R0402_0.40MM_HD:R0402_0.40MM_HD"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Datasheet" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Description" "RES 4.7K OHM 1/10W 1% 0402 SMD"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Package Power" "PACKAGE (POWER)"
+				(at 5.08 -6.35 0)
+				(effects
+					(font
+						(size 1.4478 1.4478) )
+					(justify left bottom)
+					(hide yes) ) )
+			(property "Assembly Notes" ""
+				(at -0.508 3.81 0)
+				(effects
+					(font
+						(size 2.1844 2.1844) )
+					(justify left bottom)
+					(hide yes) ) )
+			(property "Internal Part Number" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Manufacturer" "Panasonic Electronic Components"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Manufacturer Part Number" "ERJ-2RKF4701X"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "cad-reference" "ERJ-2RKF4701X"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "flags" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "ki_keywords" "R_2P"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(symbol "ERJ-2RKF4701X_1_0"
+				(polyline
+					(pts
+						(xy 7.62 0)
+						(xy 6.604 0)
+						(xy 6.35 -0.508)
+						(xy 5.842 0.508)
+						(xy 5.334 -0.508)
+						(xy 4.826 0.508)
+						(xy 4.318 -0.508)
+						(xy 3.81 0.508)
+						(xy 3.556 0)
+						(xy 2.54 0) )
+					(stroke
+						(width 0)
+						(type solid) )
+					(fill
+						(type none) ) )
+				(pin passive line
+					(at 0 0 0)
+					(length 2.54)
+					(name "1"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) )
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) ) )
+				(pin passive line
+					(at 10.16 0 180)
+					(length 2.54)
+					(name "2"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) )
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) ) ) )
+			(embedded_fonts no) )
+		(symbol "wn__wavenumber:GCM155R71H104KE02J"
+			(pin_numbers
+				(hide yes) )
+			(pin_names
+				(hide yes) )
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(property "Reference" "C"
+				(at 2.54 2.54 0)
+				(effects
+					(font
+						(size 2.1844 2.1844) ) ) )
+			(property "Value" "0.1µF"
+				(at 2.54 -5.08 0)
+				(effects
+					(font
+						(size 1.8288 1.8288) )
+					(justify left bottom) ) )
+			(property "Footprint" "C0402_0.55MM_MD:C0402_0.55MM_MD"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Datasheet" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Description" "CAP CER 0.1UF 50V X7R 0402"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Temperature Coefficient" "Temperature Coefficient"
+				(at 5.08 -7.62 0)
+				(effects
+					(font
+						(size 1.4478 1.4478) )
+					(justify left bottom)
+					(hide yes) ) )
+			(property "Internal Part Number" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Manufacturer" "Murata Electronics"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Manufacturer Part Number" "GCM155R71H104KE02J"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "cad-reference" "GCM155R71H104KE02J"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "flags" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "ki_keywords" "C_2P_NP"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(symbol "GCM155R71H104KE02J_1_0"
+				(polyline
+					(pts
+						(xy 2.54 0)
+						(xy 3.302 0) )
+					(stroke
+						(width 0)
+						(type solid) )
+					(fill
+						(type none) ) )
+				(polyline
+					(pts
+						(xy 3.302 1.778)
+						(xy 3.302 -1.778) )
+					(stroke
+						(width 0)
+						(type solid) )
+					(fill
+						(type none) ) )
+				(polyline
+					(pts
+						(xy 4.318 1.778)
+						(xy 4.318 -1.778) )
+					(stroke
+						(width 0)
+						(type solid) )
+					(fill
+						(type none) ) )
+				(polyline
+					(pts
+						(xy 5.334 0)
+						(xy 4.318 0) )
+					(stroke
+						(width 0)
+						(type solid) )
+					(fill
+						(type none) ) )
+				(pin passive line
+					(at 0 0 0)
+					(length 2.54)
+					(name "1"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) )
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) ) )
+				(pin passive line
+					(at 7.62 0 180)
+					(length 2.54)
+					(name "1"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) )
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) ) ) )
+			(embedded_fonts no) )
+		(symbol "wn__wavenumber:GCM21BR70J106KE22K"
+			(pin_numbers
+				(hide yes) )
+			(pin_names
+				(hide yes) )
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(property "Reference" "C"
+				(at 2.54 2.54 0)
+				(effects
+					(font
+						(size 2.1844 2.1844) ) ) )
+			(property "Value" "10µF"
+				(at 2.54 -5.08 0)
+				(effects
+					(font
+						(size 1.8288 1.8288) )
+					(justify left bottom) ) )
+			(property "Footprint" "C0805_1.40MM_MD:C0805_1.40MM_MD"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Datasheet" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Description" "CAP CER 10UF 6.3V X7R 0805"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Temperature Coefficient" "Temperature Coefficient"
+				(at 5.08 -7.62 0)
+				(effects
+					(font
+						(size 1.4478 1.4478) )
+					(justify left bottom)
+					(hide yes) ) )
+			(property "Internal Part Number" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Manufacturer" "Murata Electronics"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Manufacturer Part Number" "GCM21BR70J106KE22K"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "cad-reference" "GCM21BR70J106KE22K"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "flags" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "ki_keywords" "C_2P_NP"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(symbol "GCM21BR70J106KE22K_1_0"
+				(polyline
+					(pts
+						(xy 2.54 0)
+						(xy 3.302 0) )
+					(stroke
+						(width 0)
+						(type solid) )
+					(fill
+						(type none) ) )
+				(polyline
+					(pts
+						(xy 3.302 1.778)
+						(xy 3.302 -1.778) )
+					(stroke
+						(width 0)
+						(type solid) )
+					(fill
+						(type none) ) )
+				(polyline
+					(pts
+						(xy 4.318 1.778)
+						(xy 4.318 -1.778) )
+					(stroke
+						(width 0)
+						(type solid) )
+					(fill
+						(type none) ) )
+				(polyline
+					(pts
+						(xy 5.334 0)
+						(xy 4.318 0) )
+					(stroke
+						(width 0)
+						(type solid) )
+					(fill
+						(type none) ) )
+				(pin passive line
+					(at 0 0 0)
+					(length 2.54)
+					(name "1"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) )
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) ) )
+				(pin passive line
+					(at 7.62 0 180)
+					(length 2.54)
+					(name "1"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) )
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) ) ) )
+			(embedded_fonts no) )
+		(symbol "wn__wavenumber:MFBM1V1608-102-R"
+			(pin_numbers
+				(hide yes) )
+			(pin_names
+				(hide yes) )
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(property "Reference" "L"
+				(at 312.166 164.592 0)
+				(effects
+					(font
+						(size 1.8288 1.8288) ) ) )
+			(property "Value" "1kΩ@100MHz"
+				(at -0.254 -0.254 0)
+				(effects
+					(font
+						(size 1.8288 1.8288) )
+					(justify left bottom) ) )
+			(property "Footprint" "C0603_0.90MM_MD:C0603_0.90MM_MD"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Datasheet" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Description" "400mΩ ±25% 1kΩ@100MHz 0603  Ferrite Beads ROHS"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Category" "Inductors"
+				(at -0.254 -0.254 0)
+				(effects
+					(font
+						(size 1.8288 1.8288) )
+					(justify left bottom)
+					(hide yes) ) )
+			(property "CategorySort" "300"
+				(at -0.254 -0.254 0)
+				(effects
+					(font
+						(size 1.8288 1.8288) )
+					(justify left bottom)
+					(hide yes) ) )
+			(property "Internal Part Number" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Manufacturer" "Eaton"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Manufacturer Part Number" "MFBM1V1608-102-R"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "cad-reference" "MFBM1V1608-102-R"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "flags" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "ki_keywords" "L_2P"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(symbol "MFBM1V1608-102-R_1_0"
+				(arc
+					(start 2.54 0)
+					(mid 2.912 0.898)
+					(end 3.81 1.27)
+					(stroke
+						(width 0)
+						(type solid)
+						(color 0 0 0 1) )
+					(fill
+						(type none) ) )
+				(arc
+					(start 3.81 1.27)
+					(mid 4.708 0.898)
+					(end 5.08 0)
+					(stroke
+						(width 0)
+						(type solid)
+						(color 0 0 0 1) )
+					(fill
+						(type none) ) )
+				(arc
+					(start 5.08 0)
+					(mid 5.452 0.898)
+					(end 6.35 1.27)
+					(stroke
+						(width 0)
+						(type solid)
+						(color 0 0 0 1) )
+					(fill
+						(type none) ) )
+				(arc
+					(start 6.35 1.27)
+					(mid 7.248 0.898)
+					(end 7.62 0)
+					(stroke
+						(width 0)
+						(type solid)
+						(color 0 0 0 1) )
+					(fill
+						(type none) ) )
+				(arc
+					(start 7.62 0)
+					(mid 7.992 0.898)
+					(end 8.89 1.27)
+					(stroke
+						(width 0)
+						(type solid)
+						(color 0 0 0 1) )
+					(fill
+						(type none) ) )
+				(arc
+					(start 8.89 1.27)
+					(mid 9.788 0.898)
+					(end 10.16 0)
+					(stroke
+						(width 0)
+						(type solid)
+						(color 0 0 0 1) )
+					(fill
+						(type none) ) )
+				(arc
+					(start 10.16 0)
+					(mid 10.532 0.898)
+					(end 11.43 1.27)
+					(stroke
+						(width 0)
+						(type solid)
+						(color 0 0 0 1) )
+					(fill
+						(type none) ) )
+				(arc
+					(start 11.43 1.27)
+					(mid 12.328 0.898)
+					(end 12.7 0)
+					(stroke
+						(width 0)
+						(type solid)
+						(color 0 0 0 1) )
+					(fill
+						(type none) ) )
+				(pin passive line
+					(at 0 0 0)
+					(length 2.54)
+					(name "1"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) )
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) ) )
+				(pin passive line
+					(at 15.24 0 180)
+					(length 2.54)
+					(name "2"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) )
+					(number "2"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) ) ) )
+			(embedded_fonts no) )
+		(symbol "wn__wavenumber:SMT_TP-25"
+			(pin_numbers
+				(hide yes) )
+			(pin_names
+				(hide yes) )
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(property "Reference" "TP"
+				(at 0 3.81 0)
+				(effects
+					(font
+						(face "Arial")
+						(size 2.0066 2.0066)
+						(bold yes) ) ) )
+			(property "Value" "SMT Testpoint 20mil"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.8288 1.8288) )
+					(justify left bottom) ) )
+			(property "Footprint" "SMT_TP-25:SMT_TP-25"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Datasheet" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Description" "SMT Testpoint 20mil"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Internal Part Number" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Manufacturer" "Wavenumber"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Manufacturer Part Number" "SMT_TP-25"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "cad-reference" "SMT_TP-25"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "flags" "NO_BOM"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "ki_keywords" "SMT_TEST"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(symbol "SMT_TP-25_1_0"
+				(circle
+					(center 0 0)
+					(radius 0.889)
+					(stroke
+						(width 0)
+						(type solid)
+						(color 0 0 0 1) )
+					(fill
+						(type outline) ) )
+				(pin passive line
+					(at 5.08 0 180)
+					(length 5.08)
+					(name "1"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) )
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) ) ) )
+			(embedded_fonts no) )
+		(symbol "wn_power:+3v3"
+			(power)
+			(pin_numbers
+				(hide yes) )
+			(pin_names
+				(offset 0)
+				(hide yes) )
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(property "Reference" "#PWR"
+				(at -0.508 3.302 0)
+				(do_not_autoplace)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Value" "+3v3"
+				(at -0.508 3.556 0)
+				(do_not_autoplace)
+				(effects
+					(font
+						(face "Arial")
+						(size 1.905 1.905)
+						(thickness 0.254)
+						(bold yes) ) ) )
+			(property "Footprint" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Datasheet" ""
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "Description" "Power symbol creates a global label with name \"+3v3\" , ground"
+				(at 0.762 9.652 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(property "ki_keywords" "global power"
+				(at 0 0 0)
+				(effects
+					(font
+						(size 1.27 1.27) )
+					(hide yes) ) )
+			(symbol "+3v3_0_1"
+				(polyline
+					(pts
+						(xy 0 0)
+						(xy 0 2.54) )
+					(stroke
+						(width 0.254)
+						(type default) )
+					(fill
+						(type none) ) )
+				(polyline
+					(pts
+						(xy 1.27 2.54)
+						(xy -1.27 2.54) )
+					(stroke
+						(width 0.254)
+						(type default) )
+					(fill
+						(type none) ) ) )
+			(symbol "+3v3_1_1"
+				(pin power_in line
+					(at 0 0 90)
+					(length 0)
+					(name "~"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) )
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27) ) ) ) ) )
+			(embedded_fonts no) ) )
+	(text "VO = VADJ (1 + R1 / R2) with VADJ = 1.22 V (typ.)"
+		(exclude_from_sim no)
+		(at 450.596 265.43 0)
+		(effects
+			(font
+				(size 1.27 1.27) ) )
+		(uuid "460dc716-6707-41ec-bdfa-e0392e0aa2a3") )
+	(text "Thermal Coefficient: 55C/W\\n"
+		(exclude_from_sim no)
+		(at 441.198 267.716 0)
+		(effects
+			(font
+				(size 1.27 1.27) ) )
+		(uuid "513520e5-16ed-41ca-9555-3dcc9c5e4588") )
+	(text "(2.4V-1.8V)*0.6A*55 = 19.8C above ambient"
+		(exclude_from_sim no)
+		(at 447.802 270.002 0)
+		(effects
+			(font
+				(size 1.27 1.27) ) )
+		(uuid "fd41c0e8-e629-4a50-9245-f9e0f5d3fe32") )
+	(junction
+		(at 490.22 276.86)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "0f6703e3-1afc-40e1-8e23-6cc164e98a76") )
+	(junction
+		(at 410.21 276.86)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "21d6a165-1275-424c-9326-0339608bf616") )
+	(junction
+		(at 424.18 276.86)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "6d13ec95-6f1c-451b-9adf-f8c83f220b4e") )
+	(junction
+		(at 396.24 276.86)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "93f3c79b-9c95-4eaa-a160-5cd2ae09dc29") )
+	(junction
+		(at 505.46 290.83)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "95348821-63f4-4fee-aefd-965af0b01400") )
+	(junction
+		(at 505.46 276.86)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "9c479df7-78eb-45b1-9ff6-01081e4ec1ec") )
+	(junction
+		(at 462.28 276.86)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "d1b4d4f3-a251-4f17-b8be-5ee5c7c91b78") )
+	(junction
+		(at 462.28 287.02)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "d27322ed-6a1c-45f1-853a-908a3c99b3ab") )
+	(junction
+		(at 476.25 276.86)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "ddaa5a69-f956-442f-8e80-6b2e241e4e6e") )
+	(no_connect
+		(at 449.58 287.02)
+		(uuid "f0f2f8d3-f8ea-426e-887f-457a3fbc3c61") )
+	(wire
+		(pts
+			(xy 523.24 276.86)
+			(xy 533.4 276.86) )
+		(stroke
+			(width 0)
+			(type default) )
+		(uuid "190717f7-0af3-4e2b-9695-638f1b80cc8b") )
+	(wire
+		(pts
+			(xy 424.18 276.86)
+			(xy 429.26 276.86) )
+		(stroke
+			(width 0)
+			(type default) )
+		(uuid "2a4d883d-d24c-4c18-91a8-75b3616542e0") )
+	(wire
+		(pts
+			(xy 424.18 281.94)
+			(xy 429.26 281.94) )
+		(stroke
+			(width 0)
+			(type default) )
+		(uuid "2f774ba0-af7d-4e6d-a134-46cbe40d02c5") )
+	(wire
+		(pts
+			(xy 533.4 302.26)
+			(xy 533.4 306.07) )
+		(stroke
+			(width 0)
+			(type default) )
+		(uuid "3212a7cc-e109-4e8a-9aa2-3f0206d4b5df") )
+	(wire
+		(pts
+			(xy 490.22 276.86)
+			(xy 505.46 276.86) )
+		(stroke
+			(width 0)
+			(type default) )
+		(uuid "4b4eb18e-023b-4ca4-b904-fc5ea5b80ea1") )
+	(wire
+		(pts
+			(xy 449.58 276.86)
+			(xy 462.28 276.86) )
+		(stroke
+			(width 0)
+			(type default) )
+		(uuid "4d816e89-842e-4a0e-aa34-8224fc0d17df") )
+	(wire
+		(pts
+			(xy 505.46 306.07)
+			(xy 505.46 290.83) )
+		(stroke
+			(width 0)
+			(type default) )
+		(uuid "6dd88346-a118-4d0d-9bfe-e35cc9e47f12") )
+	(wire
+		(pts
+			(xy 396.24 273.05)
+			(xy 396.24 276.86) )
+		(stroke
+			(width 0)
+			(type default) )
+		(uuid "7201d68c-d195-4741-89a9-1f6b9c226bf6") )
+	(wire
+		(pts
+			(xy 424.18 287.02)
+			(xy 429.26 287.02) )
+		(stroke
+			(width 0)
+			(type default) )
+		(uuid "72b10501-ad40-4b41-85a1-dd19f6dacec9") )
+	(wire
+		(pts
+			(xy 383.54 278.13)
+			(xy 383.54 284.48) )
+		(stroke
+			(width 0)
+			(type default) )
+		(uuid "740f0f3a-c50e-4e59-8935-42be1bfd02af") )
+	(wire
+		(pts
+			(xy 490.22 274.32)
+			(xy 490.22 276.86) )
+		(stroke
+			(width 0)
+			(type default) )
+		(uuid "757ad032-811c-4580-889f-dfb7ed865982") )
+	(wire
+		(pts
+			(xy 454.66 281.94)
+			(xy 454.66 287.02) )
+		(stroke
+			(width 0)
+			(type default) )
+		(uuid "7f13cd8b-02db-4a2d-8418-0a666bb0172a") )
+	(wire
+		(pts
+			(xy 533.4 287.02)
+			(xy 533.4 290.83) )
+		(stroke
+			(width 0)
+			(type default) )
+		(uuid "853f706b-c7a9-4936-9f1b-328e451f76bf") )
+	(wire
+		(pts
+			(xy 449.58 281.94)
+			(xy 454.66 281.94) )
+		(stroke
+			(width 0)
+			(type default) )
+		(uuid "875c4034-5fd9-4642-8845-b2d7e296dfe7") )
+	(wire
+		(pts
+			(xy 410.21 276.86)
+			(xy 424.18 276.86) )
+		(stroke
+			(width 0)
+			(type default) )
+		(uuid "903248f9-dedf-47be-be78-07afbf640bd4") )
+	(wire
+		(pts
+			(xy 396.24 276.86)
+			(xy 410.21 276.86) )
+		(stroke
+			(width 0)
+			(type default) )
+		(uuid "9e5ba196-a6d2-48a4-974a-facd02de5623") )
+	(wire
+		(pts
+			(xy 533.4 276.86)
+			(xy 533.4 274.32) )
+		(stroke
+			(width 0)
+			(type default) )
+		(uuid "af49a06c-9dbd-44ae-87a5-2151674f9a56") )
+	(wire
+		(pts
+			(xy 454.66 287.02)
+			(xy 462.28 287.02) )
+		(stroke
+			(width 0)
+			(type default) )
+		(uuid "b80c2ae5-33a4-4c76-9cef-1d01ff684f75") )
+	(wire
+		(pts
+			(xy 505.46 276.86)
+			(xy 505.46 290.83) )
+		(stroke
+			(width 0)
+			(type default) )
+		(uuid "c1710edb-467b-453e-a6d8-3396cd93c358") )
+	(wire
+		(pts
+			(xy 505.46 276.86)
+			(xy 508 276.86) )
+		(stroke
+			(width 0)
+			(type default) )
+		(uuid "caa59121-637c-4db4-a0bf-4982ee2484bd") )
+	(wire
+		(pts
+			(xy 533.4 290.83)
+			(xy 524.51 290.83) )
+		(stroke
+			(width 0)
+			(type default) )
+		(uuid "cc6dfb62-81b3-4187-a492-bf57ab690376") )
+	(wire
+		(pts
+			(xy 533.4 306.07)
+			(xy 524.51 306.07) )
+		(stroke
+			(width 0)
+			(type default) )
+		(uuid "d325f0dd-a8c0-4bb6-84a8-b5b09e334cf2") )
+	(wire
+		(pts
+			(xy 505.46 290.83)
+			(xy 509.27 290.83) )
+		(stroke
+			(width 0)
+			(type default) )
+		(uuid "d34d4876-9dfb-406a-9c5a-79c14bc64f49") )
+	(wire
+		(pts
+			(xy 509.27 306.07)
+			(xy 505.46 306.07) )
+		(stroke
+			(width 0)
+			(type default) )
+		(uuid "e531483a-14ef-42f9-bfcc-4a0341b59470") )
+	(wire
+		(pts
+			(xy 424.18 292.1)
+			(xy 424.18 287.02) )
+		(stroke
+			(width 0)
+			(type default) )
+		(uuid "eb27c3e5-8aab-453e-9004-855cbecb2229") )
+	(wire
+		(pts
+			(xy 462.28 276.86)
+			(xy 476.25 276.86) )
+		(stroke
+			(width 0)
+			(type default) )
+		(uuid "f1890f2e-f3c6-49a7-a073-1b351f3ecb6a") )
+	(wire
+		(pts
+			(xy 424.18 276.86)
+			(xy 424.18 281.94) )
+		(stroke
+			(width 0)
+			(type default) )
+		(uuid "f3517cfe-0cac-4287-9ca3-540ae75b9516") )
+	(wire
+		(pts
+			(xy 476.25 276.86)
+			(xy 490.22 276.86) )
+		(stroke
+			(width 0)
+			(type default) )
+		(uuid "f8f495e4-0ed5-4853-9b1a-e95ce38c2b36") )
+	(symbol
+		(lib_id "wn__wavenumber:SMT_TP-25")
+		(at 410.21 271.78 270)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "06e9b6ce-b883-4364-a28a-e15eee89d9d5")
+		(property "Reference" "TP29"
+			(at 413.512 268.986 90)
+			(effects
+				(font
+					(face "Arial")
+					(size 1.905 1.905)
+					(bold yes) )
+				(justify right) ) )
+		(property "Value" "SMT Testpoint 20mil"
+			(at 407.67 258.318 90)
+			(effects
+				(font
+					(size 1.8288 1.8288) )
+				(justify right)
+				(hide yes) ) )
+		(property "Footprint" "testpoints:SMT_TP-20"
+			(at 410.21 271.78 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Datasheet" ""
+			(at 410.21 271.78 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Description" "SMT Testpoint 20mil"
+			(at 410.21 271.78 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Internal Part Number" ""
+			(at 410.21 271.78 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Manufacturer" "Wavenumber"
+			(at 410.21 271.78 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Manufacturer Part Number" "SMT_TP-25"
+			(at 410.21 271.78 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "cad-reference" "SMT_TP-25"
+			(at 410.21 271.78 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "flags" "NO_BOM"
+			(at 410.21 271.78 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(pin "1"
+			(uuid "98daa4a5-ba0b-4f17-838a-0bcb5c167746") )
+		(instances
+			(project "11-10084__speedy_processing_module__A"
+				(path "/07379ba8-902b-43bb-a06b-a7d21ac5e4c3/7b554d36-1044-472f-8648-8fb664892a39"
+					(reference "TP29")
+					(unit 1) ) ) ) )
+	(symbol
+		(lib_id "wn_power:+3v3")
+		(at 439.42 292.1 180)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "0d4160a7-7c8c-4c48-9638-fb4a31f1ed19")
+		(property "Reference" "#PWR090"
+			(at 439.928 295.402 0)
+			(do_not_autoplace yes)
+			(effects
+				(font
+					(size 1.905 1.905)
+					(thickness 0.3048)
+					(bold yes) )
+				(hide yes) ) )
+		(property "Value" "GND"
+			(at 439.166 296.418 0)
+			(do_not_autoplace yes)
+			(effects
+				(font
+					(face "Arial")
+					(size 1.905 1.905)
+					(thickness 0.254)
+					(bold yes) ) ) )
+		(property "Footprint" ""
+			(at 439.42 292.1 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Datasheet" ""
+			(at 439.42 292.1 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Description" "Power symbol creates a global label with name \"+3v3\" , ground"
+			(at 438.658 301.752 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(pin "1"
+			(uuid "8c9ca43f-988a-49a0-999b-2c51fbe1f1e6") )
+		(instances
+			(project "11-10084__speedy_processing_module__A"
+				(path "/07379ba8-902b-43bb-a06b-a7d21ac5e4c3/7b554d36-1044-472f-8648-8fb664892a39"
+					(reference "#PWR090")
+					(unit 1) ) ) ) )
+	(symbol
+		(lib_id "wn__wavenumber:GCM21BR70J106KE22K")
+		(at 396.24 284.48 90)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "14b939d7-b4a5-4e4d-9685-9e1b75facba9")
+		(property "Reference" "C55"
+			(at 400.05 279.273 90)
+			(effects
+				(font
+					(size 1.905 1.905)
+					(thickness 0.3048)
+					(bold yes) )
+				(justify right) ) )
+		(property "Value" "10µF"
+			(at 400.05 281.813 90)
+			(effects
+				(font
+					(size 1.524 1.524) )
+				(justify right) ) )
+		(property "Footprint" "C0805_1.40MM_MD:C0805_1.40MM_MD"
+			(at 396.24 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Datasheet" ""
+			(at 396.24 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Description" "CAP CER 10UF 6.3V X7R 0805"
+			(at 396.24 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "ALTIUM_VALUE" "${VALUE}"
+			(at 400.05 279.4 0)
+			(effects
+				(font
+					(size 1.8288 1.8288) )
+				(justify left bottom)
+				(hide yes) ) )
+		(property "Temperature Coefficient" "Temperature Coefficient"
+			(at 403.86 279.4 0)
+			(effects
+				(font
+					(size 1.4478 1.4478) )
+				(justify left bottom)
+				(hide yes) ) )
+		(property "Internal Part Number" ""
+			(at 396.24 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Manufacturer" "Murata Electronics"
+			(at 396.24 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Manufacturer Part Number" "GCM21BR70J106KE22K"
+			(at 396.24 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "cad-reference" "GCM21BR70J106KE22K"
+			(at 396.24 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "flags" ""
+			(at 396.24 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(pin "1"
+			(uuid "7e3226a5-0894-44a0-b4ba-1b04dbc7f6c9") )
+		(pin "2"
+			(uuid "a229b58c-f20e-4b26-a0b3-a191a4e9a1b6") )
+		(instances
+			(project "11-10084__speedy_processing_module__A"
+				(path "/07379ba8-902b-43bb-a06b-a7d21ac5e4c3/7b554d36-1044-472f-8648-8fb664892a39"
+					(reference "C55")
+					(unit 1) ) ) ) )
+	(symbol
+		(lib_id "wn__wavenumber:GCM21BR70J106KE22K")
+		(at 476.25 284.48 90)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "18edf72f-9687-4ca8-993f-43e7801b8a79")
+		(property "Reference" "C59"
+			(at 479.044 279.654 90)
+			(effects
+				(font
+					(size 1.905 1.905)
+					(thickness 0.4369)
+					(bold yes) )
+				(justify right) ) )
+		(property "Value" "10µF"
+			(at 478.79 282.194 90)
+			(effects
+				(font
+					(size 1.524 1.524) )
+				(justify right) ) )
+		(property "Footprint" "C0805_1.40MM_MD:C0805_1.40MM_MD"
+			(at 476.25 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Datasheet" ""
+			(at 476.25 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Description" "CAP CER 10UF 6.3V X7R 0805"
+			(at 476.25 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "ALTIUM_VALUE" "${VALUE}"
+			(at 480.06 279.4 0)
+			(effects
+				(font
+					(size 1.8288 1.8288) )
+				(justify left bottom)
+				(hide yes) ) )
+		(property "Temperature Coefficient" "Temperature Coefficient"
+			(at 483.87 279.4 0)
+			(effects
+				(font
+					(size 1.4478 1.4478) )
+				(justify left bottom)
+				(hide yes) ) )
+		(property "Internal Part Number" ""
+			(at 476.25 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Manufacturer" "Murata Electronics"
+			(at 476.25 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Manufacturer Part Number" "GCM21BR70J106KE22K"
+			(at 476.25 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "cad-reference" "GCM21BR70J106KE22K"
+			(at 476.25 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "flags" ""
+			(at 476.25 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(pin "1"
+			(uuid "6cf5a50e-94ff-4d32-ac91-e4e1375b92cc") )
+		(pin "2"
+			(uuid "583cbbc7-9a21-4237-bec2-0049cc112f73") )
+		(instances
+			(project "11-10084__speedy_processing_module__A"
+				(path "/07379ba8-902b-43bb-a06b-a7d21ac5e4c3/7b554d36-1044-472f-8648-8fb664892a39"
+					(reference "C59")
+					(unit 1) ) ) ) )
+	(symbol
+		(lib_id "wn_power:+3v3")
+		(at 490.22 274.32 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "1fcad299-1ee9-48b6-9f13-a5a1d63c9d9b")
+		(property "Reference" "#PWR095"
+			(at 489.712 271.018 0)
+			(do_not_autoplace yes)
+			(effects
+				(font
+					(size 1.905 1.905)
+					(thickness 0.3048)
+					(bold yes) )
+				(hide yes) ) )
+		(property "Value" "+1v8"
+			(at 490.22 270.256 0)
+			(do_not_autoplace yes)
+			(effects
+				(font
+					(face "Arial")
+					(size 1.905 1.905)
+					(thickness 0.254)
+					(bold yes) ) ) )
+		(property "Footprint" ""
+			(at 490.22 274.32 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Datasheet" ""
+			(at 490.22 274.32 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Description" "Power symbol creates a global label with name \"+1v92\" , ground"
+			(at 490.982 264.668 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(pin "1"
+			(uuid "a0530d65-a409-400e-8c1e-1d4f32294ec7") )
+		(instances
+			(project "11-10084__speedy_processing_module__A"
+				(path "/07379ba8-902b-43bb-a06b-a7d21ac5e4c3/7b554d36-1044-472f-8648-8fb664892a39"
+					(reference "#PWR095")
+					(unit 1) ) ) ) )
+	(symbol
+		(lib_id "wn_power:+3v3")
+		(at 396.24 284.48 180)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "2a2ce358-c9a0-4e66-8a28-51bdaeda031a")
+		(property "Reference" "#PWR084"
+			(at 396.748 287.782 0)
+			(do_not_autoplace yes)
+			(effects
+				(font
+					(size 1.905 1.905)
+					(thickness 0.3048)
+					(bold yes) )
+				(hide yes) ) )
+		(property "Value" "GND"
+			(at 395.986 288.798 0)
+			(do_not_autoplace yes)
+			(effects
+				(font
+					(face "Arial")
+					(size 1.905 1.905)
+					(thickness 0.254)
+					(bold yes) ) ) )
+		(property "Footprint" ""
+			(at 396.24 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Datasheet" ""
+			(at 396.24 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Description" "Power symbol creates a global label with name \"+3v3\" , ground"
+			(at 395.478 294.132 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(pin "1"
+			(uuid "b1fded37-0b4e-4446-97fc-d9f085b1fb4b") )
+		(instances
+			(project "11-10084__speedy_processing_module__A"
+				(path "/07379ba8-902b-43bb-a06b-a7d21ac5e4c3/7b554d36-1044-472f-8648-8fb664892a39"
+					(reference "#PWR084")
+					(unit 1) ) ) ) )
+	(symbol
+		(lib_id "wn_power:+3v3")
+		(at 533.4 287.02 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "320a7132-b782-4987-92b8-f3b6f0e236e2")
+		(property "Reference" "#PWR0100"
+			(at 532.892 283.718 0)
+			(do_not_autoplace yes)
+			(effects
+				(font
+					(size 1.905 1.905)
+					(thickness 0.3048)
+					(bold yes) )
+				(hide yes) ) )
+		(property "Value" "+1v8D"
+			(at 532.892 283.464 0)
+			(do_not_autoplace yes)
+			(effects
+				(font
+					(face "Arial")
+					(size 1.905 1.905)
+					(thickness 0.254)
+					(bold yes) ) ) )
+		(property "Footprint" ""
+			(at 533.4 287.02 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Datasheet" ""
+			(at 533.4 287.02 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Description" "Power symbol creates a global label with name \"+1v8D\" , ground"
+			(at 534.162 277.368 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(pin "1"
+			(uuid "5f257731-2e2f-42de-ab88-bd5a60984ce9") )
+		(instances
+			(project "11-10084__speedy_processing_module__A"
+				(path "/07379ba8-902b-43bb-a06b-a7d21ac5e4c3/7b554d36-1044-472f-8648-8fb664892a39"
+					(reference "#PWR0100")
+					(unit 1) ) ) ) )
+	(symbol
+		(lib_id "wn_power:+3v3")
+		(at 396.24 273.05 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "3f5945bc-aa02-4407-bbb3-a0aedcf3f0de")
+		(property "Reference" "#PWR083"
+			(at 395.732 269.748 0)
+			(do_not_autoplace yes)
+			(effects
+				(font
+					(size 1.905 1.905)
+					(thickness 0.3048)
+					(bold yes) )
+				(hide yes) ) )
+		(property "Value" "+2v4"
+			(at 396.24 268.732 0)
+			(do_not_autoplace yes)
+			(effects
+				(font
+					(face "Arial")
+					(size 1.905 1.905)
+					(thickness 0.254)
+					(bold yes) ) ) )
+		(property "Footprint" ""
+			(at 396.24 273.05 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Datasheet" ""
+			(at 396.24 273.05 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Description" "Power symbol creates a global label with name \"+1v92\" , ground"
+			(at 397.002 263.398 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(pin "1"
+			(uuid "dc9af5e8-f4a7-4434-8d20-acb651fdd247") )
+		(instances
+			(project "11-10084__speedy_processing_module__A"
+				(path "/07379ba8-902b-43bb-a06b-a7d21ac5e4c3/7b554d36-1044-472f-8648-8fb664892a39"
+					(reference "#PWR083")
+					(unit 1) ) ) ) )
+	(symbol
+		(lib_id "wn_power:+3v3")
+		(at 410.21 284.48 180)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "4a700783-b0aa-4b05-8e38-a14f58273bf7")
+		(property "Reference" "#PWR087"
+			(at 410.718 287.782 0)
+			(do_not_autoplace yes)
+			(effects
+				(font
+					(size 1.905 1.905)
+					(thickness 0.3048)
+					(bold yes) )
+				(hide yes) ) )
+		(property "Value" "GND"
+			(at 409.956 288.798 0)
+			(do_not_autoplace yes)
+			(effects
+				(font
+					(face "Arial")
+					(size 1.905 1.905)
+					(thickness 0.254)
+					(bold yes) ) ) )
+		(property "Footprint" ""
+			(at 410.21 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Datasheet" ""
+			(at 410.21 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Description" "Power symbol creates a global label with name \"+3v3\" , ground"
+			(at 409.448 294.132 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(pin "1"
+			(uuid "89cf915c-baa6-4e3d-ac80-1e1835980ef1") )
+		(instances
+			(project "11-10084__speedy_processing_module__A"
+				(path "/07379ba8-902b-43bb-a06b-a7d21ac5e4c3/7b554d36-1044-472f-8648-8fb664892a39"
+					(reference "#PWR087")
+					(unit 1) ) ) ) )
+	(symbol
+		(lib_id "wn__wavenumber:MFBM1V1608-102-R")
+		(at 509.27 290.83 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "6e998fb0-0a95-49e5-a059-fcb313c5175c")
+		(property "Reference" "L7"
+			(at 517.144 288.036 0)
+			(effects
+				(font
+					(size 1.905 1.905)
+					(thickness 0.3048)
+					(bold yes) ) ) )
+		(property "Value" "120@100MHz"
+			(at 517.144 292.862 0)
+			(effects
+				(font
+					(size 1.524 1.524) ) ) )
+		(property "Footprint" "C0402_0.65MM_L:C0402_0.65MM_L"
+			(at 509.27 290.83 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Datasheet" ""
+			(at 509.27 290.83 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Description" "120 Ohms @ 100 MHz 1 Power Line Ferrite Bead 0402 (1005 Metric) 2A 55mOhm"
+			(at 509.27 290.83 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Category" "Inductors"
+			(at 509.016 291.084 0)
+			(effects
+				(font
+					(size 1.8288 1.8288) )
+				(justify left bottom)
+				(hide yes) ) )
+		(property "CategorySort" "300"
+			(at 509.016 291.084 0)
+			(effects
+				(font
+					(size 1.8288 1.8288) )
+				(justify left bottom)
+				(hide yes) ) )
+		(property "ALTIUM_VALUE" "VALUE"
+			(at 508.762 298.704 0)
+			(effects
+				(font
+					(size 1.8288 1.8288) )
+				(justify left bottom)
+				(hide yes) ) )
+		(property "Internal Part Number" ""
+			(at 509.27 290.83 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Manufacturer" "Murata Electronics"
+			(at 509.27 290.83 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Manufacturer Part Number" "BLM15PX121SN1D"
+			(at 509.27 290.83 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "cad-reference" "MFBM1V1608-102-R"
+			(at 509.27 290.83 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "flags" ""
+			(at 509.27 290.83 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(pin "2"
+			(uuid "c4335d14-5dec-4409-84d1-7a65fb5aae23") )
+		(pin "1"
+			(uuid "e5b0727d-623b-4487-a657-230a7d5aa6f0") )
+		(instances
+			(project "11-10084__speedy_processing_module__A"
+				(path "/07379ba8-902b-43bb-a06b-a7d21ac5e4c3/7b554d36-1044-472f-8648-8fb664892a39"
+					(reference "L7")
+					(unit 1) ) ) ) )
+	(symbol
+		(lib_id "wn_power:+3v3")
+		(at 533.4 274.32 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "71374fc3-e3c0-4f38-99f8-d12083523162")
+		(property "Reference" "#PWR099"
+			(at 532.892 271.018 0)
+			(do_not_autoplace yes)
+			(effects
+				(font
+					(size 1.905 1.905)
+					(thickness 0.3048)
+					(bold yes) )
+				(hide yes) ) )
+		(property "Value" "+1v8A"
+			(at 532.892 270.764 0)
+			(do_not_autoplace yes)
+			(effects
+				(font
+					(face "Arial")
+					(size 1.905 1.905)
+					(thickness 0.254)
+					(bold yes) ) ) )
+		(property "Footprint" ""
+			(at 533.4 274.32 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Datasheet" ""
+			(at 533.4 274.32 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Description" "Power symbol creates a global label with name \"+1v8A\" , ground"
+			(at 534.162 264.668 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(pin "1"
+			(uuid "776dc835-81f1-405f-a302-a574ddd55755") )
+		(instances
+			(project "11-10084__speedy_processing_module__A"
+				(path "/07379ba8-902b-43bb-a06b-a7d21ac5e4c3/7b554d36-1044-472f-8648-8fb664892a39"
+					(reference "#PWR099")
+					(unit 1) ) ) ) )
+	(symbol
+		(lib_id "wn__wavenumber:MFBM1V1608-102-R")
+		(at 509.27 306.07 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "82c8d61e-5525-4f31-839b-43d98e3f7c08")
+		(property "Reference" "L8"
+			(at 516.89 303.53 0)
+			(effects
+				(font
+					(size 1.905 1.905)
+					(thickness 0.3048)
+					(bold yes) ) ) )
+		(property "Value" "120@100MHz"
+			(at 517.144 308.356 0)
+			(effects
+				(font
+					(size 1.524 1.524) ) ) )
+		(property "Footprint" "C0402_0.65MM_L:C0402_0.65MM_L"
+			(at 509.27 306.07 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Datasheet" ""
+			(at 509.27 306.07 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Description" "120 Ohms @ 100 MHz 1 Power Line Ferrite Bead 0402 (1005 Metric) 2A 55mOhm"
+			(at 509.27 306.07 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Category" "Inductors"
+			(at 509.016 306.324 0)
+			(effects
+				(font
+					(size 1.8288 1.8288) )
+				(justify left bottom)
+				(hide yes) ) )
+		(property "CategorySort" "300"
+			(at 509.016 306.324 0)
+			(effects
+				(font
+					(size 1.8288 1.8288) )
+				(justify left bottom)
+				(hide yes) ) )
+		(property "ALTIUM_VALUE" "VALUE"
+			(at 508.762 313.944 0)
+			(effects
+				(font
+					(size 1.8288 1.8288) )
+				(justify left bottom)
+				(hide yes) ) )
+		(property "Internal Part Number" ""
+			(at 509.27 306.07 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Manufacturer" "Murata Electronics"
+			(at 509.27 306.07 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Manufacturer Part Number" "BLM15PX121SN1D"
+			(at 509.27 306.07 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "cad-reference" "MFBM1V1608-102-R"
+			(at 509.27 306.07 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "flags" ""
+			(at 509.27 306.07 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(pin "2"
+			(uuid "b3e081f9-5604-405e-8b0a-2b34708cfa59") )
+		(pin "1"
+			(uuid "4edb51a2-673c-4514-8ca8-5c2b3cdac2f4") )
+		(instances
+			(project "11-10084__speedy_processing_module__A"
+				(path "/07379ba8-902b-43bb-a06b-a7d21ac5e4c3/7b554d36-1044-472f-8648-8fb664892a39"
+					(reference "L8")
+					(unit 1) ) ) ) )
+	(symbol
+		(lib_id "wn__wavenumber:GCM155R71H104KE02J")
+		(at 490.22 284.48 90)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "8c957dfb-54ec-47e8-930c-3f6f8df25822")
+		(property "Reference" "C61"
+			(at 493.776 279.654 90)
+			(effects
+				(font
+					(size 1.905 1.905)
+					(thickness 0.3048)
+					(bold yes) )
+				(justify right) ) )
+		(property "Value" "0.1µF"
+			(at 493.776 281.94 90)
+			(effects
+				(font
+					(size 1.524 1.524) )
+				(justify right) ) )
+		(property "Footprint" "speedy:C0402_0.50MM_HD_Chamfered"
+			(at 490.22 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Datasheet" ""
+			(at 490.22 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Description" "CAP CER 0.1UF 50V X7R 0402"
+			(at 490.22 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "ALTIUM_VALUE" "${VALUE}"
+			(at 494.03 279.4 0)
+			(effects
+				(font
+					(size 1.8288 1.8288) )
+				(justify left bottom)
+				(hide yes) ) )
+		(property "Temperature Coefficient" "Temperature Coefficient"
+			(at 497.84 279.4 0)
+			(effects
+				(font
+					(size 1.4478 1.4478) )
+				(justify left bottom)
+				(hide yes) ) )
+		(property "Internal Part Number" ""
+			(at 490.22 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Manufacturer" "Murata Electronics"
+			(at 490.22 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Manufacturer Part Number" "GCM155R71H104KE02J"
+			(at 490.22 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "cad-reference" "GCM155R71H104KE02J"
+			(at 490.22 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "flags" ""
+			(at 490.22 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(pin "2"
+			(uuid "3ade45cd-8ef4-4519-b47f-dcdd70909051") )
+		(pin "1"
+			(uuid "6c543c1e-2212-49de-8ce0-3ffc497a19df") )
+		(instances
+			(project "11-10084__speedy_processing_module__A"
+				(path "/07379ba8-902b-43bb-a06b-a7d21ac5e4c3/7b554d36-1044-472f-8648-8fb664892a39"
+					(reference "C61")
+					(unit 1) ) ) ) )
+	(symbol
+		(lib_id "wn__wavenumber:MFBM1V1608-102-R")
+		(at 508 276.86 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "9232cac3-60b7-4672-871b-7b394f136b91")
+		(property "Reference" "L6"
+			(at 515.874 274.066 0)
+			(effects
+				(font
+					(size 1.905 1.905)
+					(thickness 0.3048)
+					(bold yes) ) ) )
+		(property "Value" "120@100MHz"
+			(at 516.128 278.638 0)
+			(effects
+				(font
+					(size 1.524 1.524) ) ) )
+		(property "Footprint" "C0402_0.65MM_L:C0402_0.65MM_L"
+			(at 508 276.86 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Datasheet" ""
+			(at 508 276.86 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Description" "120 Ohms @ 100 MHz 1 Power Line Ferrite Bead 0402 (1005 Metric) 2A 55mOhm"
+			(at 508 276.86 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Category" "Inductors"
+			(at 507.746 277.114 0)
+			(effects
+				(font
+					(size 1.8288 1.8288) )
+				(justify left bottom)
+				(hide yes) ) )
+		(property "CategorySort" "300"
+			(at 507.746 277.114 0)
+			(effects
+				(font
+					(size 1.8288 1.8288) )
+				(justify left bottom)
+				(hide yes) ) )
+		(property "ALTIUM_VALUE" "VALUE"
+			(at 507.492 284.734 0)
+			(effects
+				(font
+					(size 1.8288 1.8288) )
+				(justify left bottom)
+				(hide yes) ) )
+		(property "Internal Part Number" ""
+			(at 508 276.86 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Manufacturer" "Murata Electronics"
+			(at 508 276.86 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Manufacturer Part Number" "BLM15PX121SN1D"
+			(at 508 276.86 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "cad-reference" "MFBM1V1608-102-R"
+			(at 508 276.86 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "flags" ""
+			(at 508 276.86 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(pin "2"
+			(uuid "626094b2-c4af-4c70-a1a5-40203d4a08db") )
+		(pin "1"
+			(uuid "4458ba5b-25db-42f0-b32e-36edf88fdd4e") )
+		(instances
+			(project "11-10084__speedy_processing_module__A"
+				(path "/07379ba8-902b-43bb-a06b-a7d21ac5e4c3/7b554d36-1044-472f-8648-8fb664892a39"
+					(reference "L6")
+					(unit 1) ) ) ) )
+	(symbol
+		(lib_id "wn_power:+3v3")
+		(at 490.22 284.48 180)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "9acf19f1-6d25-45d8-b48b-490e1b38ac99")
+		(property "Reference" "#PWR096"
+			(at 490.728 287.782 0)
+			(do_not_autoplace yes)
+			(effects
+				(font
+					(size 1.905 1.905)
+					(thickness 0.3048)
+					(bold yes) )
+				(hide yes) ) )
+		(property "Value" "GND"
+			(at 489.966 288.798 0)
+			(do_not_autoplace yes)
+			(effects
+				(font
+					(face "Arial")
+					(size 1.905 1.905)
+					(thickness 0.254)
+					(bold yes) ) ) )
+		(property "Footprint" ""
+			(at 490.22 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Datasheet" ""
+			(at 490.22 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Description" "Power symbol creates a global label with name \"+3v3\" , ground"
+			(at 489.458 294.132 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(pin "1"
+			(uuid "fb714137-8608-4935-bd03-7a33b87ea2d7") )
+		(instances
+			(project "11-10084__speedy_processing_module__A"
+				(path "/07379ba8-902b-43bb-a06b-a7d21ac5e4c3/7b554d36-1044-472f-8648-8fb664892a39"
+					(reference "#PWR096")
+					(unit 1) ) ) ) )
+	(symbol
+		(lib_id "wn_power:+3v3")
+		(at 476.25 284.48 180)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "a1c8378d-a927-4017-8580-c2c5114bb3e3")
+		(property "Reference" "#PWR093"
+			(at 476.758 287.782 0)
+			(do_not_autoplace yes)
+			(effects
+				(font
+					(size 1.905 1.905)
+					(thickness 0.3048)
+					(bold yes) )
+				(hide yes) ) )
+		(property "Value" "GND"
+			(at 475.996 288.798 0)
+			(do_not_autoplace yes)
+			(effects
+				(font
+					(face "Arial")
+					(size 1.905 1.905)
+					(thickness 0.254)
+					(bold yes) ) ) )
+		(property "Footprint" ""
+			(at 476.25 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Datasheet" ""
+			(at 476.25 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Description" "Power symbol creates a global label with name \"+3v3\" , ground"
+			(at 475.488 294.132 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(pin "1"
+			(uuid "77e5f754-77fd-41f0-a65e-f137876a1670") )
+		(instances
+			(project "11-10084__speedy_processing_module__A"
+				(path "/07379ba8-902b-43bb-a06b-a7d21ac5e4c3/7b554d36-1044-472f-8648-8fb664892a39"
+					(reference "#PWR093")
+					(unit 1) ) ) ) )
+	(symbol
+		(lib_id "speedy:ST1L05BPUR")
+		(at 439.42 281.94 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "aed9bfac-e804-41d8-8871-cbabfae915aa")
+		(property "Reference" "U10"
+			(at 434.086 273.05 0)
+			(effects
+				(font
+					(size 1.905 1.905)
+					(thickness 0.3048)
+					(bold yes) ) ) )
+		(property "Value" "ST1L05BPUR"
+			(at 448.056 291.084 0)
+			(effects
+				(font
+					(size 1.524 1.524) ) ) )
+		(property "Footprint" "speedy:SON95P300X300X100-7N"
+			(at 439.166 261.112 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Datasheet" ""
+			(at 439.42 281.94 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Description" "Linear Voltage Regulator IC Positive Adjustable 1 Output 1.3A 6-DFN (3x3)"
+			(at 444.246 265.176 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Manufacturer" "STMicroelectronics"
+			(at 439.42 259.842 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Manufacturer Part Number" "ST1L05BPUR"
+			(at 439.674 249.174 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(pin "7"
+			(uuid "a3a70b48-ba5d-44e4-9381-6e0cc1e0f3f6") )
+		(pin "6"
+			(uuid "1b25cffd-23a8-4d41-994b-f3df8aec23b2") )
+		(pin "4"
+			(uuid "27ca75a2-d8bc-44aa-bb52-0c86cefcdd45") )
+		(pin "5"
+			(uuid "cecb4a23-e5bf-4277-8694-f7e730795495") )
+		(pin "1"
+			(uuid "07c926a3-f82d-4f4f-b1ed-607e9c2c316f") )
+		(pin "3"
+			(uuid "90059c39-6a1a-4259-81e7-c2d95bf3db11") )
+		(pin "2"
+			(uuid "c4ae2f8e-6d38-4a5c-9d24-baf38e41bfc5") )
+		(instances
+			(project ""
+				(path "/07379ba8-902b-43bb-a06b-a7d21ac5e4c3/7b554d36-1044-472f-8648-8fb664892a39"
+					(reference "U10")
+					(unit 1) ) ) ) )
+	(symbol
+		(lib_id "wn__wavenumber:ERJ-2RKF4701X")
+		(at 462.28 287.02 90)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "b3387816-b913-4201-b216-62ea7dc7212c")
+		(property "Reference" "R33"
+			(at 464.312 281.94 90)
+			(effects
+				(font
+					(size 1.905 1.905)
+					(thickness 0.3048)
+					(bold yes) )
+				(justify right) ) )
+		(property "Value" "4.7kΩ"
+			(at 464.058 284.226 90)
+			(effects
+				(font
+					(size 1.524 1.524) )
+				(justify right) ) )
+		(property "Footprint" "R0402_0.40MM_HD:R0402_0.40MM_HD"
+			(at 462.28 287.02 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Datasheet" ""
+			(at 462.28 287.02 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Description" "RES 4.7K OHM 1/10W 1% 0402 SMD"
+			(at 462.28 287.02 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "ALTIUM_VALUE" "${VALUE}"
+			(at 466.09 281.94 0)
+			(effects
+				(font
+					(size 1.8288 1.8288) )
+				(justify left bottom)
+				(hide yes) ) )
+		(property "Package Power" "PACKAGE (POWER)"
+			(at 468.63 281.94 0)
+			(effects
+				(font
+					(size 1.4478 1.4478) )
+				(justify left bottom)
+				(hide yes) ) )
+		(property "Assembly Notes" ""
+			(at 458.47 287.528 0)
+			(effects
+				(font
+					(size 2.1844 2.1844) )
+				(justify left bottom)
+				(hide yes) ) )
+		(property "Internal Part Number" ""
+			(at 462.28 287.02 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Manufacturer" "Panasonic Electronic Components"
+			(at 462.28 287.02 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Manufacturer Part Number" "ERJ-2RKF4701X"
+			(at 462.28 287.02 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "cad-reference" "ERJ-2RKF4701X"
+			(at 462.28 287.02 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "flags" ""
+			(at 462.28 287.02 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(pin "2"
+			(uuid "a7e01dc8-a87c-44bb-b6cf-53fef064f953") )
+		(pin "1"
+			(uuid "150f52e1-8e56-4542-9fb5-1c4a4cde9e3e") )
+		(instances
+			(project ""
+				(path "/07379ba8-902b-43bb-a06b-a7d21ac5e4c3/7b554d36-1044-472f-8648-8fb664892a39"
+					(reference "R33")
+					(unit 1) ) ) ) )
+	(symbol
+		(lib_id "wn_power:+3v3")
+		(at 383.54 284.48 180)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "bd8dc940-9224-4b2b-9a1e-e31ce3bc0972")
+		(property "Reference" "#PWR0245"
+			(at 384.048 287.782 0)
+			(do_not_autoplace yes)
+			(effects
+				(font
+					(size 1.905 1.905)
+					(thickness 0.3048)
+					(bold yes) )
+				(hide yes) ) )
+		(property "Value" "GND"
+			(at 383.286 288.798 0)
+			(do_not_autoplace yes)
+			(effects
+				(font
+					(face "Arial")
+					(size 1.905 1.905)
+					(thickness 0.254)
+					(bold yes) ) ) )
+		(property "Footprint" ""
+			(at 383.54 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Datasheet" ""
+			(at 383.54 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Description" "Power symbol creates a global label with name \"+3v3\" , ground"
+			(at 382.778 294.132 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(pin "1"
+			(uuid "54e4117e-ef11-416e-824b-e3b51fb5e454") )
+		(instances
+			(project "11-10084__speedy_processing_module__A"
+				(path "/07379ba8-902b-43bb-a06b-a7d21ac5e4c3/7b554d36-1044-472f-8648-8fb664892a39"
+					(reference "#PWR0245")
+					(unit 1) ) ) ) )
+	(symbol
+		(lib_id "wn__wavenumber:ERJ-2RKF1002X")
+		(at 462.28 287.02 270)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "cb774ae9-2438-41aa-8a75-00b605d1e579")
+		(property "Reference" "R34"
+			(at 467.868 291.592 90)
+			(effects
+				(font
+					(size 1.905 1.905)
+					(thickness 0.3048)
+					(bold yes) )
+				(justify right) ) )
+		(property "Value" "10kΩ"
+			(at 469.138 294.132 90)
+			(effects
+				(font
+					(size 1.524 1.524) )
+				(justify right) ) )
+		(property "Footprint" "R0402_0.40MM_HD:R0402_0.40MM_HD"
+			(at 462.28 287.02 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Datasheet" ""
+			(at 462.28 287.02 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Description" "RES 10K OHM 1/10W 1% 0402 SMD"
+			(at 462.28 287.02 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "ALTIUM_VALUE" "${VALUE}"
+			(at 458.47 292.1 0)
+			(effects
+				(font
+					(size 1.8288 1.8288) )
+				(justify left bottom)
+				(hide yes) ) )
+		(property "Package Power" "PACKAGE (POWER)"
+			(at 455.93 292.1 0)
+			(effects
+				(font
+					(size 1.4478 1.4478) )
+				(justify left bottom)
+				(hide yes) ) )
+		(property "Assembly Notes" ""
+			(at 466.09 286.512 0)
+			(effects
+				(font
+					(size 2.1844 2.1844) )
+				(justify left bottom)
+				(hide yes) ) )
+		(property "Internal Part Number" ""
+			(at 462.28 287.02 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Manufacturer" "Panasonic Electronic Components"
+			(at 462.28 287.02 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Manufacturer Part Number" "ERJ-2RKF1002X"
+			(at 462.28 287.02 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "cad-reference" "ERJ-2RKF1002X"
+			(at 462.28 287.02 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "flags" ""
+			(at 462.28 287.02 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(pin "1"
+			(uuid "55229a11-80e1-467e-96bc-a80ebc906abd") )
+		(pin "2"
+			(uuid "84f42583-bed5-4a5e-b41b-31332a71405f") )
+		(instances
+			(project "11-10084__speedy_processing_module__A"
+				(path "/07379ba8-902b-43bb-a06b-a7d21ac5e4c3/7b554d36-1044-472f-8648-8fb664892a39"
+					(reference "R34")
+					(unit 1) ) ) ) )
+	(symbol
+		(lib_id "speedy:Test_Point_GND")
+		(at 383.54 278.13 270)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom no)
+		(on_board yes)
+		(dnp no)
+		(uuid "d01fe97d-0e9d-481c-842f-c3e351c74fb9")
+		(property "Reference" "TP28"
+			(at 381 269.24 90)
+			(effects
+				(font
+					(size 1.905 1.905)
+					(thickness 0.254)
+					(bold yes) )
+				(justify left) ) )
+		(property "Value" "GND"
+			(at 378.714 279.146 90)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(justify left) ) )
+		(property "Footprint" "speedy:SMT_TP-25_GND"
+			(at 383.54 278.13 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Datasheet" ""
+			(at 383.54 278.13 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Description" ""
+			(at 383.54 278.13 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(pin "1"
+			(uuid "bd1ee76d-34a8-44d4-a030-89846f4607a1") )
+		(instances
+			(project "11-10084__speedy_processing_module__A"
+				(path "/07379ba8-902b-43bb-a06b-a7d21ac5e4c3/7b554d36-1044-472f-8648-8fb664892a39"
+					(reference "TP28")
+					(unit 1) ) ) ) )
+	(symbol
+		(lib_id "wn__wavenumber:GCM155R71H104KE02J")
+		(at 410.21 284.48 270)
+		(mirror x)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "dbfa1b76-1d5e-4f8a-9f15-e580d1ad2dbd")
+		(property "Reference" "C57"
+			(at 416.814 279.4 90)
+			(effects
+				(font
+					(size 1.905 1.905)
+					(thickness 0.3048)
+					(bold yes) )
+				(justify right) ) )
+		(property "Value" "0.1µF"
+			(at 417.068 283.718 90)
+			(effects
+				(font
+					(size 1.524 1.524) )
+				(justify right) ) )
+		(property "Footprint" "speedy:C0402_0.50MM_HD_Chamfered"
+			(at 410.21 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Datasheet" ""
+			(at 410.21 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Description" "CAP CER 0.1UF 50V X7R 0402"
+			(at 410.21 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "ALTIUM_VALUE" "${VALUE}"
+			(at 406.4 279.4 0)
+			(effects
+				(font
+					(size 1.8288 1.8288) )
+				(justify left bottom)
+				(hide yes) ) )
+		(property "Temperature Coefficient" "Temperature Coefficient"
+			(at 402.59 279.4 0)
+			(effects
+				(font
+					(size 1.4478 1.4478) )
+				(justify left bottom)
+				(hide yes) ) )
+		(property "Internal Part Number" ""
+			(at 410.21 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Manufacturer" "Murata Electronics"
+			(at 410.21 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Manufacturer Part Number" "GCM155R71H104KE02J"
+			(at 410.21 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "cad-reference" "GCM155R71H104KE02J"
+			(at 410.21 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "flags" ""
+			(at 410.21 284.48 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(pin "2"
+			(uuid "53156a30-8760-4457-b84f-8d8fd4818b27") )
+		(pin "1"
+			(uuid "4fb6da8d-e068-44ba-bddb-96b8c155ad4a") )
+		(instances
+			(project "11-10084__speedy_processing_module__A"
+				(path "/07379ba8-902b-43bb-a06b-a7d21ac5e4c3/7b554d36-1044-472f-8648-8fb664892a39"
+					(reference "C57")
+					(unit 1) ) ) ) )
+	(symbol
+		(lib_id "wn__wavenumber:SMT_TP-25")
+		(at 476.25 271.78 270)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "dfdeafd3-1590-43fd-a833-80841a2e5fcf")
+		(property "Reference" "TP30"
+			(at 479.044 269.494 90)
+			(effects
+				(font
+					(face "Arial")
+					(size 1.905 1.905)
+					(bold yes) )
+				(justify right) ) )
+		(property "Value" "SMT Testpoint 20mil"
+			(at 473.71 258.318 90)
+			(effects
+				(font
+					(size 1.8288 1.8288) )
+				(justify right)
+				(hide yes) ) )
+		(property "Footprint" "testpoints:SMT_TP-20"
+			(at 476.25 271.78 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Datasheet" ""
+			(at 476.25 271.78 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Description" "SMT Testpoint 20mil"
+			(at 476.25 271.78 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Internal Part Number" ""
+			(at 476.25 271.78 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Manufacturer" "Wavenumber"
+			(at 476.25 271.78 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Manufacturer Part Number" "SMT_TP-25"
+			(at 476.25 271.78 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "cad-reference" "SMT_TP-25"
+			(at 476.25 271.78 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "flags" "NO_BOM"
+			(at 476.25 271.78 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(pin "1"
+			(uuid "28773aba-d275-4503-995f-36185db9bcf3") )
+		(instances
+			(project "11-10084__speedy_processing_module__A"
+				(path "/07379ba8-902b-43bb-a06b-a7d21ac5e4c3/7b554d36-1044-472f-8648-8fb664892a39"
+					(reference "TP30")
+					(unit 1) ) ) ) )
+	(symbol
+		(lib_id "wn_power:+3v3")
+		(at 424.18 292.1 180)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "e4a9a9aa-16c8-4ee5-bafb-849ba2d9e945")
+		(property "Reference" "#PWR089"
+			(at 424.688 295.402 0)
+			(do_not_autoplace yes)
+			(effects
+				(font
+					(size 1.905 1.905)
+					(thickness 0.3048)
+					(bold yes) )
+				(hide yes) ) )
+		(property "Value" "GND"
+			(at 423.926 296.418 0)
+			(do_not_autoplace yes)
+			(effects
+				(font
+					(face "Arial")
+					(size 1.905 1.905)
+					(thickness 0.254)
+					(bold yes) ) ) )
+		(property "Footprint" ""
+			(at 424.18 292.1 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Datasheet" ""
+			(at 424.18 292.1 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Description" "Power symbol creates a global label with name \"+3v3\" , ground"
+			(at 423.418 301.752 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(pin "1"
+			(uuid "a70b5c81-e6e7-4872-9d65-d29feecec0fb") )
+		(instances
+			(project "11-10084__speedy_processing_module__A"
+				(path "/07379ba8-902b-43bb-a06b-a7d21ac5e4c3/7b554d36-1044-472f-8648-8fb664892a39"
+					(reference "#PWR089")
+					(unit 1) ) ) ) )
+	(symbol
+		(lib_id "wn_power:+3v3")
+		(at 462.28 297.18 180)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "e506b6d6-20d0-45b2-9623-9e5440df2acb")
+		(property "Reference" "#PWR092"
+			(at 462.788 300.482 0)
+			(do_not_autoplace yes)
+			(effects
+				(font
+					(size 1.905 1.905)
+					(thickness 0.3048)
+					(bold yes) )
+				(hide yes) ) )
+		(property "Value" "GND"
+			(at 462.026 301.498 0)
+			(do_not_autoplace yes)
+			(effects
+				(font
+					(face "Arial")
+					(size 1.905 1.905)
+					(thickness 0.254)
+					(bold yes) ) ) )
+		(property "Footprint" ""
+			(at 462.28 297.18 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Datasheet" ""
+			(at 462.28 297.18 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Description" "Power symbol creates a global label with name \"+3v3\" , ground"
+			(at 461.518 306.832 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(pin "1"
+			(uuid "e62b1018-be4e-42b9-b863-23580a65ea8d") )
+		(instances
+			(project "11-10084__speedy_processing_module__A"
+				(path "/07379ba8-902b-43bb-a06b-a7d21ac5e4c3/7b554d36-1044-472f-8648-8fb664892a39"
+					(reference "#PWR092")
+					(unit 1) ) ) ) )
+	(symbol
+		(lib_id "wn_power:+3v3")
+		(at 533.4 302.26 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "e8170632-c1ca-4b55-b9dd-df699888178e")
+		(property "Reference" "#PWR0101"
+			(at 532.892 298.958 0)
+			(do_not_autoplace yes)
+			(effects
+				(font
+					(size 1.905 1.905)
+					(thickness 0.3048)
+					(bold yes) )
+				(hide yes) ) )
+		(property "Value" "+1v8APLL"
+			(at 532.892 298.704 0)
+			(do_not_autoplace yes)
+			(effects
+				(font
+					(face "Arial")
+					(size 1.905 1.905)
+					(thickness 0.254)
+					(bold yes) ) ) )
+		(property "Footprint" ""
+			(at 533.4 302.26 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Datasheet" ""
+			(at 533.4 302.26 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(property "Description" "Power symbol creates a global label with name \"+1v8APLL\" , ground"
+			(at 534.162 292.608 0)
+			(effects
+				(font
+					(size 1.27 1.27) )
+				(hide yes) ) )
+		(pin "1"
+			(uuid "ac2dd41c-c93f-4b90-ad5c-d56adf911892") )
+		(instances
+			(project "11-10084__speedy_processing_module__A"
+				(path "/07379ba8-902b-43bb-a06b-a7d21ac5e4c3/7b554d36-1044-472f-8648-8fb664892a39"
+					(reference "#PWR0101")
+					(unit 1) ) ) ) ) )

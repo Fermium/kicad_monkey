@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>KiCad Monkey Project And Design API</title>
+</head>
+<body>
+  <h1>Project And Design API</h1>
+
+  <section
+    data-interface="KiCadProject"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_037_project_design_api_cleanup.py"
+    data-test-target="test_project_json_text_variable_and_variant_helpers"
+  >
+    <h2>KiCadProject</h2>
+    <h3>Rationale</h3>
+    <p>
+      Project-level tools need stable access to `.kicad_pro` text variables,
+      variants, and JSON persistence without depending on raw dictionaries.
+    </p>
+    <h3>Purpose</h3>
+    <p>
+      Wrap project JSON with typed helpers for text variables, variant lookup,
+      serialization, and future project metadata.
+    </p>
+    <h3>Test Requirements</h3>
+    <p>
+      Tests must cover JSON construction, text-variable get/set/remove behavior,
+      variant iteration, file writing, and reload.
+    </p>
+    <h3>Working Definition</h3>
+    <p>
+      A project facade is public when callers can handle common project metadata
+      without direct raw-JSON mutation.
+    </p>
+  </section>
+
+  <section
+    data-interface="KiCadDesign"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_037_project_design_api_cleanup.py"
+    data-test-target="test_design_document_query_and_pcb_ir"
+  >
+    <h2>KiCadDesign</h2>
+    <h3>Rationale</h3>
+    <p>
+      Higher-level tools need a design aggregate that can load related project,
+      schematic, and board documents and expose them through one query surface.
+    </p>
+    <h3>Purpose</h3>
+    <p>
+      Aggregate project, schematic, and board objects; dispatch from common file
+      suffixes; expose document queries; and provide design-level IR and JSON
+      entrypoints.
+    </p>
+    <h3>Test Requirements</h3>
+    <p>
+      Tests must cover file dispatch, aggregate object queries, schematic
+      mutators, design JSON output, and PCB IR delegation.
+    </p>
+    <h3>Working Definition</h3>
+    <p>
+      A design facade is public when CLI and application tools can work from one
+      loaded design object rather than coordinating independent file models.
+    </p>
+  </section>
+</body>
+</html>

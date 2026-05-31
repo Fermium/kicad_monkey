@@ -1,0 +1,14 @@
+# Rack test framework results
+rack_results/
+
+# Stratum temporary output directories
+**/temp/
+
+# Test output directories (Python-generated SVGs)
+**/cases/**/output/
+**/output/
+**/diff/
+
+# Python cache
+__pycache__/
+*.pyc

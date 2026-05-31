@@ -1,0 +1,224 @@
+# L1_parsing Stratum Configuration
+# OOP model parsing and round-trip validation
+#
+# This stratum proves the OOP data models are correct by parsing KiCad files
+# and verifying round-trip fidelity (parse -> serialize -> parse = equivalent).
+
+name = "Parsing"
+order = 1
+description = "OOP model parsing and round-trip validation"
+enabled = true
+concerns = ["parsing", "parsing.pcb", "parsing.footprint"]
+
+# Stratum-level objectives
+objectives = [
+    "PCB files parse correctly to OOP model",
+    "Footprint files parse correctly to OOP model",
+    "Round-trip produces equivalent data structures",
+    "All element types handled correctly",
+    "OOP model accessors return correct values"
+]
+
+# =============================================================================
+# Code Under Test
+# =============================================================================
+# This stratum tests the OOP parsing layer:
+#
+# Module: kicad_monkey.kicad_pcb - Complete PCB parser
+# Module: kicad_monkey.kicad_footprint - Footprint parser
+# Module: kicad_monkey.kicad_pad - Pad class (all shapes)
+# Module: kicad_monkey.kicad_fp_* - Footprint element classes
+# Module: kicad_monkey.kicad_pcb_routing - Segment, Via, Arc
+# Module: kicad_monkey.kicad_pcb_graphics - GrText, GrLine, etc.
+# Module: kicad_monkey.kicad_pcb_zone - Zone class
+
+# =============================================================================
+# Subtest Manifest
+# =============================================================================
+# Tests will be migrated from:
+# - legacy/test_roundtrip.py
+# - legacy/test_kicad_footprint_roundtrip.py
+# - legacy/test_oop_equivalency.py
+# - legacy/test_parser_equivalency.py
+
+[[subtests]]
+file = "test_L1_001_pcb_roundtrip.py"
+name = "PCB Round-Trip"
+description = "Parse -> serialize -> parse PCB files with equivalency check"
+test_cases = "${WN_TEST_CORPUS}/kicad/common/board/input"
+test_case_type = "reference"
+
+[subtests.code_under_test]
+module = "kicad_monkey.kicad_pcb"
+classes = ["KiCadPcb"]
+
+[subtests.objectives]
+primary = "PCB files survive parse -> serialize -> parse cycle"
+secondary = [
+    "All routing elements preserved",
+    "All graphics elements preserved",
+    "Zone data preserved",
+    "Layer information preserved",
+    "Net assignments preserved"
+]
+
+# -----------------------------------------------------------------------------
+
+[[subtests]]
+file = "test_L1_002_footprint_roundtrip.py"
+name = "Footprint Round-Trip"
+description = "Parse -> serialize -> parse footprint files with equivalency check"
+test_cases = "${WN_TEST_CORPUS}/kicad/common/footprints/input"
+test_case_type = "reference"
+
+[subtests.code_under_test]
+module = "kicad_monkey.kicad_footprint"
+classes = ["KiCadFootprint"]
+
+[subtests.objectives]
+primary = "Footprint files survive parse -> serialize -> parse cycle"
+secondary = [
+    "All pad types preserved",
+    "All graphics preserved",
+    "Properties preserved",
+    "3D model references preserved"
+]
+
+# -----------------------------------------------------------------------------
+
+[[subtests]]
+file = "test_L1_003_oop_equivalency.py"
+name = "OOP Model Equivalency"
+description = "OOP model data matches raw sexp after parsing"
+test_cases = "${WN_TEST_CORPUS}/kicad/common/board/input"
+test_case_type = "reference"
+
+[subtests.code_under_test]
+module = "kicad_monkey.kicad_pcb"
+classes = ["KiCadPcb"]
+
+[subtests.objectives]
+primary = "OOP accessors return correct values from parsed data"
+
+# -----------------------------------------------------------------------------
+
+[[subtests]]
+file = "test_L1_004_parser_equivalency.py"
+name = "Parser Equivalency"
+description = "Different parsing approaches produce identical results"
+test_case_type = "reference"
+
+[subtests.objectives]
+primary = "Consistency across parsing methods"
+
+# -----------------------------------------------------------------------------
+
+[[subtests]]
+file = "test_L1_005_symbol_roundtrip.py"
+name = "Symbol Library Round-Trip"
+description = "Parse -> serialize -> parse symbol library files with equivalency check"
+test_cases = "${WN_TEST_CORPUS}/kicad/common/reference_symbols/input"
+test_case_type = "reference"
+
+[subtests.code_under_test]
+module = "kicad_monkey.kicad_symbol_lib"
+classes = ["KiCadSymbolLib", "LibSymbol", "LibSubSymbol"]
+
+[subtests.objectives]
+primary = "Symbol library files survive parse -> serialize -> parse cycle"
+secondary = [
+    "All symbol definitions preserved",
+    "Properties with ID ordinals preserved",
+    "Pin definitions preserved",
+    "Graphic elements preserved",
+    "Subsymbol structure preserved"
+]
+
+# -----------------------------------------------------------------------------
+
+[[subtests]]
+file = "test_L1_006_schematic_roundtrip.py"
+name = "Schematic Round-Trip"
+description = "Parse -> serialize -> parse schematic document files with equivalency check"
+test_cases = "${WN_TEST_CORPUS}/kicad/common/reference_schematics/input"
+test_case_type = "reference"
+
+[subtests.code_under_test]
+module = "kicad_monkey.kicad_schematic"
+classes = ["KiCadSchematic", "SchSymbol", "SchWire", "SchLabel", "SchSheet"]
+
+[subtests.objectives]
+primary = "Schematic document files survive parse -> serialize -> parse cycle"
+secondary = [
+    "All symbol instances preserved",
+    "Wires and buses preserved",
+    "Junctions and no-connects preserved",
+    "Labels (local, global, hierarchical) preserved",
+    "Hierarchical sheets preserved",
+    "lib_symbols section preserved"
+]
+
+# -----------------------------------------------------------------------------
+
+[[subtests]]
+file = "test_L1_007_worksheet_roundtrip.py"
+name = "Worksheet Round-Trip"
+description = "Parse -> serialize -> parse worksheet/page layout files with equivalency check"
+test_cases = "${WN_TEST_CORPUS}/kicad/common/reference_worksheets/input"
+test_case_type = "reference"
+
+[subtests.code_under_test]
+module = "kicad_monkey.kicad_worksheet"
+classes = ["KiCadWorksheet", "WksLine", "WksRect", "WksPolygon", "WksTbText", "WksBitmap"]
+
+[subtests.objectives]
+primary = "Worksheet files survive parse -> serialize -> parse cycle"
+secondary = [
+    "Setup/defaults preserved",
+    "Lines and rectangles preserved",
+    "Polygons with holes preserved",
+    "Text elements with format codes preserved",
+    "Corner references preserved",
+    "Repeat patterns preserved"
+]
+
+# -----------------------------------------------------------------------------
+
+[[subtests]]
+file = "test_L1_008_shared_corpus_source_model_readiness.py"
+name = "Shared Corpus Source Model Readiness"
+description = "Validate the real KiCad OOP surface on the shared KiCad corpus"
+test_cases = "${WN_TEST_CORPUS}/kicad/common"
+test_case_type = "shared_corpus"
+
+[subtests.code_under_test]
+module = "kicad_monkey.kicad_pcb"
+classes = ["KiCadPcb"]
+
+[subtests.objectives]
+primary = "Shared-corpus KiCad boards expose the OOP surfaces required for downstream conversion"
+secondary = [
+    "Board layers are exposed on real demo boards",
+    "Footprints, nets, zones, and vias are exposed on real demo boards",
+    "Edge.Cuts carriers are visible through board graphics",
+    "Footprint-local pads and properties are present on the OOP model"
+]
+
+# -----------------------------------------------------------------------------
+
+[[subtests]]
+file = "test_L1_009_source_model_hygiene.py"
+name = "Source Model Hygiene"
+description = "Keep the authoritative KiCad source-model modules fully typed and free of ad hoc common layer literals"
+test_case_type = "static_analysis"
+
+[subtests.code_under_test]
+module = "kicad_monkey.kicad_base"
+classes = ["KiCadPcb", "KiCadFootprint", "Pad", "Footprint", "GrText", "Zone", "Via"]
+
+[subtests.objectives]
+primary = "Authoritative KiCad source-model modules stay fully type-annotated"
+secondary = [
+    "Common KiCad layer defaults stay centralized in kicad_base",
+    "Core OOP modules do not regress into ad hoc parser constants"
+]

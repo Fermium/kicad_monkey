@@ -1,0 +1,27 @@
+# KiCad Monkey Design Docs
+
+Design notes describe public interfaces, signoff policies, data contracts, and
+test ownership rules that are too detailed for ADRs.
+
+The master HTML entry point is `index.html`. Public API and interface design
+sections live under `api/`, and all design HTML uses `styles.css`.
+
+`L99_signoff` enforces:
+
+- `docs/design/index.html`, `docs/design/api/index.html`, and
+  `docs/design/styles.css` exist;
+- every promoted public class in `kicad_monkey.kicad_api_contract` has a
+  `data-interface` design section;
+- every major interface in
+  `docs/contracts/interface_design_manifest.v0.json` has a design section;
+- every design section records rationale, purpose, test requirements, working
+  definition, and Rack test ownership.
+
+Current design notes:
+
+- `quality-signoff-status.md` - current release-gate status and quality-tool
+  ratchet plan.
+- `api/` - public API class and major-interface design docs.
+
+Design-doc and test-ownership signoff is defined in
+`docs/adrs/ADR-003-design-doc-and-test-ownership-signoff.md`.

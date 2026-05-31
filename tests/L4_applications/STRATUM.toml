@@ -1,0 +1,68 @@
+# L4_applications Stratum Configuration
+# High-level tooling and end-to-end workflows
+#
+# This stratum tests application-level workflows for day-to-day use.
+
+name = "Applications"
+order = 4
+description = "High-level tooling and end-to-end workflows"
+enabled = true
+concerns = ["applications"]
+
+# Stratum-level objectives
+objectives = [
+    "Real KiCad projects process correctly end-to-end",
+    "Output validates against kicad-cli",
+    "Part conversion to data model works",
+    "HTTP library generation works"
+]
+
+# =============================================================================
+# Code Under Test
+# =============================================================================
+# This stratum tests application modules:
+#
+# Module: kicad_monkey.kicad_utilities - Project parsing, HTTP library generation
+# Module: kicad_monkey.kicad_setup - KiCad preferences configuration
+# Module: kicad_monkey.kicad_part_converter - Part data model conversion
+
+# =============================================================================
+# Subtest Manifest
+# =============================================================================
+# Tests will be migrated from:
+# - legacy/test_verification.py
+# - legacy/test_kicad_cli_validation.py
+
+[[subtests]]
+file = "test_L4_001_project_verification.py"
+name = "Project Verification"
+description = "Validate real KiCad project processing end-to-end"
+test_cases = "${WN_TEST_CORPUS}/kicad/common/board/input/speedy"
+test_case_type = "reference"
+
+[subtests.code_under_test]
+module = "kicad_monkey.kicad_utilities"
+
+[subtests.objectives]
+primary = "Real projects process correctly through full pipeline"
+secondary = [
+    "Project parsing works",
+    "Component extraction works",
+    "Rendering produces valid output",
+    "Conversion to Part model works"
+]
+
+# -----------------------------------------------------------------------------
+
+[[subtests]]
+file = "test_L4_002_kicad_cli_validation.py"
+name = "KiCad CLI Validation"
+description = "Validate outputs against kicad-cli tool"
+test_cases = "${WN_TEST_CORPUS}/kicad/common/footprints/input"
+test_case_type = "reference"
+
+[subtests.code_under_test]
+module = "kicad_monkey.kicad_footprint"
+
+[subtests.objectives]
+primary = "Outputs match kicad-cli behavior"

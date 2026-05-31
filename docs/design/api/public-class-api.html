@@ -1,0 +1,691 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>KiCad Monkey Supporting Public Classes</title>
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+  <h1>Supporting Public Classes</h1>
+
+  <section
+    data-interface="Version"
+    data-rack-stratum="L99_signoff"
+    data-test-file="tests/L99_signoff/test_L99_001_release_signoff.py"
+    data-test-target="test_version_contract_matches_date_based_release"
+  >
+    <h2>Version</h2>
+    <h3>Rationale</h3>
+    <p>Release consumers need a parseable date-version object, not only a raw string.</p>
+    <h3>Purpose</h3>
+    <p>Represent package version parts and expose the release date used by CI and downstream package checks.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must confirm pyproject metadata, package metadata, and parsed date fields match the release contract.</p>
+    <h3>Working Definition</h3>
+    <p>The model is public when a consumer can determine the exact release date from the installed package.</p>
+  </section>
+
+  <section
+    data-interface="LibSubSymbol"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_007_lib_symbol_to_ir.py"
+    data-test-target="test_subsymbol_to_record_emits_all_shapes_in_order"
+  >
+    <h2>LibSubSymbol</h2>
+    <h3>Rationale</h3>
+    <p>Library symbols can have unit and body-style partitions that need independent rendering and traversal.</p>
+    <h3>Purpose</h3>
+    <p>Carry one symbol-unit graphics group and preserve the shapes, pins, and text that compose it.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must prove subsymbol content emits IR records in KiCad-compatible order.</p>
+    <h3>Working Definition</h3>
+    <p>The model is public when symbol libraries can expose unit-level geometry without raw S-expression traversal.</p>
+  </section>
+
+  <section
+    data-interface="SymProperty"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_035_api_cleanup.py"
+    data-test-target="test_lib_symbol_property_mutation_and_ir_entrypoint"
+  >
+    <h2>SymProperty</h2>
+    <h3>Rationale</h3>
+    <p>Symbol cleanup depends on stable named and numeric property handling.</p>
+    <h3>Purpose</h3>
+    <p>Represent one library-symbol property with identity, value, display, and placement data.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must cover standard keys, custom property IDs, get/set helpers, and removal.</p>
+    <h3>Working Definition</h3>
+    <p>The model is public when callers can update symbol properties without editing raw token lists.</p>
+  </section>
+
+  <section
+    data-interface="SymPin"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_007_lib_symbol_to_ir.py"
+    data-test-target="test_pin_to_ops_emits_wire_segment"
+  >
+    <h2>SymPin</h2>
+    <h3>Rationale</h3>
+    <p>Pin geometry and electrical metadata are central to symbol rendering and netlist interpretation.</p>
+    <h3>Purpose</h3>
+    <p>Represent a library-symbol pin with geometry, text visibility, electrical type, and graphics style.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must cover pin shaft geometry, inverted pins, number/name placement, and visibility rules.</p>
+    <h3>Working Definition</h3>
+    <p>The model is public when symbol and schematic tooling can reason about pin identity and rendering.</p>
+  </section>
+
+  <section
+    data-interface="SymRectangle"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_007_lib_symbol_to_ir.py"
+    data-test-target="test_rectangle_to_op_basic"
+  >
+    <h2>SymRectangle</h2>
+    <h3>Rationale</h3>
+    <p>Symbol body outlines commonly use rectangles and need deterministic conversion to plotter IR.</p>
+    <h3>Purpose</h3>
+    <p>Represent a symbol rectangle with stroke, fill, and endpoint coordinates.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must cover rectangle-to-IR conversion and fill/stroke mapping.</p>
+    <h3>Working Definition</h3>
+    <p>The model is public when symbol renderers can consume rectangle geometry without parser internals.</p>
+  </section>
+
+  <section
+    data-interface="SymCircle"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_007_lib_symbol_to_ir.py"
+    data-test-target="test_circle_to_op_radius_to_diameter"
+  >
+    <h2>SymCircle</h2>
+    <h3>Rationale</h3>
+    <p>Circular symbol geometry must round-trip and render through the same IR path as other primitives.</p>
+    <h3>Purpose</h3>
+    <p>Represent a symbol circle with center, radius, stroke, and fill semantics.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must cover radius-to-diameter conversion and fill handling.</p>
+    <h3>Working Definition</h3>
+    <p>The model is public when callers can inspect and render circle primitives directly.</p>
+  </section>
+
+  <section
+    data-interface="SymArc"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_007_lib_symbol_to_ir.py"
+    data-test-target="test_arc_to_op_three_points"
+  >
+    <h2>SymArc</h2>
+    <h3>Rationale</h3>
+    <p>Arc geometry needs explicit start, midpoint, and end semantics for KiCad-style plotting.</p>
+    <h3>Purpose</h3>
+    <p>Represent a symbol arc and preserve enough geometry for plotter-IR conversion.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must verify three-point arc emission and stroke mapping.</p>
+    <h3>Working Definition</h3>
+    <p>The model is public when symbol arcs can render without direct S-expression access.</p>
+  </section>
+
+  <section
+    data-interface="SymPolyline"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_007_lib_symbol_to_ir.py"
+    data-test-target="test_polyline_to_op_yields_plot_poly"
+  >
+    <h2>SymPolyline</h2>
+    <h3>Rationale</h3>
+    <p>Symbol outlines and decorative geometry often depend on ordered point lists.</p>
+    <h3>Purpose</h3>
+    <p>Represent a symbol polyline with points, stroke, and fill semantics.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must confirm point order and plot-poly conversion remain stable.</p>
+    <h3>Working Definition</h3>
+    <p>The model is public when callers can preserve and render polyline point geometry.</p>
+  </section>
+
+  <section
+    data-interface="SymBezier"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_007_lib_symbol_to_ir.py"
+    data-test-target="test_bezier_to_op_cubic_4_points"
+  >
+    <h2>SymBezier</h2>
+    <h3>Rationale</h3>
+    <p>Bezier curves are less common but must remain first-class for symbol visual parity.</p>
+    <h3>Purpose</h3>
+    <p>Represent a symbol Bezier curve and feed cubic control points to plotter IR.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must cover cubic conversion and fallback behavior for short point lists.</p>
+    <h3>Working Definition</h3>
+    <p>The model is public when callers can preserve curved symbol geometry through conversion.</p>
+  </section>
+
+  <section
+    data-interface="SymText"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_007_lib_symbol_to_ir.py"
+    data-test-target="test_text_to_op_with_default_effects"
+  >
+    <h2>SymText</h2>
+    <h3>Rationale</h3>
+    <p>Symbol text participates in graphics output and may include variables and visibility rules.</p>
+    <h3>Purpose</h3>
+    <p>Represent text graphics inside a library symbol with effects, position, and visibility.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must cover default effects, variable expansion, hidden text, and IR text alignment.</p>
+    <h3>Working Definition</h3>
+    <p>The model is public when rendering and cleanup tools can inspect text graphics directly.</p>
+  </section>
+
+  <section
+    data-interface="SymTextBox"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_038_public_api_contract.py"
+    data-test-target="test_promoted_public_api_roots_are_package_exports"
+  >
+    <h2>SymTextBox</h2>
+    <h3>Rationale</h3>
+    <p>KiCad symbol files can carry text-box graphics that must stay visible to downstream renderers.</p>
+    <h3>Purpose</h3>
+    <p>Represent a symbol text box with text, placement, stroke, fill, and text effects.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must at minimum keep the class in the promoted API contract until focused behavior tests land.</p>
+    <h3>Working Definition</h3>
+    <p>The model is public when symbol tooling can preserve the text-box payload through load and write paths.</p>
+  </section>
+
+  <section
+    data-interface="StandardPropertyKey"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_035_api_cleanup.py"
+    data-test-target="test_lib_symbol_property_mutation_and_ir_entrypoint"
+  >
+    <h2>StandardPropertyKey</h2>
+    <h3>Rationale</h3>
+    <p>Public code needs stable symbolic names for KiCad's standard symbol properties.</p>
+    <h3>Purpose</h3>
+    <p>Define the canonical property keys used by symbol helpers and cleanup tools.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must cover standard property lookup through public mutation helpers.</p>
+    <h3>Working Definition</h3>
+    <p>The enum is public when callers can avoid hard-coded string variants for common symbol properties.</p>
+  </section>
+
+  <section
+    data-interface="StandardSheetPropertyKey"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_035_api_cleanup.py"
+    data-test-target="test_schematic_object_query_and_property_mutation_facade"
+  >
+    <h2>StandardSheetPropertyKey</h2>
+    <h3>Rationale</h3>
+    <p>Hierarchical-sheet metadata needs the same named-key ergonomics as symbol properties.</p>
+    <h3>Purpose</h3>
+    <p>Define the canonical keys for sheet name and sheet file properties.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must cover sheet property mutation and sheet-file access through public helpers.</p>
+    <h3>Working Definition</h3>
+    <p>The enum is public when sheet tools can avoid raw KiCad property strings for standard fields.</p>
+  </section>
+
+  <section
+    data-interface="PropertyId"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_035_api_cleanup.py"
+    data-test-target="test_property_ids_are_named_int_enum_values"
+  >
+    <h2>PropertyId</h2>
+    <h3>Rationale</h3>
+    <p>KiCad property IDs have stable numeric meaning that should be named in public code.</p>
+    <h3>Purpose</h3>
+    <p>Expose standard property ID values and the user-property start offset.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must verify the enum remains integer-compatible and preserves expected values.</p>
+    <h3>Working Definition</h3>
+    <p>The enum is public when property creation can choose deterministic KiCad IDs.</p>
+  </section>
+
+  <section
+    data-interface="PinElectricalType"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_038_public_api_contract.py"
+    data-test-target="test_promoted_public_api_roots_are_package_exports"
+  >
+    <h2>PinElectricalType</h2>
+    <h3>Rationale</h3>
+    <p>Pin electrical classifications are stable schema data for symbol and netlist consumers.</p>
+    <h3>Purpose</h3>
+    <p>Expose KiCad pin electrical types as a public enum.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must keep the enum in the promoted API contract and add behavior checks when netlist rules depend on it.</p>
+    <h3>Working Definition</h3>
+    <p>The enum is public when callers can classify pins without raw strings.</p>
+  </section>
+
+  <section
+    data-interface="PinGraphicStyle"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_007_lib_symbol_to_ir.py"
+    data-test-target="test_pin_to_ops_inverted_pin_emits_circle_and_shortened_wire"
+  >
+    <h2>PinGraphicStyle</h2>
+    <h3>Rationale</h3>
+    <p>Pin shapes affect symbol drawing and must remain explicit for renderers.</p>
+    <h3>Purpose</h3>
+    <p>Expose KiCad pin graphics styles as a public enum.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must cover graphical style effects such as inverted-pin bubble geometry.</p>
+    <h3>Working Definition</h3>
+    <p>The enum is public when symbol renderers can branch on pin style without raw strings.</p>
+  </section>
+
+  <section
+    data-interface="LabelShape"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_008_schematic_to_ir.py"
+    data-test-target="test_hierarchical_label_decoration_input_left_spin_emits_hn_template"
+  >
+    <h2>LabelShape</h2>
+    <h3>Rationale</h3>
+    <p>Hierarchical and global labels use shape data to select decoration geometry.</p>
+    <h3>Purpose</h3>
+    <p>Expose KiCad label shape values for schematic model and rendering code.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must cover decoration geometry selected from label shape and orientation.</p>
+    <h3>Working Definition</h3>
+    <p>The enum is public when schematic tools can interpret label IO direction without raw strings.</p>
+  </section>
+
+  <section
+    data-interface="Pad"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_017_footprint_to_ir.py"
+    data-test-target="test_pad_to_ops_circle_uses_size_x_as_diameter"
+  >
+    <h2>Pad</h2>
+    <h3>Rationale</h3>
+    <p>Pads are central to PCB geometry, connectivity, fabrication output, and assembly projection.</p>
+    <h3>Purpose</h3>
+    <p>Represent one KiCad footprint pad with geometry, layers, drill, custom primitives, and metadata.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must cover common pad shapes, NPTH behavior, drills, and custom primitives.</p>
+    <h3>Working Definition</h3>
+    <p>The model is public when callers can inspect and convert pad geometry without raw board tokens.</p>
+  </section>
+
+  <section
+    data-interface="FpText"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_017_footprint_to_ir.py"
+    data-test-target="test_fp_text_to_op_basic"
+  >
+    <h2>FpText</h2>
+    <h3>Rationale</h3>
+    <p>Footprint text drives reference/value rendering and silkscreen automation.</p>
+    <h3>Purpose</h3>
+    <p>Represent footprint text with type, string, layer, effects, visibility, and placement.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must cover basic IR conversion, hidden text, empty text, and effects mapping.</p>
+    <h3>Working Definition</h3>
+    <p>The model is public when footprint tooling can edit and render text safely.</p>
+  </section>
+
+  <section
+    data-interface="FpLine"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_017_footprint_to_ir.py"
+    data-test-target="test_fp_line_to_op_emits_thick_segment"
+  >
+    <h2>FpLine</h2>
+    <h3>Rationale</h3>
+    <p>Footprint line primitives are a common carrier for fab, silkscreen, and courtyard outlines.</p>
+    <h3>Purpose</h3>
+    <p>Represent one footprint line with layer and stroke attributes.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must confirm line conversion preserves coordinates, layer, and width.</p>
+    <h3>Working Definition</h3>
+    <p>The model is public when outline cleanup can manipulate footprint lines directly.</p>
+  </section>
+
+  <section
+    data-interface="FpTextBox"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_017_footprint_to_ir.py"
+    data-test-target="test_fp_text_box_to_ops_emits_border_and_expanded_text"
+  >
+    <h2>FpTextBox</h2>
+    <h3>Rationale</h3>
+    <p>Footprint text boxes need explicit borders, wrapping, and variable expansion for rendering parity.</p>
+    <h3>Purpose</h3>
+    <p>Represent footprint-local text boxes with geometry, layer, effects, stroke, and fill.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must cover parsing border flags and emitting both border and expanded text ops.</p>
+    <h3>Working Definition</h3>
+    <p>The model is public when renderers can preserve text-box geometry through footprint conversion.</p>
+  </section>
+
+  <section
+    data-interface="GrLine"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_020_pcb_to_ir.py"
+    data-test-target="test_gr_line_to_op_no_y_flip"
+  >
+    <h2>GrLine</h2>
+    <h3>Rationale</h3>
+    <p>Board graphics lines carry outlines, documentation geometry, and mechanical annotations.</p>
+    <h3>Purpose</h3>
+    <p>Represent board-level line graphics with layer and stroke data.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must verify coordinate handling and record-level layer metadata.</p>
+    <h3>Working Definition</h3>
+    <p>The model is public when board graphics can be converted without S-expression access.</p>
+  </section>
+
+  <section
+    data-interface="GrText"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_020_pcb_to_ir.py"
+    data-test-target="test_gr_text_to_op_emits_text"
+  >
+    <h2>GrText</h2>
+    <h3>Rationale</h3>
+    <p>Board text participates in fabrication drawings, labels, and render-cache generation.</p>
+    <h3>Purpose</h3>
+    <p>Represent board text with layer, effects, placement, variables, and optional render cache.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must cover text conversion, empty/hidden behavior, variables, and render-cache attachment.</p>
+    <h3>Working Definition</h3>
+    <p>The model is public when board text can be edited and rendered through typed APIs.</p>
+  </section>
+
+  <section
+    data-interface="GrTextBox"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_020_pcb_to_ir.py"
+    data-test-target="test_gr_text_box_to_ops_emits_border_and_text"
+  >
+    <h2>GrTextBox</h2>
+    <h3>Rationale</h3>
+    <p>Board text boxes combine framed geometry, text layout, and render-cache behavior.</p>
+    <h3>Purpose</h3>
+    <p>Represent board-level text boxes with text, geometry, stroke, fill, layer, and effects.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must cover border/text IR emission, default alignment, and knockout cache synthesis.</p>
+    <h3>Working Definition</h3>
+    <p>The model is public when board text-box rendering can be validated independently.</p>
+  </section>
+
+  <section
+    data-interface="Net"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_038_public_api_contract.py"
+    data-test-target="test_promoted_public_api_roots_are_package_exports"
+  >
+    <h2>Net</h2>
+    <h3>Rationale</h3>
+    <p>Board net records are needed by connectivity, highlighting, and downstream design views.</p>
+    <h3>Purpose</h3>
+    <p>Represent a KiCad PCB net code and name as a typed public model.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must keep the model in the promoted API contract and add behavior checks as board-net APIs grow.</p>
+    <h3>Working Definition</h3>
+    <p>The model is public when downstream tools can pass net identity without raw board records.</p>
+  </section>
+
+  <section
+    data-interface="Layer"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_038_public_api_contract.py"
+    data-test-target="test_promoted_public_api_roots_are_package_exports"
+  >
+    <h2>Layer</h2>
+    <h3>Rationale</h3>
+    <p>Layer identity and ordering are shared by parsing, rendering, and fabrication workflows.</p>
+    <h3>Purpose</h3>
+    <p>Represent one board layer with KiCad ordinal, canonical name, type, and user name.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must keep the model in the promoted API contract and add behavior checks for layer mutation APIs.</p>
+    <h3>Working Definition</h3>
+    <p>The model is public when callers can reason about board layers without raw tuple structures.</p>
+  </section>
+
+  <section
+    data-interface="KiCadProjectSidecar"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_038_public_api_contract.py"
+    data-test-target="test_promoted_public_api_roots_are_package_exports"
+  >
+    <h2>KiCadProjectSidecar</h2>
+    <h3>Rationale</h3>
+    <p>Project sidecar files may become part of downstream cruncher workflow state.</p>
+    <h3>Purpose</h3>
+    <p>Represent known project-adjacent paths in a typed way without making them mandatory.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must keep the model in the promoted API contract until sidecar behavior is expanded.</p>
+    <h3>Working Definition</h3>
+    <p>The model is public when project discovery can expose optional adjacent files predictably.</p>
+  </section>
+
+  <section
+    data-interface="ProjectVariant"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_037_project_design_api_cleanup.py"
+    data-test-target="test_project_json_text_variable_and_variant_helpers"
+  >
+    <h2>ProjectVariant</h2>
+    <h3>Rationale</h3>
+    <p>Variant-aware design views need stable names and descriptions from project metadata.</p>
+    <h3>Purpose</h3>
+    <p>Represent one KiCad project variant in a small typed model.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must cover variant lookup, iteration, and equality through project helpers.</p>
+    <h3>Working Definition</h3>
+    <p>The model is public when downstream tools can select variants without raw JSON traversal.</p>
+  </section>
+
+  <section
+    data-interface="KiCadPlotterDocument"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_005_plotter_ir.py"
+    data-test-target="test_document_round_trip_through_dict"
+  >
+    <h2>KiCadPlotterDocument</h2>
+    <h3>Rationale</h3>
+    <p>The plotter IR document is the common exchange object between KiCad models and SVG renderers.</p>
+    <h3>Purpose</h3>
+    <p>Contain plotter records, bounds, source metadata, and JSON serialization for a rendered document.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must cover dict/file round-trip, normalization, schema checks, and source-path handling.</p>
+    <h3>Working Definition</h3>
+    <p>The model is public when downstream code can store and replay KiCad drawing operations.</p>
+  </section>
+
+  <section
+    data-interface="KiCadPlotterRecord"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_005_plotter_ir.py"
+    data-test-target="test_record_round_trip_preserves_operations_and_bounds"
+  >
+    <h2>KiCadPlotterRecord</h2>
+    <h3>Rationale</h3>
+    <p>Renderers and design views need per-object grouping around plotter operations.</p>
+    <h3>Purpose</h3>
+    <p>Represent one logical plotted object with operation list, object metadata, layers, and bounds.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must cover record round-trip and preservation of operations and bounds.</p>
+    <h3>Working Definition</h3>
+    <p>The model is public when object-level SVG groups can be built from IR records.</p>
+  </section>
+
+  <section
+    data-interface="KiCadPlotterOp"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_005_plotter_ir.py"
+    data-test-target="test_each_op_round_trips_through_dict"
+  >
+    <h2>KiCadPlotterOp</h2>
+    <h3>Rationale</h3>
+    <p>Individual plotter operations are the stable primitive contract for renderers.</p>
+    <h3>Purpose</h3>
+    <p>Represent one drawing operation with kind, payload, optional index, and convenience constructors.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must cover constructors, enum coercion, dict round-trip, and invalid payload checks.</p>
+    <h3>Working Definition</h3>
+    <p>The model is public when all renderer inputs can be expressed as typed plotter operations.</p>
+  </section>
+
+  <section
+    data-interface="KiCadPlotterOpKind"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_005_plotter_ir.py"
+    data-test-target="test_op_kinds_match_plotter_virtuals"
+  >
+    <h2>KiCadPlotterOpKind</h2>
+    <h3>Rationale</h3>
+    <p>Operation kinds define the durable drawing vocabulary used by the IR.</p>
+    <h3>Purpose</h3>
+    <p>Enumerate supported plotter operation kinds with names aligned to KiCad drawing behavior.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must keep the enum synchronized with the expected plotter virtual operation set.</p>
+    <h3>Working Definition</h3>
+    <p>The enum is public when renderer code can dispatch without stringly-typed conditionals.</p>
+  </section>
+
+  <section
+    data-interface="KiCadFillType"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_005_plotter_ir.py"
+    data-test-target="test_fill_enum_accepts_string_or_enum"
+  >
+    <h2>KiCadFillType</h2>
+    <h3>Rationale</h3>
+    <p>Fill semantics cross symbol, schematic, footprint, PCB, and SVG rendering boundaries.</p>
+    <h3>Purpose</h3>
+    <p>Represent KiCad fill modes in the plotter IR.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must cover string and enum coercion plus conversion from source-model fill types.</p>
+    <h3>Working Definition</h3>
+    <p>The enum is public when IR producers and renderers agree on fill behavior.</p>
+  </section>
+
+  <section
+    data-interface="KiCadLineStyle"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_005_plotter_ir.py"
+    data-test-target="test_set_dash_emits_line_style_string"
+  >
+    <h2>KiCadLineStyle</h2>
+    <h3>Rationale</h3>
+    <p>Dashed and solid stroke semantics must survive conversion into SVG.</p>
+    <h3>Purpose</h3>
+    <p>Represent supported KiCad line styles in the plotter IR.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must cover dash operation payloads and renderer-visible style values.</p>
+    <h3>Working Definition</h3>
+    <p>The enum is public when style-aware renderers can consume line style values directly.</p>
+  </section>
+
+  <section
+    data-interface="KiCadHorizAlign"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_005_plotter_ir.py"
+    data-test-target="test_text_op_carries_alignment_pen_and_font_face"
+  >
+    <h2>KiCadHorizAlign</h2>
+    <h3>Rationale</h3>
+    <p>Horizontal text alignment affects symbol, schematic, board, and IR SVG placement.</p>
+    <h3>Purpose</h3>
+    <p>Represent horizontal text alignment values in the plotter IR.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must cover text operation payloads carrying horizontal alignment.</p>
+    <h3>Working Definition</h3>
+    <p>The enum is public when renderers can align text without source-specific enums.</p>
+  </section>
+
+  <section
+    data-interface="KiCadVertAlign"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_005_plotter_ir.py"
+    data-test-target="test_text_op_carries_alignment_pen_and_font_face"
+  >
+    <h2>KiCadVertAlign</h2>
+    <h3>Rationale</h3>
+    <p>Vertical text alignment is needed for KiCad-compatible symbol and board text placement.</p>
+    <h3>Purpose</h3>
+    <p>Represent vertical text alignment values in the plotter IR.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must cover text operation payloads carrying vertical alignment.</p>
+    <h3>Working Definition</h3>
+    <p>The enum is public when renderers can align text without source-specific enums.</p>
+  </section>
+
+  <section
+    data-interface="KiCadPenAction"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_005_plotter_ir.py"
+    data-test-target="test_pen_to_action_enum_round_trip"
+  >
+    <h2>KiCadPenAction</h2>
+    <h3>Rationale</h3>
+    <p>Pen movement records preserve the original plotter stream semantics.</p>
+    <h3>Purpose</h3>
+    <p>Represent pen up/down action values for low-level plotter operations.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must cover string and enum round-trip through pen operations.</p>
+    <h3>Working Definition</h3>
+    <p>The enum is public when low-level plotter traces can be replayed without raw action strings.</p>
+  </section>
+
+  <section
+    data-interface="KiCadEnvironment"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_039_environment_and_filters_api.py"
+    data-test-target="test_kicad_environment_finds_highest_non_beta_installation"
+  >
+    <h2>KiCadEnvironment</h2>
+    <h3>Rationale</h3>
+    <p>Applications need KiCad installation and configuration discovery without relying on legacy prefixed utility functions.</p>
+    <h3>Purpose</h3>
+    <p>Provide one object that owns KiCad executable discovery, beta-version selection, and user configuration path lookup.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must cover deterministic installation ranking, beta filtering, and versioned configuration directory discovery.</p>
+    <h3>Working Definition</h3>
+    <p>The class is public when downstream tools can find the active KiCad CLI and config roots through object methods.</p>
+  </section>
+
+  <section
+    data-interface="KiCadFilterPipeline"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_039_environment_and_filters_api.py"
+    data-test-target="test_filter_pipeline_exposes_file_level_operations"
+  >
+    <h2>KiCadFilterPipeline</h2>
+    <h3>Rationale</h3>
+    <p>File-level cleanup is KiCad-format behavior and should be grouped behind an object API instead of package-level prefixed functions.</p>
+    <h3>Purpose</h3>
+    <p>Expose deterministic footprint, symbol, schematic, and PCB cleanup operations for applications that decide when to run them.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must keep the pipeline methods available and the L2 filter suite must exercise file-to-file behavior.</p>
+    <h3>Working Definition</h3>
+    <p>The class is public when callers can run all supported file filters without importing individual implementation functions.</p>
+  </section>
+
+  <section
+    data-interface="KiCadNameIndex"
+    data-rack-stratum="L2_tools"
+    data-test-file="tests/L2_tools/test_L2_003_component_indexing.py"
+    data-test-target="test_extract_quoted_footprint_name"
+  >
+    <h2>KiCadNameIndex</h2>
+    <h3>Rationale</h3>
+    <p>Library tools need fast symbol and footprint name discovery without parsing entire KiCad models or importing legacy prefixed helpers.</p>
+    <h3>Purpose</h3>
+    <p>Provide one object for extracting names from KiCad library files, building directory indexes, and finding matching assets.</p>
+    <h3>Test Requirements</h3>
+    <p>Tests must cover quoted, unquoted, fallback, real-corpus, and recursive index-building cases for symbols and footprints.</p>
+    <h3>Working Definition</h3>
+    <p>The class is public when downstream library indexes can discover KiCad symbol and footprint names through object methods.</p>
+  </section>
+</body>
+</html>

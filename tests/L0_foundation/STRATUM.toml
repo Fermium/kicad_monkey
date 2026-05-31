@@ -1,0 +1,69 @@
+# L0_foundation Stratum Configuration
+# S-expression parser and core data structures
+#
+# This stratum tests the foundational parsing layer that all KiCad file operations
+# depend on. S-expressions are the text-based format used by all KiCad files.
+
+name = "Foundation"
+order = 0
+description = "S-expression parser and core data structures"
+enabled = true
+concerns = ["sexpr"]
+
+# Stratum-level objectives
+objectives = [
+    "S-expression parsing works correctly for all KiCad formats",
+    "S-expression building produces valid output",
+    "Quoted string handling preserves special characters",
+    "BoundingBox operations are mathematically correct",
+    "SvgRenderContext options work correctly"
+]
+
+# =============================================================================
+# Code Under Test
+# =============================================================================
+# This stratum tests the following modules:
+#
+# Module: kicad_monkey.kicad_sexpr
+# Purpose: Parse and build KiCad S-expression format
+# Dependencies: None (stdlib only)
+#
+# Module: kicad_monkey.kicad_geometry
+# Purpose: BoundingBox, coordinate utilities, SvgRenderContext
+# Dependencies: None (stdlib only)
+#
+# Module: kicad_monkey.kicad_pcb_base
+# Purpose: Base element classes and protocols
+# Dependencies: None (stdlib only)
+
+# =============================================================================
+# Subtest Manifest
+# =============================================================================
+# Tests will be added during migration from legacy/test_sexpr.py
+
+[[subtests]]
+file = "test_L0_001_sexpr_parsing.py"
+name = "S-Expression Parsing"
+description = "Parse KiCad S-expression format to nested lists"
+test_case_type = "algorithmic"
+
+[subtests.code_under_test]
+module = "kicad_monkey.kicad_sexpr"
+functions = ["parse_sexp"]
+
+[subtests.objectives]
+primary = "Correctly parse all KiCad S-expression variants"
+secondary = [
+    "Atoms parsed correctly",
+    "Strings with spaces handled",
+    "Quoted strings preserved",
+    "Nested lists parsed recursively",
+    "Unicode content supported"
+]
+
+[subtests.test_functions]
+test_parse_atom = "Parse simple atoms"
+test_parse_string = "Parse strings with spaces"
+test_parse_quoted = "Parse quoted strings"
+test_parse_nested = "Parse nested lists"
+test_parse_unicode = "Parse Unicode content"

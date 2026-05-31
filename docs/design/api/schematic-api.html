@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>KiCad Monkey Schematic API</title>
+</head>
+<body>
+  <h1>Schematic And Symbol API</h1>
+
+  <section
+    data-interface="KiCadSchematic"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_035_api_cleanup.py"
+    data-test-target="test_schematic_object_query_and_property_mutation_facade"
+  >
+    <h2>KiCadSchematic</h2>
+    <h3>Rationale</h3>
+    <p>
+      Callers need a single document object for schematic parse, query,
+      mutation, round-trip writing, and IR-backed SVG generation.
+    </p>
+    <h3>Purpose</h3>
+    <p>
+      Own the schematic-level OOP model, expose object/property query views,
+      and provide stable add, remove, lookup, serialization, and IR entrypoints.
+    </p>
+    <h3>Test Requirements</h3>
+    <p>
+      Tests must cover object mutation, property aggregation, read-only query
+      views, symbol lookup behavior, and the public IR entrypoint.
+    </p>
+    <h3>Working Definition</h3>
+    <p>
+      A schematic facade is public when file callers can use it without touching
+      S-expression internals for common read, cleanup, and render workflows.
+    </p>
+  </section>
+
+  <section
+    data-interface="KiCadSymbolLib"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_035_api_cleanup.py"
+    data-test-target="test_symbol_library_constructor_and_ir_alias"
+  >
+    <h2>KiCadSymbolLib</h2>
+    <h3>Rationale</h3>
+    <p>
+      Symbol-library tools need a stable container for reading, merging,
+      splitting, lookup, and rendering without depending on parser internals.
+    </p>
+    <h3>Purpose</h3>
+    <p>
+      Represent a KiCad symbol library and expose symbol lookup, construction,
+      serialization, and symbol-to-IR entrypoints.
+    </p>
+    <h3>Test Requirements</h3>
+    <p>
+      Tests must cover construction, symbol lookup, and the library-level IR
+      alias used by SVG and downstream conversion flows.
+    </p>
+    <h3>Working Definition</h3>
+    <p>
+      A symbol-library facade is public when a caller can load or build a
+      library, find a symbol, and render or write it through documented methods.
+    </p>
+  </section>
+
+  <section
+    data-interface="LibSymbol"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_035_api_cleanup.py"
+    data-test-target="test_lib_symbol_property_mutation_and_ir_entrypoint"
+  >
+    <h2>LibSymbol</h2>
+    <h3>Rationale</h3>
+    <p>
+      Library-symbol cleanup and conversion tools need direct property mutation,
+      parameter cleanup, and IR rendering on individual symbols.
+    </p>
+    <h3>Purpose</h3>
+    <p>
+      Model one library symbol with standard property helpers, custom property
+      mutation, graphics, pins, and symbol-level IR conversion.
+    </p>
+    <h3>Test Requirements</h3>
+    <p>
+      Tests must cover standard keys, generated user property IDs, get/set/remove
+      helpers, and the public IR entrypoint.
+    </p>
+    <h3>Working Definition</h3>
+    <p>
+      A library symbol is public when callers can perform common cleanup and
+      rendering tasks through named properties and methods.
+    </p>
+  </section>
+
+  <section
+    data-interface="SchSymbol"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_035_api_cleanup.py"
+    data-test-target="test_schematic_object_query_and_property_mutation_facade"
+  >
+    <h2>SchSymbol</h2>
+    <h3>Rationale</h3>
+    <p>
+      File-based schematic automation commonly edits placed symbol references,
+      values, footprints, and custom parameters.
+    </p>
+    <h3>Purpose</h3>
+    <p>
+      Represent a placed schematic symbol with named standard-property helpers
+      and stable property mutation methods.
+    </p>
+    <h3>Test Requirements</h3>
+    <p>
+      Tests must cover reference/value helpers, create-on-set behavior,
+      property-object access, and removal.
+    </p>
+    <h3>Working Definition</h3>
+    <p>
+      A schematic symbol is public when common parameter cleanup can be done
+      without direct S-expression edits.
+    </p>
+  </section>
+
+  <section
+    data-interface="SchSheet"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_035_api_cleanup.py"
+    data-test-target="test_schematic_object_query_and_property_mutation_facade"
+  >
+    <h2>SchSheet</h2>
+    <h3>Rationale</h3>
+    <p>
+      Hierarchical schematic tools need named access to sheet file/name
+      properties and stable mutation behavior.
+    </p>
+    <h3>Purpose</h3>
+    <p>
+      Represent a hierarchical sheet with standard sheet-property helpers and
+      consistent property mutation methods.
+    </p>
+    <h3>Test Requirements</h3>
+    <p>
+      Tests must cover standard sheet keys, sheet-file access, object-query
+      integration, and property aggregation.
+    </p>
+    <h3>Working Definition</h3>
+    <p>
+      A sheet facade is public when callers can inspect and update hierarchy
+      metadata through the same property style as symbols.
+    </p>
+  </section>
+</body>
+</html>

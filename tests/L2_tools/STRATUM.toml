@@ -1,0 +1,81 @@
+# L2_tools Stratum Configuration
+# Lower-level tools for KiCad file manipulation
+#
+# This stratum tests discrete tools that operate on KiCad files:
+# extraction, splitting, merging, filters, and file fixes.
+
+name = "Tools"
+order = 2
+description = "Lower-level tools (extraction, splitting, merging, filters)"
+enabled = true
+concerns = ["tools", "tools.extraction", "tools.splitting", "tools.merging"]
+
+# Stratum-level objectives
+objectives = [
+    "Symbol extraction works correctly",
+    "Footprint extraction works correctly",
+    "Library splitting produces valid individual files",
+    "Library merging combines files correctly",
+    "Component indexing and lookup works"
+]
+
+# =============================================================================
+# Code Under Test
+# =============================================================================
+# This stratum tests tool modules:
+#
+# Module: kicad_monkey.kicad_symbol_extractor - Extract symbols from .kicad_sch
+# Module: kicad_monkey.kicad_symbol_splitter - Split multi-symbol files
+# Module: kicad_monkey.kicad_footprint_extractor - Extract footprints from PCB files
+# Module: kicad_monkey.kicad_step_extractor - Extract embedded STEP models
+# Module: kicad_monkey.kicad_name_index - Footprint and symbol name indexing
+
+# =============================================================================
+# Subtest Manifest
+# =============================================================================
+# Tests will be migrated from:
+# - legacy/test_kicad_extractors.py
+# - legacy/test_kicad_indexing.py
+
+[[subtests]]
+file = "test_L2_001_symbol_extraction.py"
+name = "Symbol Extraction"
+description = "Extract symbols from .kicad_sym files"
+test_cases = "${WN_TEST_CORPUS}/kicad/common/board/input/speedy"
+test_case_type = "reference"
+
+[subtests.code_under_test]
+module = "kicad_monkey.kicad_symbol_extractor"
+
+[subtests.objectives]
+primary = "Symbols extracted correctly from library files"
+
+# -----------------------------------------------------------------------------
+
+[[subtests]]
+file = "test_L2_002_footprint_extraction.py"
+name = "Footprint Extraction"
+description = "Extract footprints from projects"
+test_cases = "${WN_TEST_CORPUS}/kicad"
+test_case_type = "reference"
+
+[subtests.code_under_test]
+module = "kicad_monkey.kicad_footprint_extractor"
+
+[subtests.objectives]
+primary = "Footprints extracted correctly from projects"
+
+# -----------------------------------------------------------------------------
+
+[[subtests]]
+file = "test_L2_003_component_indexing.py"
+name = "Component Indexing"
+description = "Index and lookup components from PCB"
+test_cases = "${WN_TEST_CORPUS}/kicad/common"
+test_case_type = "reference"
+
+[subtests.code_under_test]
+module = "kicad_monkey.kicad_name_index"
+
+[subtests.objectives]
+primary = "Components indexed and looked up correctly"

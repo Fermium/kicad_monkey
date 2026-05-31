@@ -1,0 +1,855 @@
+From b99e88d6d1424555422496e966f032bc4f12499d Mon Sep 17 00:00:00 2001
+From: Eli Hughes <ehughes@wavenumber.net>
+Date: Sat, 9 May 2026 16:28:34 -0400
+Subject: [PATCH 1/3] plotters: add RECORDER_PLOTTER for IR cross-validation
+
+Introduce a non-rendering PLOTTER subclass that serialises every PLOTTER
+virtual call as a JSON document (schema kicad.plotter_recorder.v1).
+Used to cross-validate external tooling that reproduces the KiCad
+plotter pipeline against a frozen golden-output corpus.
+
+Coordinates are emitted in KiCad internal units (nm) exactly as
+received from the caller; no scaling, transformation, or filtering is
+applied. GetPlotterType() returns PLOT_FORMAT::UNDEFINED so the
+recorder does not collide with the [FIRST_FORMAT, LAST_FORMAT] range
+used by user-facing plot dialogs.
+
+Implements all 18 PLOTTER pure virtuals plus the optional Arc (both
+overloads), BezierCurve, ThickSegment, ThickArc, PlotImage, Text,
+SetPageSettings, StartBlock and EndBlock overrides relevant to
+schematic and PCB plot output. EndPlot() flushes the recorded ops
+list to the configured FILE*.
+
+No existing plot path is altered; the new class is purely additive
+and must be invoked explicitly by callers that opt in to the
+instrumentation.
+
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
+---
+ common/CMakeLists.txt                |   1 +
+ common/plotters/RECORDER_plotter.cpp | 647 +++++++++++++++++++++++++++
+ include/plotters/plotter_recorder.h  | 146 ++++++
+ 3 files changed, 794 insertions(+)
+ create mode 100644 common/plotters/RECORDER_plotter.cpp
+ create mode 100644 include/plotters/plotter_recorder.h
+
+diff --git a/common/CMakeLists.txt b/common/CMakeLists.txt
+index 1b25d3ef5b..1a5a3c0d46 100644
+--- a/common/CMakeLists.txt
++++ b/common/CMakeLists.txt
+@@ -674,6 +674,7 @@ set( PLOTTERS_CONTROL_SRCS
+     plotters/pdf_outline_font.cpp
+     plotters/PNG_plotter.cpp
+     plotters/PS_plotter.cpp
++    plotters/RECORDER_plotter.cpp
+     plotters/SVG_plotter.cpp
+     plotters/common_plot_functions.cpp
+     )
+diff --git a/common/plotters/RECORDER_plotter.cpp b/common/plotters/RECORDER_plotter.cpp
+new file mode 100644
+index 0000000000..5586499f3d
+--- /dev/null
++++ b/common/plotters/RECORDER_plotter.cpp
+@@ -0,0 +1,647 @@
++/*
++ * This program source code file is part of KiCad, a free EDA CAD application.
++ *
++ * Copyright The KiCad Developers, see AUTHORS.txt for contributors.
++ *
++ * This program is free software: you can redistribute it and/or modify it
++ * under the terms of the GNU General Public License as published by the
++ * Free Software Foundation, either version 3 of the License, or (at your
++ * option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful, but
++ * WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License along
++ * with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++/**
++ * @file RECORDER_plotter.cpp
++ * @brief Instrumentation plotter that serialises every PLOTTER virtual
++ *        call as a JSON document. Used for cross-validation against
++ *        external tooling consuming kicad.plotter_recorder.v1.
++ */
++
++#include <plotters/plotter_recorder.h>
++
++#include <cstdio>
++#include <string>
++#include <vector>
++
++#include <wx/image.h>
++#include <wx/string.h>
++
++#include <eda_shape.h>
++#include <font/font.h>
++#include <font/text_attributes.h>
++#include <geometry/eda_angle.h>
++#include <geometry/shape_poly_set.h>
++#include <math/vector2d.h>
++#include <page_info.h>
++#include <stroke_params.h>
++
++
++using nlohmann::ordered_json;
++
++
++// =============================================================================
++// Local helpers
++// =============================================================================
++
++
++namespace
++{
++
++const char* fillName( FILL_T aFill )
++{
++    switch( aFill )
++    {
++    case FILL_T::NO_FILL:                  return "NO_FILL";
++    case FILL_T::FILLED_SHAPE:             return "FILLED_SHAPE";
++    case FILL_T::FILLED_WITH_BG_BODYCOLOR: return "FILLED_WITH_BG_BODYCOLOR";
++    case FILL_T::FILLED_WITH_COLOR:        return "FILLED_WITH_COLOR";
++    case FILL_T::HATCH:                    return "HATCH";
++    case FILL_T::REVERSE_HATCH:            return "REVERSE_HATCH";
++    case FILL_T::CROSS_HATCH:              return "CROSS_HATCH";
++    }
++    return "NO_FILL";
++}
++
++
++const char* lineStyleName( LINE_STYLE aStyle )
++{
++    switch( aStyle )
++    {
++    case LINE_STYLE::DEFAULT:    return "DEFAULT";
++    case LINE_STYLE::SOLID:      return "SOLID";
++    case LINE_STYLE::DASH:       return "DASH";
++    case LINE_STYLE::DOT:        return "DOT";
++    case LINE_STYLE::DASHDOT:    return "DASHDOT";
++    case LINE_STYLE::DASHDOTDOT: return "DASHDOTDOT";
++    }
++    return "SOLID";
++}
++
++
++const char* hAlignName( GR_TEXT_H_ALIGN_T aAlign )
++{
++    switch( aAlign )
++    {
++    case GR_TEXT_H_ALIGN_LEFT:          return "GR_TEXT_H_ALIGN_LEFT";
++    case GR_TEXT_H_ALIGN_CENTER:        return "GR_TEXT_H_ALIGN_CENTER";
++    case GR_TEXT_H_ALIGN_RIGHT:         return "GR_TEXT_H_ALIGN_RIGHT";
++    case GR_TEXT_H_ALIGN_INDETERMINATE: return "GR_TEXT_H_ALIGN_INDETERMINATE";
++    }
++    return "GR_TEXT_H_ALIGN_LEFT";
++}
++
++
++const char* vAlignName( GR_TEXT_V_ALIGN_T aAlign )
++{
++    switch( aAlign )
++    {
++    case GR_TEXT_V_ALIGN_TOP:           return "GR_TEXT_V_ALIGN_TOP";
++    case GR_TEXT_V_ALIGN_CENTER:        return "GR_TEXT_V_ALIGN_CENTER";
++    case GR_TEXT_V_ALIGN_BOTTOM:        return "GR_TEXT_V_ALIGN_BOTTOM";
++    case GR_TEXT_V_ALIGN_INDETERMINATE: return "GR_TEXT_V_ALIGN_INDETERMINATE";
++    }
++    return "GR_TEXT_V_ALIGN_BOTTOM";
++}
++
++
++std::string colorToHex( const COLOR4D& aColor )
++{
++    auto clamp = []( double v ) -> int
++    {
++        if( v < 0.0 ) v = 0.0;
++        if( v > 1.0 ) v = 1.0;
++        return static_cast<int>( v * 255.0 + 0.5 );
++    };
++
++    char buf[10];
++    std::snprintf( buf, sizeof( buf ), "#%02X%02X%02X%02X",
++                   clamp( aColor.r ),
++                   clamp( aColor.g ),
++                   clamp( aColor.b ),
++                   clamp( aColor.a ) );
++    return std::string( buf );
++}
++
++
++ordered_json pointArray( const std::vector<VECTOR2I>& aPoints )
++{
++    ordered_json arr = ordered_json::array();
++    for( const VECTOR2I& p : aPoints )
++        arr.push_back( { p.x, p.y } );
++    return arr;
++}
++
++} // namespace
++
++
++// =============================================================================
++// Construction
++// =============================================================================
++
++
++RECORDER_PLOTTER::RECORDER_PLOTTER() :
++        PLOTTER(),
++        m_ops( ordered_json::array() ),
++        m_canvas( ordered_json::object() )
++{
++}
++
++
++RECORDER_PLOTTER::~RECORDER_PLOTTER()
++{
++}
++
++
++// =============================================================================
++// Lifecycle
++// =============================================================================
++
++
++bool RECORDER_PLOTTER::StartPlot( const wxString& aPageNumber )
++{
++    ordered_json payload = {
++        { "page_number", aPageNumber.utf8_string() }
++    };
++    m_ops.push_back( { { "kind", "StartPlot" }, { "payload", std::move( payload ) } } );
++    return true;
++}
++
++
++bool RECORDER_PLOTTER::EndPlot()
++{
++    m_ops.push_back( { { "kind", "EndPlot" }, { "payload", ordered_json::object() } } );
++
++    if( !m_outputFile )
++        return false;
++
++    ordered_json doc = {
++        { "schema",  SCHEMA_ID },
++        { "canvas",  m_canvas },
++        { "ops",     m_ops }
++    };
++
++    const std::string serialised = doc.dump( 2 );
++    std::fputs( serialised.c_str(), m_outputFile );
++    std::fputc( '\n', m_outputFile );
++    std::fflush( m_outputFile );
++    return true;
++}
++
++
++// =============================================================================
++// State
++// =============================================================================
++
++
++void RECORDER_PLOTTER::SetCurrentLineWidth( int aWidth, void* /*aData*/ )
++{
++    m_currentPenWidth = aWidth;
++    m_ops.push_back( {
++        { "kind",    "SetCurrentLineWidth" },
++        { "payload", { { "width_nm", aWidth } } }
++    } );
++}
++
++
++void RECORDER_PLOTTER::SetColor( const COLOR4D& aColor )
++{
++    m_ops.push_back( {
++        { "kind",    "SetColor" },
++        { "payload", { { "color", colorToHex( aColor ) } } }
++    } );
++}
++
++
++void RECORDER_PLOTTER::SetDash( int aLineWidth, LINE_STYLE aLineStyle )
++{
++    m_ops.push_back( {
++        { "kind",    "SetDash" },
++        { "payload", {
++            { "width_nm",   aLineWidth },
++            { "line_style", lineStyleName( aLineStyle ) }
++        } }
++    } );
++}
++
++
++void RECORDER_PLOTTER::SetViewport( const VECTOR2I& aOffset, double aIusPerDecimil,
++                                    double aScale, bool aMirror )
++{
++    m_plotOffset       = aOffset;
++    m_plotScale        = aScale;
++    m_IUsPerDecimil    = aIusPerDecimil;
++    m_iuPerDeviceUnit  = 1.0 / aIusPerDecimil;
++    m_plotMirror       = aMirror;
++
++    m_ops.push_back( {
++        { "kind",    "SetViewport" },
++        { "payload", {
++            { "offset_x_nm",      aOffset.x },
++            { "offset_y_nm",      aOffset.y },
++            { "ius_per_decimil",  aIusPerDecimil },
++            { "scale",            aScale },
++            { "mirror",           aMirror }
++        } }
++    } );
++}
++
++
++void RECORDER_PLOTTER::SetPageSettings( const PAGE_INFO& aPageSettings )
++{
++    PLOTTER::SetPageSettings( aPageSettings );
++
++    // Cache canvas dims for the document envelope (mils → nm at 25400 nm/mil).
++    const long long width_nm  =
++            static_cast<long long>( aPageSettings.GetWidthMils() * 25400.0 + 0.5 );
++    const long long height_nm =
++            static_cast<long long>( aPageSettings.GetHeightMils() * 25400.0 + 0.5 );
++
++    m_canvas = {
++        { "type",      aPageSettings.GetTypeAsString().utf8_string() },
++        { "width_nm",  width_nm },
++        { "height_nm", height_nm },
++        { "portrait",  aPageSettings.IsPortrait() }
++    };
++
++    m_ops.push_back( {
++        { "kind",    "SetPageSettings" },
++        { "payload", m_canvas }
++    } );
++}
++
++
++void RECORDER_PLOTTER::StartBlock( void* /*aData*/ )
++{
++    m_ops.push_back( { { "kind", "StartBlock" }, { "payload", ordered_json::object() } } );
++}
++
++
++void RECORDER_PLOTTER::EndBlock( void* /*aData*/ )
++{
++    m_ops.push_back( { { "kind", "EndBlock" }, { "payload", ordered_json::object() } } );
++}
++
++
++// =============================================================================
++// Primitives
++// =============================================================================
++
++
++void RECORDER_PLOTTER::Rect( const VECTOR2I& p1, const VECTOR2I& p2, FILL_T aFill, int aWidth,
++                             int aCornerRadius )
++{
++    m_ops.push_back( {
++        { "kind",    "Rect" },
++        { "payload", {
++            { "x1",                p1.x },
++            { "y1",                p1.y },
++            { "x2",                p2.x },
++            { "y2",                p2.y },
++            { "fill",              fillName( aFill ) },
++            { "width_nm",          aWidth },
++            { "corner_radius_nm",  aCornerRadius }
++        } }
++    } );
++}
++
++
++void RECORDER_PLOTTER::Circle( const VECTOR2I& aCenter, int aDiameter, FILL_T aFill,
++                               int aWidth )
++{
++    m_ops.push_back( {
++        { "kind",    "Circle" },
++        { "payload", {
++            { "cx",          aCenter.x },
++            { "cy",          aCenter.y },
++            { "diameter_nm", aDiameter },
++            { "fill",        fillName( aFill ) },
++            { "width_nm",    aWidth }
++        } }
++    } );
++}
++
++
++void RECORDER_PLOTTER::Arc( const VECTOR2D& aStart, const VECTOR2D& aMid, const VECTOR2D& aEnd,
++                            FILL_T aFill, int aWidth )
++{
++    m_ops.push_back( {
++        { "kind",    "ArcThreePoint" },
++        { "payload", {
++            { "start_x", aStart.x },
++            { "start_y", aStart.y },
++            { "mid_x",   aMid.x },
++            { "mid_y",   aMid.y },
++            { "end_x",   aEnd.x },
++            { "end_y",   aEnd.y },
++            { "fill",    fillName( aFill ) },
++            { "width_nm", aWidth }
++        } }
++    } );
++}
++
++
++void RECORDER_PLOTTER::Arc( const VECTOR2D& aCenter, const EDA_ANGLE& aStartAngle,
++                            const EDA_ANGLE& aAngle, double aRadius, FILL_T aFill,
++                            int aWidth )
++{
++    m_ops.push_back( {
++        { "kind",    "ArcCenterAngle" },
++        { "payload", {
++            { "cx",                  aCenter.x },
++            { "cy",                  aCenter.y },
++            { "start_angle_deg",     aStartAngle.AsDegrees() },
++            { "sweep_angle_deg",     aAngle.AsDegrees() },
++            { "radius_nm",           aRadius },
++            { "fill",                fillName( aFill ) },
++            { "width_nm",            aWidth }
++        } }
++    } );
++}
++
++
++void RECORDER_PLOTTER::BezierCurve( const VECTOR2I& aStart, const VECTOR2I& aControl1,
++                                    const VECTOR2I& aControl2, const VECTOR2I& aEnd,
++                                    int aTolerance, int aLineThickness )
++{
++    m_ops.push_back( {
++        { "kind",    "BezierCurve" },
++        { "payload", {
++            { "start_x",      aStart.x },
++            { "start_y",      aStart.y },
++            { "ctrl1_x",      aControl1.x },
++            { "ctrl1_y",      aControl1.y },
++            { "ctrl2_x",      aControl2.x },
++            { "ctrl2_y",      aControl2.y },
++            { "end_x",        aEnd.x },
++            { "end_y",        aEnd.y },
++            { "tolerance_nm", aTolerance },
++            { "width_nm",     aLineThickness }
++        } }
++    } );
++}
++
++
++void RECORDER_PLOTTER::PenTo( const VECTOR2I& aPos, char aPlume )
++{
++    m_ops.push_back( {
++        { "kind",    "PenTo" },
++        { "payload", {
++            { "x",     aPos.x },
++            { "y",     aPos.y },
++            { "plume", std::string( 1, aPlume ) }
++        } }
++    } );
++}
++
++
++void RECORDER_PLOTTER::PlotPoly( const std::vector<VECTOR2I>& aCornerList, FILL_T aFill,
++                                 int aWidth, void* /*aData*/ )
++{
++    m_ops.push_back( {
++        { "kind",    "PlotPoly" },
++        { "payload", {
++            { "points",   pointArray( aCornerList ) },
++            { "fill",     fillName( aFill ) },
++            { "width_nm", aWidth }
++        } }
++    } );
++}
++
++
++void RECORDER_PLOTTER::PlotImage( const wxImage& aImage, const VECTOR2I& aPos,
++                                  double aScaleFactor )
++{
++    m_ops.push_back( {
++        { "kind",    "PlotImage" },
++        { "payload", {
++            { "x",            aPos.x },
++            { "y",            aPos.y },
++            { "width_px",     aImage.GetWidth() },
++            { "height_px",    aImage.GetHeight() },
++            { "scale_factor", aScaleFactor }
++        } }
++    } );
++}
++
++
++// =============================================================================
++// Thick variants
++// =============================================================================
++
++
++void RECORDER_PLOTTER::ThickSegment( const VECTOR2I& aStart, const VECTOR2I& aEnd, int aWidth,
++                                     void* /*aData*/ )
++{
++    m_ops.push_back( {
++        { "kind",    "ThickSegment" },
++        { "payload", {
++            { "start_x",  aStart.x },
++            { "start_y",  aStart.y },
++            { "end_x",    aEnd.x },
++            { "end_y",    aEnd.y },
++            { "width_nm", aWidth }
++        } }
++    } );
++}
++
++
++void RECORDER_PLOTTER::ThickArc( const VECTOR2D& aCentre, const EDA_ANGLE& aStAngle,
++                                 const EDA_ANGLE& aAngle, double aRadius, int aWidth,
++                                 void* /*aData*/ )
++{
++    m_ops.push_back( {
++        { "kind",    "ThickArc" },
++        { "payload", {
++            { "cx",              aCentre.x },
++            { "cy",              aCentre.y },
++            { "start_angle_deg", aStAngle.AsDegrees() },
++            { "sweep_angle_deg", aAngle.AsDegrees() },
++            { "radius_nm",       aRadius },
++            { "width_nm",        aWidth }
++        } }
++    } );
++}
++
++
++// =============================================================================
++// Flash primitives (PCB)
++// =============================================================================
++
++
++void RECORDER_PLOTTER::FlashPadCircle( const VECTOR2I& aPadPos, int aDiameter, void* /*aData*/ )
++{
++    m_ops.push_back( {
++        { "kind",    "FlashPadCircle" },
++        { "payload", {
++            { "x",           aPadPos.x },
++            { "y",           aPadPos.y },
++            { "diameter_nm", aDiameter }
++        } }
++    } );
++}
++
++
++void RECORDER_PLOTTER::FlashPadOval( const VECTOR2I& aPadPos, const VECTOR2I& aSize,
++                                     const EDA_ANGLE& aPadOrient, void* /*aData*/ )
++{
++    m_ops.push_back( {
++        { "kind",    "FlashPadOval" },
++        { "payload", {
++            { "x",          aPadPos.x },
++            { "y",          aPadPos.y },
++            { "size_x_nm",  aSize.x },
++            { "size_y_nm",  aSize.y },
++            { "orient_deg", aPadOrient.AsDegrees() }
++        } }
++    } );
++}
++
++
++void RECORDER_PLOTTER::FlashPadRect( const VECTOR2I& aPadPos, const VECTOR2I& aSize,
++                                     const EDA_ANGLE& aPadOrient, void* /*aData*/ )
++{
++    m_ops.push_back( {
++        { "kind",    "FlashPadRect" },
++        { "payload", {
++            { "x",          aPadPos.x },
++            { "y",          aPadPos.y },
++            { "size_x_nm",  aSize.x },
++            { "size_y_nm",  aSize.y },
++            { "orient_deg", aPadOrient.AsDegrees() }
++        } }
++    } );
++}
++
++
++void RECORDER_PLOTTER::FlashPadRoundRect( const VECTOR2I& aPadPos, const VECTOR2I& aSize,
++                                          int aCornerRadius, const EDA_ANGLE& aOrient,
++                                          void* /*aData*/ )
++{
++    m_ops.push_back( {
++        { "kind",    "FlashPadRoundRect" },
++        { "payload", {
++            { "x",                aPadPos.x },
++            { "y",                aPadPos.y },
++            { "size_x_nm",        aSize.x },
++            { "size_y_nm",        aSize.y },
++            { "corner_radius_nm", aCornerRadius },
++            { "orient_deg",       aOrient.AsDegrees() }
++        } }
++    } );
++}
++
++
++void RECORDER_PLOTTER::FlashPadCustom( const VECTOR2I& aPadPos, const VECTOR2I& aSize,
++                                       const EDA_ANGLE& aPadOrient, SHAPE_POLY_SET* aPolygons,
++                                       void* /*aData*/ )
++{
++    const int outlineCount = aPolygons ? aPolygons->OutlineCount() : 0;
++
++    m_ops.push_back( {
++        { "kind",    "FlashPadCustom" },
++        { "payload", {
++            { "x",              aPadPos.x },
++            { "y",              aPadPos.y },
++            { "size_x_nm",      aSize.x },
++            { "size_y_nm",      aSize.y },
++            { "orient_deg",     aPadOrient.AsDegrees() },
++            { "outline_count",  outlineCount }
++        } }
++    } );
++}
++
++
++void RECORDER_PLOTTER::FlashPadTrapez( const VECTOR2I& aPadPos, const VECTOR2I* aCorners,
++                                       const EDA_ANGLE& aPadOrient, void* /*aData*/ )
++{
++    ordered_json corners = ordered_json::array();
++    if( aCorners )
++    {
++        for( int i = 0; i < 4; ++i )
++            corners.push_back( { aCorners[i].x, aCorners[i].y } );
++    }
++
++    m_ops.push_back( {
++        { "kind",    "FlashPadTrapez" },
++        { "payload", {
++            { "x",          aPadPos.x },
++            { "y",          aPadPos.y },
++            { "corners",    std::move( corners ) },
++            { "orient_deg", aPadOrient.AsDegrees() }
++        } }
++    } );
++}
++
++
++void RECORDER_PLOTTER::FlashRegularPolygon( const VECTOR2I& aShapePos, int aDiameter,
++                                            int aCornerCount, const EDA_ANGLE& aOrient,
++                                            void* /*aData*/ )
++{
++    m_ops.push_back( {
++        { "kind",    "FlashRegularPolygon" },
++        { "payload", {
++            { "x",            aShapePos.x },
++            { "y",            aShapePos.y },
++            { "diameter_nm",  aDiameter },
++            { "corner_count", aCornerCount },
++            { "orient_deg",   aOrient.AsDegrees() }
++        } }
++    } );
++}
++
++
++// =============================================================================
++// Text
++// =============================================================================
++
++
++void RECORDER_PLOTTER::Text( const VECTOR2I&        aPos,
++                             const COLOR4D&         aColor,
++                             const wxString&        aText,
++                             const EDA_ANGLE&       aOrient,
++                             const VECTOR2I&        aSize,
++                             enum GR_TEXT_H_ALIGN_T aH_justify,
++                             enum GR_TEXT_V_ALIGN_T aV_justify,
++                             int                    aPenWidth,
++                             bool                   aItalic,
++                             bool                   aBold,
++                             bool                   aMultilineAllowed,
++                             KIFONT::FONT*          aFont,
++                             const KIFONT::METRICS& /*aFontMetrics*/,
++                             void*                  /*aData*/ )
++{
++    std::string fontFace;
++    if( aFont )
++    {
++        // FONT::GetName() returns wxString. Guard against a null font
++        // (already guarded above).
++        fontFace = aFont->GetName().utf8_string();
++    }
++
++    m_ops.push_back( {
++        { "kind",    "Text" },
++        { "payload", {
++            { "x",            aPos.x },
++            { "y",            aPos.y },
++            { "color",        colorToHex( aColor ) },
++            { "text",         aText.utf8_string() },
++            { "orient_deg",   aOrient.AsDegrees() },
++            { "size_x_nm",    aSize.x },
++            { "size_y_nm",    aSize.y },
++            { "h_align",      hAlignName( aH_justify ) },
++            { "v_align",      vAlignName( aV_justify ) },
++            { "pen_width_nm", aPenWidth },
++            { "italic",       aItalic },
++            { "bold",         aBold },
++            { "multiline",    aMultilineAllowed },
++            { "font_face",    fontFace }
++        } }
++    } );
++}
+diff --git a/include/plotters/plotter_recorder.h b/include/plotters/plotter_recorder.h
+new file mode 100644
+index 0000000000..86ac3f17d5
+--- /dev/null
++++ b/include/plotters/plotter_recorder.h
+@@ -0,0 +1,146 @@
++/*
++ * This program source code file is part of KiCad, a free EDA CAD application.
++ *
++ * Copyright The KiCad Developers, see AUTHORS.txt for contributors.
++ *
++ * This program is free software: you can redistribute it and/or modify it
++ * under the terms of the GNU General Public License as published by the
++ * Free Software Foundation, either version 3 of the License, or (at your
++ * option) any later version.
++ *
++ * This program is distributed in the hope that it will be useful, but
++ * WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License along
++ * with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#ifndef PLOTTER_RECORDER_H
++#define PLOTTER_RECORDER_H
++
++#include <nlohmann/json.hpp>
++
++#include "plotter.h"
++
++
++/**
++ * Instrumentation plotter that records every PLOTTER virtual call as a
++ * JSON document instead of producing a real graphical output. It is
++ * intended for cross-validation against external tooling that consumes
++ * the kicad.plotter_ir.v1 schema.
++ *
++ * Coordinates are emitted in KiCad internal units (nm) exactly as
++ * received from the caller; no scaling, transformation or filtering is
++ * applied. Each method append a single object of the shape
++ * ``{ "kind": <C++ method name>, "payload": { ... } }`` to an in-memory
++ * op list. ``EndPlot()`` flushes the document to ``m_outputFile``.
++ *
++ * GetPlotterType() returns ``PLOT_FORMAT::UNDEFINED`` so the recorder
++ * does not collide with the iteration range
++ * ``[FIRST_FORMAT, LAST_FORMAT]`` used by user-facing plot dialogs.
++ */
++class RECORDER_PLOTTER : public PLOTTER
++{
++public:
++    RECORDER_PLOTTER();
++    virtual ~RECORDER_PLOTTER();
++
++    static constexpr const char* SCHEMA_ID = "kicad.plotter_recorder.v1";
++
++    virtual PLOT_FORMAT GetPlotterType() const override
++    {
++        return PLOT_FORMAT::UNDEFINED;
++    }
++
++    static wxString GetDefaultFileExtension() { return wxString( wxT( "json" ) ); }
++
++    // Lifecycle
++    virtual bool StartPlot( const wxString& aPageNumber ) override;
++    virtual bool EndPlot() override;
++
++    // State
++    virtual void SetCurrentLineWidth( int aWidth, void* aData = nullptr ) override;
++    virtual void SetColor( const COLOR4D& aColor ) override;
++    virtual void SetDash( int aLineWidth, LINE_STYLE aLineStyle ) override;
++    virtual void SetViewport( const VECTOR2I& aOffset, double aIusPerDecimil,
++                              double aScale, bool aMirror ) override;
++    virtual void SetPageSettings( const PAGE_INFO& aPageSettings ) override;
++    virtual void StartBlock( void* aData ) override;
++    virtual void EndBlock( void* aData ) override;
++
++    // Primitives
++    virtual void Rect( const VECTOR2I& p1, const VECTOR2I& p2, FILL_T aFill, int aWidth,
++                       int aCornerRadius = 0 ) override;
++    virtual void Circle( const VECTOR2I& aCenter, int aDiameter, FILL_T aFill,
++                         int aWidth ) override;
++    virtual void Arc( const VECTOR2D& aStart, const VECTOR2D& aMid, const VECTOR2D& aEnd,
++                      FILL_T aFill, int aWidth ) override;
++    virtual void Arc( const VECTOR2D& aCenter, const EDA_ANGLE& aStartAngle,
++                      const EDA_ANGLE& aAngle, double aRadius, FILL_T aFill,
++                      int aWidth ) override;
++    virtual void BezierCurve( const VECTOR2I& aStart, const VECTOR2I& aControl1,
++                              const VECTOR2I& aControl2, const VECTOR2I& aEnd,
++                              int aTolerance, int aLineThickness ) override;
++    virtual void PenTo( const VECTOR2I& aPos, char aPlume ) override;
++    virtual void PlotPoly( const std::vector<VECTOR2I>& aCornerList, FILL_T aFill,
++                           int aWidth, void* aData = nullptr ) override;
++    virtual void PlotImage( const wxImage& aImage, const VECTOR2I& aPos,
++                            double aScaleFactor ) override;
++
++    // Thick variants
++    virtual void ThickSegment( const VECTOR2I& aStart, const VECTOR2I& aEnd, int aWidth,
++                               void* aData ) override;
++    virtual void ThickArc( const VECTOR2D& aCentre, const EDA_ANGLE& aStAngle,
++                           const EDA_ANGLE& aAngle, double aRadius, int aWidth,
++                           void* aData ) override;
++
++    // Flash primitives (PCB)
++    virtual void FlashPadCircle( const VECTOR2I& aPadPos, int aDiameter,
++                                 void* aData ) override;
++    virtual void FlashPadOval( const VECTOR2I& aPadPos, const VECTOR2I& aSize,
++                               const EDA_ANGLE& aPadOrient, void* aData ) override;
++    virtual void FlashPadRect( const VECTOR2I& aPadPos, const VECTOR2I& aSize,
++                               const EDA_ANGLE& aPadOrient, void* aData ) override;
++    virtual void FlashPadRoundRect( const VECTOR2I& aPadPos, const VECTOR2I& aSize,
++                                    int aCornerRadius, const EDA_ANGLE& aOrient,
++                                    void* aData ) override;
++    virtual void FlashPadCustom( const VECTOR2I& aPadPos, const VECTOR2I& aSize,
++                                 const EDA_ANGLE& aPadOrient, SHAPE_POLY_SET* aPolygons,
++                                 void* aData ) override;
++    virtual void FlashPadTrapez( const VECTOR2I& aPadPos, const VECTOR2I* aCorners,
++                                 const EDA_ANGLE& aPadOrient, void* aData ) override;
++    virtual void FlashRegularPolygon( const VECTOR2I& aShapePos, int aDiameter,
++                                      int aCornerCount, const EDA_ANGLE& aOrient,
++                                      void* aData ) override;
++
++    // Text
++    virtual void Text( const VECTOR2I&        aPos,
++                       const COLOR4D&         aColor,
++                       const wxString&        aText,
++                       const EDA_ANGLE&       aOrient,
++                       const VECTOR2I&        aSize,
++                       enum GR_TEXT_H_ALIGN_T aH_justify,
++                       enum GR_TEXT_V_ALIGN_T aV_justify,
++                       int                    aPenWidth,
++                       bool                   aItalic,
++                       bool                   aBold,
++                       bool                   aMultilineAllowed,
++                       KIFONT::FONT*          aFont,
++                       const KIFONT::METRICS& aFontMetrics,
++                       void*                  aData = nullptr ) override;
++
++    /**
++     * Access to the recorded op list for in-process consumers (e.g.
++     * unit tests). The returned reference is valid for the lifetime of
++     * the plotter instance.
++     */
++    const nlohmann::ordered_json& GetOps() const { return m_ops; }
++
++private:
++    nlohmann::ordered_json    m_ops;
++    nlohmann::ordered_json    m_canvas;
++};
++
++#endif // PLOTTER_RECORDER_H
+-- 
+2.52.0.windows.1
+

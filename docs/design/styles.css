@@ -1,0 +1,24 @@
+body {
+  color: #111;
+  background: #fff;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  line-height: 1.55;
+  margin: 2rem auto;
+  max-width: 76rem;
+  padding: 0 1.25rem;
+}
+
+a {
+  color: #0645ad;
+}
+
+section {
+  border-top: 1px solid #ccc;
+  margin-top: 2rem;
+  padding-top: 1rem;
+}
+
+code {
+  background: #f4f4f4;
+  padding: 0.1rem 0.25rem;
+}

@@ -1,0 +1,188 @@
+# L3_rendering Stratum Configuration
+# SVG rendering validated against kicad-cli ground truth
+#
+# This stratum validates SVG output against kicad-cli reference output.
+# If it doesn't match kicad-cli, it's wrong.
+
+name = "Rendering"
+order = 3
+description = "SVG rendering validated against kicad-cli ground truth"
+enabled = true
+concerns = ["rendering", "rendering.board", "rendering.footprint", "rendering.text"]
+
+# Stratum-level objectives
+objectives = [
+    "Board SVG matches kicad-cli output (REQ-KICAD-039)",
+    "Footprint SVG matches kicad-cli output",
+    "All element types render correctly (REQ-KICAD-032)",
+    "All standard layers supported (REQ-KICAD-031)",
+    "Coordinate accuracy within 0.5mm tolerance (REQ-KICAD-030)"
+]
+
+# =============================================================================
+# Code Under Test
+# =============================================================================
+# This stratum tests rendering modules:
+#
+# Module: kicad_monkey.kicad_pcb_ir_svg - Board-level SVG rendering via IR
+# Module: kicad_monkey.kicad_footprint - Footprint-level SVG rendering via IR
+# Module: kicad_monkey.kicad_stroke_font - Hershey stroke font rendering
+# Module: kicad_monkey.kicad_text - FreeType/HarfBuzz text rendering
+# Module: kicad_monkey.kicad_ir_to_svg - Plotter-IR SVG renderer
+# Document-level to_svg() entry points delegate to plotter-IR renderers.
+
+# =============================================================================
+# Subtest Manifest
+# =============================================================================
+# Tests will be migrated from:
+# - legacy/test_board_svg.py (663 tests)
+# - legacy/test_footprint_svg.py (108 tests)
+# - legacy/test_element_coverage.py
+
+[[subtests]]
+file = "test_L3_001_board_svg.py"
+name = "Board SVG Rendering"
+description = "Board SVG matches kicad-cli reference output"
+test_cases = "${WN_TEST_CORPUS}/kicad/board_svg"
+test_case_type = "reference"
+
+[subtests.code_under_test]
+module = "kicad_monkey.kicad_pcb_ir_svg"
+
+[subtests.objectives]
+primary = "Board SVG output matches kicad-cli reference"
+secondary = [
+    "All board elements render",
+    "All layers render correctly",
+    "Coordinate accuracy within tolerance",
+    "Colors and styles correct"
+]
+
+# -----------------------------------------------------------------------------
+
+[[subtests]]
+file = "test_L3_002_footprint_svg.py"
+name = "Footprint SVG Rendering"
+description = "Footprint SVG matches kicad-cli reference output"
+test_cases = "${WN_TEST_CORPUS}/kicad/footprint_svg"
+test_case_type = "reference"
+
+[subtests.code_under_test]
+module = "kicad_monkey.kicad_footprint"
+
+[subtests.objectives]
+primary = "Footprint SVG output matches kicad-cli reference"
+secondary = [
+    "All pad types render",
+    "All graphics render",
+    "Text renders correctly"
+]
+
+# -----------------------------------------------------------------------------
+
+[[subtests]]
+file = "test_L3_003_element_coverage.py"
+name = "Element Coverage"
+description = "REQ-KICAD-032: All element types render correctly"
+test_cases = "${WN_TEST_CORPUS}/kicad/board_svg"
+test_case_type = "reference"
+
+[subtests.code_under_test]
+module = "kicad_monkey.kicad_pcb"
+
+[subtests.objectives]
+primary = "All element types have rendering coverage"
+secondary = [
+    "segment (track)",
+    "via",
+    "arc",
+    "pad (all shapes)",
+    "zone",
+    "gr_line, gr_rect, gr_circle, gr_arc, gr_poly, gr_curve",
+    "gr_text",
+    "fp_text, fp_line, fp_poly"
+]
+
+# -----------------------------------------------------------------------------
+
+[[subtests]]
+file = "test_L3_004_symbol_svg.py"
+name = "Symbol SVG Rendering"
+description = "Symbol library SVG rendering compared to kicad-cli"
+test_cases = "${WN_TEST_CORPUS}/kicad/symbol_svg"
+test_case_type = "reference"
+
+[subtests.code_under_test]
+module = "kicad_monkey.kicad_symbol_svg"
+
+[subtests.objectives]
+primary = "Symbol SVG output renders correctly"
+secondary = [
+    "All symbol graphics render (rect, circle, polyline, arc)",
+    "Pins render with correct orientation",
+    "Pin names and numbers positioned correctly",
+    "Properties render at correct locations"
+]
+
+# -----------------------------------------------------------------------------
+
+[[subtests]]
+file = "test_L3_005_schematic_svg.py"
+name = "Schematic SVG Rendering"
+description = "Schematic document SVG rendering compared to kicad-cli"
+test_cases = "${WN_TEST_CORPUS}/kicad/schematic_svg"
+test_case_type = "reference"
+
+[subtests.code_under_test]
+module = "kicad_monkey.kicad_ir_to_svg"
+
+[subtests.objectives]
+primary = "Schematic SVG output renders correctly"
+secondary = [
+    "Wires render as green lines",
+    "Symbols render with correct transforms",
+    "Junctions render at wire intersections",
+    "Labels render with correct text",
+    "Sheet symbols render with pins"
+]
+
+# -----------------------------------------------------------------------------
+
+[[subtests]]
+file = "test_L3_006_synthetic_svg_oracle.py"
+name = "Synthetic Board SVG Oracle"
+description = "Targeted synthetic semantic parity checks against kicad-cli"
+test_cases = "${WN_TEST_CORPUS}/kicad/pcb_foundation/"
+test_case_type = "synthetic"
+
+[subtests.code_under_test]
+module = "kicad_monkey.kicad_pcb_ir_svg"
+
+[subtests.objectives]
+primary = "Synthetic fixture semantics match kicad-cli oracle"
+secondary = [
+    "Round drill overlays on copper",
+    "Slot drill fill and outline behavior",
+    "viewBox and bounds parity on minimal boards",
+    "Zone and outline semantic counts"
+]
+
+# -----------------------------------------------------------------------------
+
+[[subtests]]
+file = "test_L3_012_netlist_project_corpus_oracle.py"
+name = "Modern Project Netlist Oracle"
+description = "Project-rooted KiCad 9/10 netlists match kicad-cli"
+test_cases = "${WN_TEST_CORPUS}/kicad"
+test_case_type = "oracle"
+
+[subtests.code_under_test]
+module = "kicad_monkey.kicad_design"
+
+[subtests.objectives]
+primary = "Modern project-rooted netlists match kicad-cli"
+secondary = [
+    "Dedicated real projects stay covered",
+    "Common corpus projects become regression coverage",
+    "Known drift cases stay visible until fixed"
+]

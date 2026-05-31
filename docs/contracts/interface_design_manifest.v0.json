@@ -1,0 +1,49 @@
+{
+  "schema": "kicad_monkey.interface_design_manifest.v0",
+  "major_interfaces": [
+    {
+      "name": "KiCadObjectCollection",
+      "group": "foundation"
+    },
+    {
+      "name": "KiCadSchematic",
+      "group": "schematic"
+    },
+    {
+      "name": "KiCadSymbolLib",
+      "group": "schematic"
+    },
+    {
+      "name": "LibSymbol",
+      "group": "schematic"
+    },
+    {
+      "name": "SchSymbol",
+      "group": "schematic"
+    },
+    {
+      "name": "SchSheet",
+      "group": "schematic"
+    },
+    {
+      "name": "KiCadPcb",
+      "group": "pcb"
+    },
+    {
+      "name": "KiCadFootprint",
+      "group": "pcb"
+    },
+    {
+      "name": "Footprint",
+      "group": "pcb"
+    },
+    {
+      "name": "KiCadProject",
+      "group": "project"
+    },
+    {
+      "name": "KiCadDesign",
+      "group": "project"
+    }
+  ]
+}

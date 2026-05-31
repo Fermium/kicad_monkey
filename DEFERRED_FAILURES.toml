@@ -1,0 +1,3 @@
+[summary]
+status = "empty"
+note = "No deferred KiCad monkey failures are recorded yet. L0_foundation and L1_parsing are structurally green on the shared corpus."

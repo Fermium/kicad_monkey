@@ -1,0 +1,40 @@
+From f11d3da6771a56ac3df742bbfc069d20e2c24cde Mon Sep 17 00:00:00 2001
+From: Eli Hughes <ehughes@wavenumber.net>
+Date: Sat, 9 May 2026 17:21:30 -0400
+Subject: [PATCH 3/3] eeschema: default empty page number to "1" in
+ RECORDER_PLOTTER path
+
+Some schematics (e.g. single-sheet boards exported via kicad-cli)
+return an empty string from SCH_SHEET_PATH::GetPageNumber(), which
+produced output files like "<prefix>..json" (double dot). Default
+to "1" so per-sheet recorder dumps always have a deterministic
+page-numbered suffix.
+
+Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>
+---
+ eeschema/sch_plotter.cpp | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/eeschema/sch_plotter.cpp b/eeschema/sch_plotter.cpp
+index 4e801f38b2..0589a3b93f 100644
+--- a/eeschema/sch_plotter.cpp
++++ b/eeschema/sch_plotter.cpp
+@@ -631,9 +631,14 @@ bool SCH_PLOTTER::plotOneSheetSVG( const wxString& aFileName, SCH_SCREEN* aScree
+     if( recordMode )
+     {
+         plotter = new RECORDER_PLOTTER();
++        wxString pageNumber = m_schematic->CurrentSheet().GetPageNumber();
++
++        if( pageNumber.IsEmpty() )
++            pageNumber = wxT( "1" );
++
+         outputPath = wxString::Format( wxT( "%s.%s.json" ),
+                                        wxString::FromUTF8( recorderEnv ),
+-                                       m_schematic->CurrentSheet().GetPageNumber() );
++                                       pageNumber );
+     }
+     else
+     {
+-- 
+2.52.0.windows.1
+

@@ -1,0 +1,71 @@
+name = "Release Signoff"
+order = 99
+description = "Public release signoff checks for versioning, API contracts, docs, and quality gates"
+enabled = true
+concerns = ["release", "signoff"]
+
+objectives = [
+    "Package version metadata matches the date-based release contract",
+    "Changelog mentions the current release version",
+    "Public contribution, issue, CI, and release support files exist",
+    "Developer-only plan and research docs are excluded from release artifacts",
+    "Promoted package-root API exports resolve cleanly",
+    "Source-wide ruff and package-wide pyright gates cover the current public-signoff baseline",
+    "Promoted public classes and major interfaces have design docs and Rack test ownership",
+    "Design documentation entry points and contract docs exist",
+]
+
+[dependencies]
+strata = ["L0_foundation"]
+note = "L99 is enabled while the public-release baseline is being stood up."
+
+[[subtests]]
+id = "L99_001"
+file = "test_L99_001_release_signoff.py"
+name = "Release Signoff"
+description = "Validate version metadata, changelog, sdist boundaries, and public API contract"
+concerns = ["release", "signoff"]
+test_case_type = "audit_meta"
+
+[subtests.objectives]
+version_contract = "Date-based version metadata matches pyproject and package API"
+changelog = "Release notes mention the package version"
+sdist_boundary = "Developer-only docs are excluded from public artifacts"
+public_api_contract = "Promoted package-root API exports resolve and retain markers"
+repo_support = "Public repository contribution, issue, CI, and release files exist"
+
+[subtests.approach]
+pytest = "Inspect package metadata and run the public API contract helper"
+
+[[subtests]]
+id = "L99_002"
+file = "test_L99_002_quality_tools.py"
+name = "Quality Tool Signoff"
+description = "Run the current package source ruff and pyright public-signoff baseline"
+concerns = ["release", "signoff"]
+test_case_type = "audit_meta"
+
+[subtests.objectives]
+ruff = "Ruff passes on package source and public-signoff files"
+pyright = "Pyright passes across the package source tree"
+status_doc = "Quality status documentation records the current zero-diagnostic ratchet state"
+
+[subtests.approach]
+pytest = "Invoke quality tools as package-local pytest tests"
+
+[[subtests]]
+id = "L99_003"
+file = "test_L99_003_interface_design_docs.py"
+name = "Interface Design Documentation Signoff"
+description = "Validate promoted public class and major-interface design documentation"
+concerns = ["release", "signoff", "docs"]
+test_case_type = "audit_meta"
+
+[subtests.objectives]
+entrypoints = "Design documentation entry points exist"
+manifest = "Interface manifest names every marker-promoted facade root"
+api_docs = "Each promoted public class and major interface has a design-doc section with rationale, purpose, tests, and working definition"
+rack_test_ownership = "Each interface doc references an exercising Rack stratum and test target"
+
+[subtests.approach]
+pytest = "Inspect manifest JSON, design HTML, Rack strata, and test files"

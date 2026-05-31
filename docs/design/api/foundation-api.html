@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>KiCad Monkey Foundation API</title>
+</head>
+<body>
+  <h1>Foundation API</h1>
+
+  <section
+    data-interface="KiCadObjectCollection"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_035_api_cleanup.py"
+    data-test-target="test_schematic_object_query_and_property_mutation_facade"
+  >
+    <h2>KiCadObjectCollection</h2>
+    <h3>Rationale</h3>
+    <p>
+      OOP model callers need one predictable query view for schematics, boards,
+      footprints, projects, and designs instead of ad hoc list traversal.
+    </p>
+    <h3>Purpose</h3>
+    <p>
+      Provide a read-only live sequence with type/name filtering, exact-attribute
+      filtering, count, first, and materialization helpers.
+    </p>
+    <h3>Test Requirements</h3>
+    <p>
+      Tests must prove the collection is sequence-like, live, filterable by
+      class and class name, and rejects direct mutation.
+    </p>
+    <h3>Working Definition</h3>
+    <p>
+      A model-owned collection facade is public when it supports common query
+      helpers without owning or mutating the underlying model list.
+    </p>
+  </section>
+</body>
+</html>

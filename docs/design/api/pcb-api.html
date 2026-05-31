@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>KiCad Monkey PCB API</title>
+</head>
+<body>
+  <h1>PCB And Footprint API</h1>
+
+  <section
+    data-interface="KiCadPcb"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_036_pcb_footprint_api_cleanup.py"
+    data-test-target="test_pcb_object_query_properties_and_ir_entrypoint"
+  >
+    <h2>KiCadPcb</h2>
+    <h3>Rationale</h3>
+    <p>
+      Board-level tools need a stable facade for object query, property cleanup,
+      mutation, serialization, and IR-backed board SVG generation.
+    </p>
+    <h3>Purpose</h3>
+    <p>
+      Own the PCB OOP model and provide common object, property, and IR methods
+      without exposing parser internals.
+    </p>
+    <h3>Test Requirements</h3>
+    <p>
+      Tests must cover board property mutation, object add/remove, read-only
+      object queries, and the public board IR entrypoint.
+    </p>
+    <h3>Working Definition</h3>
+    <p>
+      A PCB facade is public when downstream tools can inspect and modify board
+      content through the model before rendering or writing.
+    </p>
+  </section>
+
+  <section
+    data-interface="KiCadFootprint"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_036_pcb_footprint_api_cleanup.py"
+    data-test-target="test_standalone_footprint_object_query_properties_and_ir_entrypoint"
+  >
+    <h2>KiCadFootprint</h2>
+    <h3>Rationale</h3>
+    <p>
+      Standalone `.kicad_mod` files are edited and rendered independently of a
+      board, so they need their own facade.
+    </p>
+    <h3>Purpose</h3>
+    <p>
+      Represent one standalone footprint file with object query, property
+      mutation, serialization, and footprint IR conversion.
+    </p>
+    <h3>Test Requirements</h3>
+    <p>
+      Tests must cover reference/value helpers, object add/remove, property
+      queries, and standalone footprint IR output.
+    </p>
+    <h3>Working Definition</h3>
+    <p>
+      A standalone footprint facade is public when callers can use the same
+      query and property style as board-embedded footprints.
+    </p>
+  </section>
+
+  <section
+    data-interface="Footprint"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_036_pcb_footprint_api_cleanup.py"
+    data-test-target="test_embedded_footprint_object_query_properties_and_ir_entrypoint"
+  >
+    <h2>Footprint</h2>
+    <h3>Rationale</h3>
+    <p>
+      Board workflows often mutate placed footprint properties and graphics
+      before generating SVG, netlist, or assembly views.
+    </p>
+    <h3>Purpose</h3>
+    <p>
+      Represent a board-embedded footprint with object query, named property
+      helpers, and PCB-footprint IR conversion.
+    </p>
+    <h3>Test Requirements</h3>
+    <p>
+      Tests must cover property mutation, embedded object queries, object
+      add/remove, and footprint-record IR output.
+    </p>
+    <h3>Working Definition</h3>
+    <p>
+      An embedded footprint is public when board callers can manipulate it
+      through the same facade style as standalone footprint files.
+    </p>
+  </section>
+</body>
+</html>
