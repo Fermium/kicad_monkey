@@ -1,14 +1,14 @@
 """
 Comparator-side stroked-text fold.
 
-Phase F-6.10 — when KiCad renders text via the stroke font (the default
-schematic font), each glyph is plotted as a sequence of filled-polygon
-strokes. In a ``kicad.plotter_recorder.v1`` dump these surface as runs
-of consecutive ``PlotPoly`` ops with ``fill="FILLED_SHAPE"`` and high
-point counts (typically >=5 — one segment expanded to a thickened
-quad/hex). On a fixture like ``complex_hierarchy.1`` the ~33 logical
-text items balloon into 800+ glyph PlotPoly ops, swamping the raw
-``coverage_ratio`` produced by :func:`compute_recorder_drift`.
+When KiCad renders text via the stroke font (the default schematic font),
+each glyph is plotted as a sequence of filled-polygon strokes. In a
+``kicad.plotter_recorder.v1`` dump these surface as runs of consecutive
+``PlotPoly`` ops with ``fill="FILLED_SHAPE"`` and high point counts
+(typically >=5 — one segment expanded to a thickened quad/hex). On a
+fixture like ``complex_hierarchy.1`` the ~33 logical text items balloon into
+800+ glyph PlotPoly ops, swamping the raw ``coverage_ratio`` produced by
+:func:`compute_recorder_drift`.
 
 This module provides a structural fold that collapses each such run
 into a single synthetic ``StrokedTextRun`` op so the comparator's

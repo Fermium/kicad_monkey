@@ -1,9 +1,9 @@
 """
-KiCadPcb → KiCadPlotterDocument converter (Phase F-9).
+KiCadPcb to KiCadPlotterDocument converter.
 
 Walks a parsed :class:`KiCadPcb` (`.kicad_pcb` board file) and emits a
-:class:`KiCadPlotterDocument` whose records carry the F-1 PLOTTER
-op vocabulary. This is the parser → IR boundary for full boards;
+:class:`KiCadPlotterDocument` whose records carry the PLOTTER
+op vocabulary. This is the parser to IR boundary for full boards;
 downstream rendering (`render_ir_to_svg`) consumes the IR.
 
 Record layout (one record per source item, for traceability):
@@ -25,7 +25,7 @@ Record layout (one record per source item, for traceability):
     * zones
         - ``zone_fill``  → N ``PlotPoly`` ops (one per filled_polygon
                             ring; FILLED_SHAPE)
-    * footprints (PCB-embedded; reuses F-7's per-element op emitters
+    * footprints (PCB-embedded; reuses footprint per-element op emitters
       but carries placement (``at_x``/``at_y``/``at_angle``) in extras)
         - ``footprint``  → all fp graphics + pad ops
 
@@ -1717,15 +1717,16 @@ def pcb_footprint_to_record(
     """
     Convert a PCB-embedded :class:`Footprint` to a :class:`KiCadPlotterRecord`.
 
-    Distinct from F-7's :func:`footprint_to_record`, which targets the
+    Distinct from :func:`footprint_to_record`, which targets the
     standalone :class:`KiCadFootprint` (`.kicad_mod`). The PCB-embedded
     variant uses ``library_link`` instead of ``name`` and carries a
     placement transform (``at_x``, ``at_y``, ``at_angle``).
 
-    Geometry ops are emitted in footprint-local coordinates (matching
-    F-7); the placement transform is stored in
+    Geometry ops are emitted in footprint-local coordinates; the placement
+    transform is stored in
     ``extras["placement"] = {"x_nm","y_nm","angle_deg"}`` so downstream
-    renderers can position it on the board. Op order matches F-7:
+    renderers can position it on the board. Op order matches the standalone
+    footprint converter:
 
         properties → fp_texts → fp_lines → fp_arcs → fp_circles →
         fp_rects → fp_polys → pads
@@ -1873,10 +1874,10 @@ def pcb_to_ir(
         zones → footprints
 
     Footprint records are built by :func:`pcb_footprint_to_record`
-    (which reuses F-7's per-element op emitters and carries the
+    (which reuses footprint per-element op emitters and carries the
     footprint's placement transform in ``extras["placement"]``); each
     footprint contributes one record with all of its properties /
-    fp_texts / graphics / pads in F-7's canonical order.
+    fp_texts / graphics / pads in canonical footprint order.
     """
     records: list[KiCadPlotterRecord] = []
 

@@ -37,7 +37,7 @@ an implementation note, not as the accountable signoff.
 
 Before opening a PR:
 
-1. Keep changes focused on one API, contract, corpus, or infrastructure slice.
+1. Keep changes focused on one API, contract, corpus, or infrastructure area.
 2. Add or update tests for every public behavior change.
 3. Update docs for public APIs, JSON outputs, corpus formats, and stable
    generated artifacts.

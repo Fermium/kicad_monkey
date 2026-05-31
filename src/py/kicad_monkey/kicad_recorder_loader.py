@@ -1,9 +1,8 @@
 """
 Loader for ``kicad.plotter_recorder.v1`` JSON dumps.
 
-The KiCad-side ``RECORDER_PLOTTER`` (Phase F-6 patch in
-``f6-recorder-plotter`` branch of canonical KiCad source) emits a JSON
-document with schema id ``kicad.plotter_recorder.v1`` containing every
+The KiCad-side ``RECORDER_PLOTTER`` instrumentation emits a JSON document
+with schema id ``kicad.plotter_recorder.v1`` containing every
 ``PLOTTER`` virtual call captured during a ``kicad-cli sch export svg``
 run. This module loads that dump and translates it into the canonical
 ``kicad.plotter_ir.v1`` document type

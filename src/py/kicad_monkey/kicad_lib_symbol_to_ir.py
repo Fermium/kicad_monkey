@@ -1,11 +1,11 @@
 """
-LibSymbol → KiCadPlotterDocument converter (Phase F-3).
+LibSymbol to KiCadPlotterDocument converter.
 
 Walks a parsed :class:`LibSymbol` (or :class:`LibSubSymbol`) and emits
 a :class:`KiCadPlotterDocument` whose records contain
-:class:`KiCadPlotterOp` instances drawn from the F-1 PLOTTER vocabulary.
-This is the "parser → IR" leg of the plotter pipeline; the F-2
-``svg_*`` primitive layer (or a future RECORDER_PLOTTER-side oracle)
+:class:`KiCadPlotterOp` instances drawn from the PLOTTER vocabulary.
+This is the "parser to IR" leg of the plotter pipeline; the ``svg_*``
+primitive layer (or a future RECORDER_PLOTTER-side oracle)
 consumes the IR.
 
 Mirrors KiCad's ``LIB_SYMBOL::Plot()`` traversal:
@@ -873,7 +873,7 @@ def pin_to_ops(
     helper applies the conversion via :func:`y_to_ir`.
 
     Pin graphic-style decorations (inverted bubble, clock triangle,
-    etc.) are deferred to a follow-on slice.
+    etc.) are not emitted by this converter yet.
     """
     if pin.hide:
         return []

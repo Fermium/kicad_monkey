@@ -2,11 +2,10 @@
 Tolerance-aware op-by-op equivalence diff between a recorder document
 and a kicad_monkey document.
 
-Phase F-6.11 — once F-6.10's stroked-text fold has aligned the two
-sides' op counts (see :mod:`kicad_recorder_stroked_text_fold`), this
-module performs a per-position structural diff that surfaces the
-**first divergent op** plus aggregate kind/coord-mismatch counts. It
-is the natural escalation from
+After the stroked-text fold has aligned the two sides' op counts (see
+:mod:`kicad_recorder_stroked_text_fold`), this module performs a
+per-position structural diff that surfaces the **first divergent op** plus
+aggregate kind/coord-mismatch counts. It is the natural escalation from
 :func:`compute_recorder_drift`: the drift report tells you whether the
 denominator is reasonable; the equivalence report tells you whether
 the right ops land at the right places.
@@ -14,7 +13,7 @@ the right ops land at the right places.
 What the diff does
 ------------------
 
-1. Optionally apply the F-6.10 stroked-text fold to the recorder side.
+1. Optionally apply the stroked-text fold to the recorder side.
 2. Merge recorder fill+outline primitive pairs into one declarative
    filled/stroked primitive.
 3. Optionally fold recorder ``PenTo`` draw runs into declarative geometry.
@@ -40,13 +39,13 @@ Order strategies
 
 Two pairing strategies are supported via ``match_strategy``:
 
-* ``"positional"`` (default, F-6.11 v1) — strict pairing by document
+* ``"positional"`` (default) — strict pairing by document
   index. KiCad's plot pipeline visits the sheet items first then the
   border (drawing sheet) last, while :func:`schematic_to_ir` emits the
   drawing-sheet record first; under positional pairing a real-fixture
   diff trips at op 0 (kind_mismatch). That **is** the diagnostic.
 
-* ``"by_kind"`` (F-6.11 v2) — group both sides by canonical
+* ``"by_kind"`` — group both sides by canonical
   :attr:`KiCadPlotterOp.kind` (with ``StrokedTextRun`` ↔ ``Text``
   equivalence collapsed) and pair positionally **within each kind
   bucket**. ``kind_mismatches`` is always 0 in this mode by
@@ -57,7 +56,7 @@ Two pairing strategies are supported via ``match_strategy``:
   escalation when investigating real-fixture diffs after the
   positional report has confirmed the populations are sane.
 
-* ``"windowed_by_kind"`` (F-6.11 v3) — group by kind as in v2 but
+* ``"windowed_by_kind"`` — group by kind as in ``by_kind`` but
   pair via **greedy minimum-coord-delta matching** within each
   bucket, optionally restricted to a positional window of
   ``match_window`` slots (``0`` = unbounded, the full bucket).
@@ -1068,7 +1067,7 @@ def _match_positional(
     tolerance_nm: float,
     compare_styles: bool,
 ) -> _MatchAccumulator:
-    """Strict per-position matching (F-6.11 v1 logic)."""
+    """Strict per-position matching."""
     acc = _MatchAccumulator()
     pair_count = min(len(rec_ops), len(mk_ops))
     for i in range(pair_count):
@@ -1136,7 +1135,7 @@ def _match_by_kind(
     tolerance_nm: float,
     compare_styles: bool,
 ) -> _MatchAccumulator:
-    """Per-kind-bucket matching (F-6.11 v2 logic).
+    """Per-kind-bucket matching.
 
     Group both sides by ``_equivalent_kind(_kind_str(op))`` preserving
     document order within each bucket; pair positionally inside each
@@ -1227,8 +1226,7 @@ def _match_windowed_by_kind(
     match_window: int,
     compare_styles: bool,
 ) -> _MatchAccumulator:
-    """Greedy minimum-coord-delta matching within each kind bucket
-    (F-6.11 v3 logic).
+    """Greedy minimum-coord-delta matching within each kind bucket.
 
     Group both sides by ``_equivalent_kind(_kind_str(op))`` preserving
     document order within each bucket. Inside each bucket build the set
@@ -1475,7 +1473,7 @@ class OpEquivalenceReport:
     # First divergence (None when streams are equivalent)
     first_divergence: KiCadOpDivergence | None = None
 
-    # Fold provenance (forwarded from F-6.10)
+    # Fold provenance
     stroked_text_runs_folded: int = 0
     stroked_text_ops_absorbed: int = 0
 
@@ -1563,9 +1561,8 @@ def compute_op_equivalence(
         Maximum allowed ``max-abs-delta`` per paired op (nm). Defaults
         to ``0.0`` (exact match required).
     fold_stroked_text :
-        When ``True`` (default), apply F-6.10 stroked-text fold to the
-        recorder side before pairing. Disable for raw-pairing
-        diagnostics.
+        When ``True`` (default), apply the stroked-text fold to the recorder
+        side before pairing. Disable for raw-pairing diagnostics.
     fold_pen_to_runs :
         When ``True``, collapse recorder ``PenTo`` draw runs into
         declarative ``PlotPoly`` / ``Rect`` ops before state filtering.

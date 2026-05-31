@@ -1,5 +1,5 @@
 """
-KiCad-format netlist emit (Phase G — Slice N-5).
+KiCad-format netlist emitter.
 
 Renders a :class:`~kicad_monkey.KiCadNetlist` into the canonical
 ``kicad-cli sch export netlist --format kicadsexpr`` text shape:
@@ -71,8 +71,8 @@ def to_kicad_sexpr(
     The returned string is freshly indented via :func:`format_sexp`
     (two-space, one list per line) and ends with a trailing newline —
     matches kicad-cli's own emit byte-for-byte modulo the
-    ``(date ...)`` / ``(tool ...)`` / ``(source ...)`` lines and any
-    diff in driver-resolution corner cases (covered by slice N-9).
+    ``(date ...)`` / ``(tool ...)`` / ``(source ...)`` lines and
+    driver-resolution corner cases.
 
     Args:
         netlist: the resolved internal model (typically the output of

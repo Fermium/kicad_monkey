@@ -1,10 +1,10 @@
 """
-KiCadFootprint → KiCadPlotterDocument converter (Phase F-7).
+KiCadFootprint to KiCadPlotterDocument converter.
 
 Walks a parsed :class:`KiCadFootprint` (`.kicad_mod` standalone footprint
 file or PCB-embedded footprint) and emits a :class:`KiCadPlotterDocument`
 whose record carries :class:`KiCadPlotterOp` instances drawn from the
-F-1 PLOTTER vocabulary. This is the parser → IR boundary for
+PLOTTER vocabulary. This is the parser to IR boundary for
 footprints; downstream rendering (`render_ir_to_svg`) consumes the IR.
 
 Mirrors KiCad's footprint emit order (``pcb_io_kicad_sexpr.cpp`` lines
@@ -848,8 +848,7 @@ def footprint_to_ir(
 
     Emits a single record (``kind="footprint"``) carrying every
     geometry op for the footprint, in KiCad's canonical emit order.
-    Unlike F-3 (which splits header + per-unit subsymbol records), a
-    footprint has no unit/style axis so a single record is sufficient.
+    A footprint has no unit/style axis, so a single record is sufficient.
     """
     record = footprint_to_record(footprint)
     return KiCadPlotterDocument(

@@ -1,9 +1,9 @@
 """
-Single-sheet netlist compiler (Phase G — Slice N-3).
+Single-sheet netlist compiler.
 
 Walks one :class:`~kicad_monkey.KiCadSchematic` and emits the connectivity
-sub-graphs + a per-sheet :class:`~kicad_monkey.KiCadNetlist` populated with
-``nets`` only (components / libparts / libraries land in slice N-4).
+sub-graphs plus a per-sheet :class:`~kicad_monkey.KiCadNetlist` populated with
+resolved nets.
 
 Pipeline (mirrors KiCad's ``CONNECTION_GRAPH::buildConnectionGraph``):
 
@@ -25,9 +25,8 @@ Pipeline (mirrors KiCad's ``CONNECTION_GRAPH::buildConnectionGraph``):
    * SHEET_PIN    → ``<sheet_path><text>``
    * PIN / NONE   → auto-generated ``Net-(<ref>-<pin>)``
 
-The single-sheet output has no cross-sheet merges yet; multi-sheet
-hierarchy and global-label / power-symbol cross-sheet union land in
-slice N-4.
+The design-level compiler performs cross-sheet hierarchy, global-label, and
+power-symbol merges across these single-sheet results.
 """
 
 from __future__ import annotations
@@ -792,8 +791,7 @@ def _collect_pin_drivers(
             lib_symbol = schematic.get_lib_symbol(symbol.lib_id)
         if lib_symbol is None:
             # Without the lib definition we can't compute pin coords —
-            # skip. (Slice N-4 surfaces a diagnostic; here we just
-            # pass over silently.)
+            # this single-sheet pass records no diagnostic and skips it.
             continue
 
         is_power = _is_power_symbol(symbol, lib_symbol)
@@ -1013,9 +1011,8 @@ def _collect_label_drivers(
 
     Sheet pins live on :class:`SchSheet` placeholders on the parent
     sheet — every pin contributes a SHEET_PIN-priority driver at the
-    pin's parent-sheet coord. The cross-sheet merge in slice N-4
-    pairs each sheet pin with the matching ``hierarchical_label``
-    inside the child schematic.
+    pin's parent-sheet coord. The design-level merge pairs each sheet pin
+    with the matching ``hierarchical_label`` inside the child schematic.
     """
     out: List[_LabelDriver] = []
     source_order = 0
@@ -1348,9 +1345,6 @@ def compile_sheet_netlist(
 ) -> KiCadNetlist:
     """Convenience wrapper — compile + naming + materialise into a
     :class:`KiCadNetlist`.
-
-    Slice N-3 only populates ``nets``; ``components`` / ``libparts`` /
-    ``libraries`` stay empty until slice N-4.
 
     Subgraphs with no drivers AND no pin candidates (free-floating
     wire stubs) are dropped — they wouldn't appear in kicad-cli output

@@ -1,18 +1,10 @@
 """
 KiCad schematic / symbol SVG renderer.
 
-Phase F-2 ships the *primitive* layer: flat ``svg_*`` functions, the
-mutable :class:`KiCadSvgRenderContext` (transforms, defaults, options
-slot, font manager hook) and the :class:`KiCadSvgRenderOptions`
-dataclass with named factories for the common output profiles. No
-parser integration yet -- the higher-level
-``render_schematic_svg(...)`` and ``render_ir_to_svg(...)`` entry
-points land in F-4 / F-5.
-
-API shape mirrors ``altium_monkey.altium_sch_svg_renderer``: each
-primitive is a module-level function returning an SVG fragment string,
-both renderer entry points share these helpers, and option presets
-plug into a single ``ctx.options`` slot.
+This module provides flat ``svg_*`` primitive functions, the mutable
+:class:`KiCadSvgRenderContext` shared across those functions, and
+:class:`KiCadSvgRenderOptions` profiles for common output modes. Both
+schematic and plotter-IR render entry points use these helpers.
 
 Coordinates received by every ``svg_*`` function are KiCad internal
 units (nm, ``int``). The context's ``scale`` (user-units per nm) and
@@ -129,7 +121,7 @@ class KiCadSvgRenderOptions:
     junction_z_order: KiCadJunctionZOrder = KiCadJunctionZOrder.ALWAYS_ON_TOP
     junction_color_override: str | None = None
 
-    # ---- variant-aware overlay (Phase F-8 hook) ----
+    # ---- variant-aware overlay ----
     variant_dim_mode: KiCadVariantDimMode = KiCadVariantDimMode.NONE
     variant_dim_color: str = "#FFFFFF"
     variant_dim_opacity: float = 0.6
@@ -137,7 +129,7 @@ class KiCadSvgRenderOptions:
     # ---- metadata ----
     # When True, primitives that have a UUID / reference designator
     # add ``data-uuid`` / ``data-ref`` attributes for downstream
-    # tooling (sch-viz / pcb-viz).
+    # tooling.
     include_metadata: bool = False
     include_ids: bool = False
 
@@ -210,8 +202,8 @@ class KiCadSvgRenderContext:
     primitive. Carries the active transform stack, colour/pen state,
     sheet dims, font hooks and the options bundle.
 
-    Mirrors ``altium_monkey.SchSvgRenderContext`` in spirit, but with
-    KiCad-native units (nm) and a slimmer field set.
+    Uses KiCad-native units (nm) for source geometry and applies SVG
+    output scaling at emission time.
     """
 
     # ---- transforms ----
@@ -246,8 +238,8 @@ class KiCadSvgRenderContext:
     parameters: dict[str, str] = field(default_factory=dict)
 
     # ---- font hook ----
-    # Set in F-5 to a real KiFont newstroke / variable-TTF resolver.
-    # F-2 leaves it None and ``svg_text`` emits standard ``<text>``.
+    # Optional KiFont newstroke / variable-TTF resolver. ``None`` makes
+    # ``svg_text`` emit standard ``<text>``.
     font_manager: Any | None = None
 
     # ---- group / layer tracking ----
@@ -863,13 +855,11 @@ def svg_text(
     mirror: bool = False,
 ) -> str:
     """
-    Emit a ``<text>`` element. Phase F-2 ships only the standard SVG
-    text path; the polygon-text path lands in F-5 once the font
-    manager is wired in.
+    Emit a ``<text>`` element.
     """
     if ctx.options.text_as_polygons and ctx.font_manager is not None:
-        # Hook for F-5: ctx.font_manager.tessellate(...). Until that
-        # lands we silently fall through to standard <text>.
+        # Hook for polygon text: fall through when the font manager does not
+        # expose tessellated glyphs.
         pass
 
     substituted = _substitute_parameters(text, ctx.parameters)

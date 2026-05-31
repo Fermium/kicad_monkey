@@ -376,7 +376,7 @@ __all__ = [
     "read_kicad_pro_parameters",
     "make_kicad_httplib",
     "setup_kicad_preferences",
-    # Plotter IR (Phase F-1, lazy loaded)
+    # Plotter IR (lazy loaded)
     "KICAD_PLOTTER_IR_SCHEMA",
     "KiCadFillType",
     "KiCadHorizAlign",
@@ -392,7 +392,7 @@ __all__ = [
     "make_font",
     "make_pen",
     "styled_plotter_op",
-    # SVG primitive layer (Phase F-2, lazy loaded)
+    # SVG primitive layer (lazy loaded)
     "KiCadJunctionZOrder",
     "KiCadSvgRenderContext",
     "KiCadSvgRenderOptions",
@@ -416,7 +416,7 @@ __all__ = [
     "load_kicad_svg_preference_theme",
     "schematic_svg_options_from_preferences",
     "symbol_theme_from_preferences",
-    # LibSymbol → IR converter (Phase F-3, lazy loaded)
+    # LibSymbol → IR converter (lazy loaded)
     "arc_to_op",
     "bezier_to_op",
     "circle_to_op",
@@ -432,7 +432,7 @@ __all__ = [
     "sym_fill_to_kicad_fill",
     "text_to_op",
     "y_to_ir",
-    # Schematic → IR converter (Phase F-4, lazy loaded)
+    # Schematic → IR converter (lazy loaded)
     "DEFAULT_BUS_WIDTH_MM",
     "DEFAULT_JUNCTION_DIAMETER_MM",
     "DEFAULT_LABEL_SIZE_RATIO",
@@ -466,30 +466,30 @@ __all__ = [
     "text_box_outline_to_op",
     "text_box_to_ops",
     "wire_to_op",
-    # IR → SVG renderer (Phase F-5, lazy loaded)
+    # IR → SVG renderer (lazy loaded)
     "render_ir_to_svg",
     "render_op",
     "render_record",
     "render_records",
-    # Recorder JSON loader (Phase F-6, lazy loaded)
+    # Recorder JSON loader (lazy loaded)
     "KICAD_PLOTTER_RECORDER_SCHEMA",
     "load_recorder_dict",
     "load_recorder_file",
     "normalise_recorder_op_units",
     "translate_recorder_canvas",
     "translate_recorder_op",
-    # Recorder drift report (Phase F-6.2, lazy loaded)
+    # Recorder drift report (lazy loaded)
     "KICAD_RECORDER_DRIFT_SCHEMA",
     "RecorderDriftReport",
     "compute_recorder_drift",
-    # Stroked-text fold (Phase F-6.10, lazy loaded)
+    # Stroked-text fold (lazy loaded)
     "STROKED_TEXT_FOLD_KIND",
     "STROKED_TEXT_FOLD_MIN_POINTS",
     "STROKED_TEXT_FOLD_MIN_RUN",
     "fold_recorder_document",
     "fold_stroked_text_runs",
     "is_stroked_text_glyph",
-    # Op-by-op equivalence diff (Phase F-6.11, lazy loaded)
+    # Op-by-op equivalence diff (lazy loaded)
     "KICAD_OP_EQUIVALENCE_SCHEMA",
     "MATCH_STRATEGY_BY_KIND",
     "MATCH_STRATEGY_POSITIONAL",
@@ -498,20 +498,20 @@ __all__ = [
     "KiCadOpDivergence",
     "OpEquivalenceReport",
     "compute_op_equivalence",
-    # Plotter-IR coordinate transform (Phase F-6.3, lazy loaded)
+    # Plotter-IR coordinate transform (lazy loaded)
     "KiCadPlotterTransform2D",
     "apply_transform_to_op",
     "apply_transform_to_ops",
     "transform_orient",
     "transform_point",
-    # Drawing sheet emitter (Phase F-6.5, lazy loaded)
+    # Drawing sheet emitter (lazy loaded)
     "DEFAULT_KICAD_WKS",
     "drawing_sheet_to_ops",
     "expand_format_codes",
     "load_default_drawing_sheet",
-    # Design aggregator (Phase F-6.5 follow-on, lazy loaded)
+    # Design aggregator (lazy loaded)
     "KiCadDesign",
-    # Footprint → IR converter (Phase F-7, lazy loaded)
+    # Footprint → IR converter (lazy loaded)
     "footprint_to_ir",
     "footprint_to_record",
     "fp_arc_to_op",
@@ -525,7 +525,7 @@ __all__ = [
     "pad_drill_to_ops",
     "pad_to_ops",
     "property_to_op",
-    # Variant overlay (Phase F-8, lazy loaded)
+    # Variant overlay (lazy loaded)
     "KiCadVariantOverlayPolicy",
     "VARIANT_STATE_ACTIVE",
     "VARIANT_STATE_DIMMED",
@@ -533,7 +533,7 @@ __all__ = [
     "annotate_record_variant_state",
     "apply_variant_overlay",
     "compute_record_variant_state",
-    # PCB → IR converter (Phase F-9, lazy loaded)
+    # PCB → IR converter (lazy loaded)
     "pcb_to_ir",
     "gr_line_to_op",
     "gr_line_to_record",
@@ -561,9 +561,9 @@ __all__ = [
     "zone_filled_polygon_to_op",
     "zone_to_record",
     "pcb_footprint_to_record",
-    # PCB IR → SVG wrapper (render-cache cutover Phase A, lazy loaded)
+    # PCB IR → SVG wrapper (lazy loaded)
     "render_pcb_ir_to_svg",
-    # Schematic connectivity primitives (Phase G — Slice N-1, lazy loaded)
+    # Schematic connectivity primitives (lazy loaded)
     "SCH_IU_PER_MM",
     "snap_mm_to_iu",
     "iu_key_to_mm",
@@ -572,12 +572,12 @@ __all__ = [
     "CoordinateIndex",
     "ConnectivityGraph",
     "detect_no_connects",
-    # Bus label expansion (Phase G — Slice N-2, lazy loaded)
+    # Bus label expansion (lazy loaded)
     "is_bus_label",
     "parse_bus_vector",
     "parse_bus_group",
     "expand_bus_label",
-    # Netlist model + single-sheet compiler (Phase G — Slice N-3, lazy loaded)
+    # Netlist model + single-sheet compiler (lazy loaded)
     "KiCadDriverPriority",
     "KiCadDriverKind",
     "KiCadPinType",
@@ -594,17 +594,17 @@ __all__ = [
     "compile_sheet_subgraphs",
     "compile_sheet_netlist",
     "name_net",
-    # Multi-sheet netlist compile (Phase G — Slice N-4 + N-4b, lazy loaded)
+    # Multi-sheet netlist compile (lazy loaded)
     "CompiledSheet",
     "compile_design_subgraphs",
     "merge_design_nets",
     "compile_design_netlist",
     "collect_design_components",
     "collect_design_libparts",
-    # KiCad-format netlist emit (Phase G — Slice N-5, lazy loaded)
+    # KiCad-format netlist emit (lazy loaded)
     "KICAD_NETLIST_VERSION",
     "to_kicad_sexpr",
-    # Generic netlist_a0 bridge (Phase G — Slice N-6, lazy loaded)
+    # Generic netlist_a0 bridge (lazy loaded)
     "kicad_netlist_to_data_models_netlist",
 ]
 
@@ -1298,7 +1298,7 @@ def __getattr__(name: str) -> Any:
             "extract_step_from_directory": extract_step_from_directory,
             "view_step_file": view_step_file,
         }[name]
-    # Plotter IR (Phase F-1)
+    # Plotter IR
     if name in (
         "KICAD_PLOTTER_IR_SCHEMA",
         "KiCadFillType",
@@ -1318,7 +1318,7 @@ def __getattr__(name: str) -> Any:
     ):
         from . import kicad_plotter_ir as _ir
         return getattr(_ir, name)
-    # SVG primitive layer (Phase F-2)
+    # SVG primitive layer
     if name in (
         "KiCadJunctionZOrder",
         "KiCadSvgRenderContext",
@@ -1350,7 +1350,7 @@ def __getattr__(name: str) -> Any:
     ):
         from . import kicad_svg_preferences as _prefs
         return getattr(_prefs, name)
-    # LibSymbol → IR converter (Phase F-3)
+    # LibSymbol → IR converter
     if name in (
         "arc_to_op",
         "bezier_to_op",
@@ -1371,7 +1371,7 @@ def __getattr__(name: str) -> Any:
     ):
         from . import kicad_lib_symbol_to_ir as _libir
         return getattr(_libir, name)
-    # Schematic → IR converter (Phase F-4)
+    # Schematic → IR converter
     if name in (
         "DEFAULT_BUS_WIDTH_MM",
         "DEFAULT_JUNCTION_DIAMETER_MM",
@@ -1409,7 +1409,7 @@ def __getattr__(name: str) -> Any:
     ):
         from . import kicad_schematic_to_ir as _schir
         return getattr(_schir, name)
-    # IR → SVG renderer (Phase F-5)
+    # IR → SVG renderer
     if name in (
         "render_ir_to_svg",
         "render_op",
@@ -1418,7 +1418,7 @@ def __getattr__(name: str) -> Any:
     ):
         from . import kicad_ir_to_svg as _irsvg
         return getattr(_irsvg, name)
-    # Recorder JSON loader (Phase F-6)
+    # Recorder JSON loader
     if name in (
         "KICAD_PLOTTER_RECORDER_SCHEMA",
         "load_recorder_dict",
@@ -1429,7 +1429,7 @@ def __getattr__(name: str) -> Any:
     ):
         from . import kicad_recorder_loader as _recld
         return getattr(_recld, name)
-    # Recorder drift report (Phase F-6.2)
+    # Recorder drift report
     if name in (
         "KICAD_RECORDER_DRIFT_SCHEMA",
         "RecorderDriftReport",
@@ -1437,7 +1437,7 @@ def __getattr__(name: str) -> Any:
     ):
         from . import kicad_recorder_drift as _recdr
         return getattr(_recdr, name)
-    # Plotter-IR coordinate transform (Phase F-6.3)
+    # Plotter-IR coordinate transform
     if name in (
         "KiCadPlotterTransform2D",
         "apply_transform_to_op",
@@ -1447,7 +1447,7 @@ def __getattr__(name: str) -> Any:
     ):
         from . import kicad_plotter_transform as _xform
         return getattr(_xform, name)
-    # Drawing sheet emitter (Phase F-6.5)
+    # Drawing sheet emitter
     if name in (
         "DEFAULT_KICAD_WKS",
         "drawing_sheet_to_ops",
@@ -1456,7 +1456,7 @@ def __getattr__(name: str) -> Any:
     ):
         from . import kicad_drawing_sheet as _dsh
         return getattr(_dsh, name)
-    # Stroked-text fold (Phase F-6.10)
+    # Stroked-text fold
     if name in (
         "STROKED_TEXT_FOLD_KIND",
         "STROKED_TEXT_FOLD_MIN_POINTS",
@@ -1467,7 +1467,7 @@ def __getattr__(name: str) -> Any:
     ):
         from . import kicad_recorder_stroked_text_fold as _stf
         return getattr(_stf, name)
-    # Op-by-op equivalence diff (Phase F-6.11)
+    # Op-by-op equivalence diff
     if name in (
         "KICAD_OP_EQUIVALENCE_SCHEMA",
         "MATCH_STRATEGY_BY_KIND",
@@ -1480,11 +1480,11 @@ def __getattr__(name: str) -> Any:
     ):
         from . import kicad_op_equivalence as _opeq
         return getattr(_opeq, name)
-    # Design aggregator (Phase F-6.5 follow-on)
+    # Design aggregator
     if name == "KiCadDesign":
         from .kicad_design import KiCadDesign
         return KiCadDesign
-    # Variant overlay (Phase F-8)
+    # Variant overlay
     if name in (
         "KiCadVariantOverlayPolicy",
         "VARIANT_STATE_ACTIVE",
@@ -1496,7 +1496,7 @@ def __getattr__(name: str) -> Any:
     ):
         from . import kicad_variant_overlay as _vo
         return getattr(_vo, name)
-    # Footprint → IR converter (Phase F-7)
+    # Footprint → IR converter
     if name in (
         "footprint_to_ir",
         "footprint_to_record",
@@ -1514,7 +1514,7 @@ def __getattr__(name: str) -> Any:
     ):
         from . import kicad_footprint_to_ir as _fpir
         return getattr(_fpir, name)
-    # PCB → IR converter (Phase F-9)
+    # PCB → IR converter
     if name in (
         "pcb_to_ir",
         "gr_line_to_op",
@@ -1546,11 +1546,11 @@ def __getattr__(name: str) -> Any:
     ):
         from . import kicad_pcb_to_ir as _pcbir
         return getattr(_pcbir, name)
-    # PCB IR → SVG wrapper (render-cache cutover Phase A)
+    # PCB IR → SVG wrapper
     if name == "render_pcb_ir_to_svg":
         from .kicad_pcb_ir_svg import render_pcb_ir_to_svg
         return render_pcb_ir_to_svg
-    # Schematic connectivity (Phase G — Slice N-1)
+    # Schematic connectivity
     if name in (
         "SCH_IU_PER_MM",
         "snap_mm_to_iu",
@@ -1563,7 +1563,7 @@ def __getattr__(name: str) -> Any:
     ):
         from . import kicad_schematic_connectivity as _conn
         return getattr(_conn, name)
-    # Bus label expansion (Phase G — Slice N-2)
+    # Bus label expansion
     if name in (
         "is_bus_label",
         "parse_bus_vector",
@@ -1572,7 +1572,7 @@ def __getattr__(name: str) -> Any:
     ):
         from . import kicad_bus_expansion as _bus
         return getattr(_bus, name)
-    # Netlist model (Phase G — Slice N-3)
+    # Netlist model
     if name in (
         "KiCadDriverPriority",
         "KiCadDriverKind",
@@ -1589,7 +1589,7 @@ def __getattr__(name: str) -> Any:
     ):
         from . import kicad_netlist_model as _nlm
         return getattr(_nlm, name)
-    # Single-sheet netlist compiler (Phase G — Slice N-3)
+    # Single-sheet netlist compiler
     if name in (
         "Subgraph",
         "compile_sheet_subgraphs",
@@ -1598,7 +1598,7 @@ def __getattr__(name: str) -> Any:
     ):
         from . import kicad_netlist_compiler as _nlc
         return getattr(_nlc, name)
-    # Multi-sheet netlist compile (Phase G — Slice N-4 + N-4b)
+    # Multi-sheet netlist compile
     if name in (
         "CompiledSheet",
         "compile_design_subgraphs",
@@ -1609,14 +1609,14 @@ def __getattr__(name: str) -> Any:
     ):
         from . import kicad_netlist_design as _nld
         return getattr(_nld, name)
-    # KiCad-format netlist emit (Phase G — Slice N-5)
+    # KiCad-format netlist emit
     if name in (
         "KICAD_NETLIST_VERSION",
         "to_kicad_sexpr",
     ):
         from . import kicad_netlist_kicadsexpr as _nlk
         return getattr(_nlk, name)
-    # Generic netlist_a0 bridge (Phase G — Slice N-6)
+    # Generic netlist_a0 bridge
     if name in ("kicad_netlist_to_data_models_netlist",):
         from . import kicad_netlist_data_models as _nldm
         return getattr(_nldm, name)

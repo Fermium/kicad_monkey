@@ -1,5 +1,5 @@
 """
-Bus connectivity + member-level cross-tap merging (Phase G — Slice N-9u).
+Bus connectivity and member-level cross-tap merging.
 
 Buses in KiCad are a *separate* connectivity domain from wires. A bus
 carries multiple named signals (members) and is named by a bus-form

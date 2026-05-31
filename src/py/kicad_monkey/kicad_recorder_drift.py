@@ -5,10 +5,8 @@ Cross-validation drift report between a canonical
 :class:`KiCadPlotterDocument` from ``schematic_to_ir`` (or any other
 parser → IR boundary).
 
-Phase F-6.2 — purpose: an objective, frozen-snapshot baseline showing
-the gap between the kicad_monkey toolchain and KiCad's own ground-truth
-plot ops, so subsequent slices can drive the gap to zero with a clear
-target.
+The report is an objective, frozen-snapshot baseline showing the gap
+between the kicad_monkey toolchain and KiCad's own ground-truth plot ops.
 
 The report is intentionally structural (op-kind histograms, canvas
 dims, kind sets), NOT a per-coordinate equivalence proof. Two reasons:
@@ -18,11 +16,9 @@ dims, kind sets), NOT a per-coordinate equivalence proof. Two reasons:
    SetViewport / SetPageSettings) while the kicad_monkey IR is
    declarative — pen state is baked into each geometric op's payload.
    So a one-to-one op-count match would require the recorder to be
-   "reduced" by folding state ops into following geometry. That is
-   future work (F-6.3).
-2. Symbol-body composition into ``schematic_to_ir`` is incomplete in
-   F-4 (header records only; bodies deferred to a follow-on slice).
-   The structural drift is exactly the metric that surfaces this.
+   "reduced" by folding state ops into following geometry.
+2. Symbol-body composition into ``schematic_to_ir`` is represented
+   structurally, so this report surfaces remaining semantic gaps.
 
 Schema id of the emitted report: ``kicad.recorder_drift.v1``.
 """
@@ -144,8 +140,8 @@ class RecorderDriftReport:
     """
     ``min(monkey_total_ops, recorder_geometric_ops) /
     recorder_geometric_ops`` (0.0 when recorder has no geometric ops).
-    A coarse upper-bound coverage estimate; tighter equivalence will
-    come once kind-by-kind coords are diffed in a later slice.
+    A coarse upper-bound coverage estimate; tighter equivalence comes from
+    kind-by-kind coordinate diffs.
     """
 
     # Histograms
@@ -172,7 +168,7 @@ class RecorderDriftReport:
     recorder_record_hist: dict[str, int] = field(default_factory=dict)
     monkey_record_hist: dict[str, int] = field(default_factory=dict)
 
-    # F-6.10 stroked-text fold provenance
+    # Stroked-text fold provenance
     recorder_total_ops_pre_fold: int = 0
     """
     Recorder op count before any fold pass. Equal to

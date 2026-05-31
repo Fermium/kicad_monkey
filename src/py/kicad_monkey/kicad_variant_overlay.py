@@ -1,15 +1,13 @@
 """
-KiCad variant overlay (Phase F-8).
+KiCad variant overlay.
 
-Annotates IR records produced by F-3/F-4/F-7 with a ``variant_state``
-extras key (``"active"`` or ``"dimmed"``) so the F-5 SVG renderer can
+Annotates schematic, symbol, and footprint IR records with a
+``variant_state`` extras key (``"active"`` or ``"dimmed"``) so SVG rendering can
 visually de-emphasise items that participate in a build variant
 exclusion (DNP / exclude-from-bom / exclude-from-sim / exclude-from-pos).
 
-This module is the kicad_monkey parallel to altium_monkey's
-compile-mask render mode. The core piece is a small policy
-:class:`KiCadVariantOverlayPolicy` that says *which* exclusion axes
-trigger dimming, plus three helpers:
+The core piece is a small policy :class:`KiCadVariantOverlayPolicy` that says
+*which* exclusion axes trigger dimming, plus three helpers:
 
   * :func:`compute_record_variant_state` -- pure classification, no copy
   * :func:`annotate_record_variant_state` -- returns a copy with
@@ -18,11 +16,11 @@ trigger dimming, plus three helpers:
 
 Source of the per-record flags:
 
-  * ``symbol_instance`` records (F-4) carry ``dnp``, ``in_bom``,
+  * ``symbol_instance`` records carry ``dnp``, ``in_bom``,
     ``exclude_from_sim``, ``in_pos_files`` in their ``extras``. Note
     that KiCad models *inclusion* for BOM and POS, so "excluded from
     BOM" maps to ``in_bom == False``.
-  * ``footprint`` records (F-7) carry the raw ``attr`` token list in
+  * ``footprint`` records carry the raw ``attr`` token list in
     their ``extras``. KiCad PCB attribute tokens of interest are
     ``dnp``, ``exclude_from_bom`` and ``exclude_from_pos``. (PCB
     footprints have no exclude-from-sim concept.)
@@ -110,7 +108,7 @@ def _symbol_instance_dimmed(
     extras: Mapping[str, Any],
     policy: KiCadVariantOverlayPolicy,
 ) -> bool:
-    """Apply ``policy`` to F-4 ``symbol_instance`` extras."""
+    """Apply ``policy`` to ``symbol_instance`` extras."""
     if policy.dim_dnp and bool(extras.get("dnp", False)):
         return True
     # KiCad stores INCLUSION for BOM / POS — not-in == excluded.
@@ -127,7 +125,7 @@ def _footprint_dimmed(
     extras: Mapping[str, Any],
     policy: KiCadVariantOverlayPolicy,
 ) -> bool:
-    """Apply ``policy`` to F-7 ``footprint`` extras (``attr`` token list)."""
+    """Apply ``policy`` to ``footprint`` extras (``attr`` token list)."""
     raw_attrs = extras.get("attr") or []
     attr_set = {str(token).lower() for token in raw_attrs}
     if policy.dim_dnp and "dnp" in attr_set:

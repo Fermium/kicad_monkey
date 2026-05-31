@@ -1,18 +1,9 @@
-"""
-KiCad netlist internal model (Phase G — Slice N-3).
+"""Internal data model for resolved KiCad netlists.
 
-Single source of truth for the netlist generator. The kicadsexpr emit
-(slice N-5) and the netlist_a0 JSON bridge (slice N-6) both derive
-their output from this model — no parallel data structures.
-
-Mirrors :class:`SCH_CONNECTION` + :class:`CONNECTION_SUBGRAPH` in spirit
-but is data-only (no graph traversal logic — that lives in
-:mod:`kicad_netlist_compiler`).
-
-Field set is intentionally narrow at slice N-3: the components / libparts
-/ libraries collation lands in slice N-4 (multi-sheet merge) once we
-have the full :class:`KiCadDesign` walk. Slice N-3 populates ``nets``
-only.
+The netlist compiler, KiCad s-expression emitter, KiCad-native JSON payload,
+and generic netlist bridge all derive their output from these dataclasses.
+Graph traversal lives in :mod:`kicad_netlist_compiler`; this module only owns
+the resolved data shapes.
 """
 
 from __future__ import annotations
@@ -161,9 +152,8 @@ class KiCadNet:
     * ``aliases`` — alternate names (e.g. bus member names) the net
       also responds to. Empty for plain nets.
     * ``graphical`` — SVG/source-object IDs associated with this net,
-      grouped with the same keys used by Altium's ``NetGraphical`` JSON
-      contract. Pins are added by the design JSON layer because the
-      component SVG IDs live on the component rows.
+      grouped by source object type. Pins are added by the design JSON layer
+      because the component SVG IDs live on the component rows.
     * ``is_bus`` — True when the underlying subgraph drives a bus
       label (filled at compile time but unused by the kicadsexpr emit;
       bus expansion happens before nets are materialised).
@@ -192,7 +182,7 @@ class KiCadNet:
 
 
 # ---------------------------------------------------------------------------
-# Component — placed-symbol view tailored for netlist emit (slice N-4)
+# Component — placed-symbol view tailored for netlist emit
 # ---------------------------------------------------------------------------
 
 
@@ -200,8 +190,7 @@ class KiCadNet:
 class KiCadNetlistComponent:
     """One row of the ``(components …)`` block in the kicadsexpr emit.
 
-    Slice N-3 declares the dataclass; it stays empty in slice-N-3
-    output until slice N-4 ports the design walk that fills it.
+    Filled by the design-level netlist compiler from placed schematic symbols.
     """
 
     reference: str
@@ -235,7 +224,7 @@ class KiCadLibPartPin:
 
 @dataclass
 class KiCadLibPart:
-    """Library symbol descriptor — populated by slice N-4."""
+    """Library symbol descriptor populated from referenced schematic symbols."""
 
     lib: str
     part: str
@@ -276,7 +265,7 @@ class KiCadDesignMetadata:
 
 @dataclass
 class KiCadNetClass:
-    """A KiCad net-class definition (slice N-10).
+    """A KiCad net-class definition.
 
     Mirrors the subset of ``net_settings.classes[]`` that's relevant
     when emitting a netlist — class identity (name) plus optional

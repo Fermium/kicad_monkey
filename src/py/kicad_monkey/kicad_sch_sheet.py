@@ -179,7 +179,7 @@ class SchSheetProperty:
         Mirrors saveField (sch_io_kicad_sexpr.cpp:997) emit order:
         property, at, [hide], show_name, do_not_autoplace, effects.
         KiCad 10's parser rejects the bare-token `show_name` form, so
-        we emit the (show_name yes) sub-list when True (per Slice 12).
+        we emit the (show_name yes) sub-list when True.
         kicad-cli canonicalises both yes/no on save; emitting only the
         true case lets oracle-style upgrade reach parity.
         """

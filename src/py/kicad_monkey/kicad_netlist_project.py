@@ -1,5 +1,5 @@
 """
-Project-side enrichment for the KiCad netlist (Phase G — Slice N-10).
+Project-side enrichment for the KiCad netlist.
 
 The :class:`~kicad_monkey.KiCadNetlist` is built by the connectivity
 compiler from schematic data alone. KiCad stores net-class metadata in
@@ -14,8 +14,8 @@ project is loaded we can enrich the netlist by:
 
 This module is the single authoritative place for that mapping; the
 kicadsexpr emitter doesn't write net-class info (kicad-cli's
-``--format kicadsexpr`` doesn't either) but the data_models JSON bridge
-in slice N-6 surfaces it directly.
+``--format kicadsexpr`` doesn't either) but JSON payloads surface it
+directly.
 
 Pattern matching uses ``fnmatch`` semantics (``*`` / ``?`` / ``[seq]``)
 which lines up with KiCad's own wildcard mode for net-class assignment

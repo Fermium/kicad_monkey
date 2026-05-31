@@ -1,11 +1,10 @@
 """
 2-D coordinate transforms for :class:`KiCadPlotterOp` payloads.
 
-Phase F-6.3 — needed for symbol-body composition in
-``schematic_to_ir`` (F-6.4): a ``LibSymbol`` body is converted to ops
-in the symbol's local frame via :func:`lib_symbol_to_ir`, and those
-ops then need to be re-anchored at each placement by translating /
-rotating / mirroring the coordinates inside their payloads.
+A ``LibSymbol`` body is converted to ops in the symbol's local frame via
+:func:`lib_symbol_to_ir`, and those ops then need to be re-anchored at each
+placement by translating, rotating, and mirroring the coordinates inside
+their payloads.
 
 This module is **purely structural**: it walks each op kind, applies a
 :class:`KiCadPlotterTransform2D` to every coordinate field in the

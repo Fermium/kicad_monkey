@@ -85,5 +85,5 @@ python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
 markers = [
-    "slow: long-running private test lanes",
+    "slow: long-running test lanes",
 ]

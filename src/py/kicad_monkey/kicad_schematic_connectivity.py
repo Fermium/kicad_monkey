@@ -1,5 +1,5 @@
 """
-KiCad schematic connectivity primitives (Phase G — Slice N-1).
+KiCad schematic connectivity primitives.
 
 Foundation for the netlist generator. Provides:
 
@@ -424,7 +424,7 @@ def detect_no_connects(schematic: "KiCadSchematic") -> Set[CoordKey]:
     The netlist compiler treats a pin landing on a no-connect coord as
     intentionally unconnected — KiCad ERC suppresses warnings for such
     pins, and the resulting net is named ``unconnected-(<ref>-<pin>)``
-    in the kicad-cli netlist (handled in slice N-3).
+    in the kicad-cli netlist.
     """
     out: Set[CoordKey] = set()
     for nc in getattr(schematic, "no_connects", ()):

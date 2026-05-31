@@ -129,7 +129,7 @@ def setup_kicad(
         library_nickname=http_library_nickname,
     )
 
-    # Note: Altium -> KiCad conversion is manual via cruncher workflows.
+    # Note: source-library conversion is handled by separate manual workflows.
     if len(config_paths) == 0:
         log.error("Skipping library setup (no KiCad 10+ configuration paths found)")
         return

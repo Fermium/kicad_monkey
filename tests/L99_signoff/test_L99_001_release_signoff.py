@@ -5,6 +5,7 @@ from __future__ import annotations
 import tomllib
 from datetime import date
 from pathlib import Path
+import re
 
 import kicad_monkey
 from kicad_monkey import __version__, version
@@ -22,6 +23,52 @@ def _project_root() -> Path:
 PACKAGE_ROOT = _project_root()
 EXPECTED_VERSION = "2026.5.31"
 EXPECTED_RELEASE_DATE = date(2026, 5, 31)
+PUBLIC_TEXT_PATHS = (
+    "README.md",
+    "AGENTS.md",
+    "ARCHITECTURE.md",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "pyproject.toml",
+    "docs",
+    "src/py/kicad_monkey",
+)
+PUBLIC_TEXT_SUFFIXES = {".md", ".py", ".rst", ".toml", ".txt", ".yaml", ".yml"}
+PUBLIC_TEXT_EXCLUDED_PARTS = {
+    "__pycache__",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+}
+FORBIDDEN_PUBLIC_TEXT_PATTERNS = (
+    (re.compile(r"\baltium_monkey\b", re.IGNORECASE), "outside package reference"),
+    (re.compile(r"\bAltiumDesign\b"), "outside package type reference"),
+    (re.compile(r"\bSchGeometryRecord\b"), "outside package type reference"),
+    (re.compile(r"\b(?:toolz|appz|toolz-tests)\b", re.IGNORECASE), "local workspace reference"),
+    (
+        re.compile(
+            r"\b(?:lib_cruncher|bom_cruncher|pcb_cruncher)\b",
+            re.IGNORECASE,
+        ),
+        "internal consumer reference",
+    ),
+    (re.compile(r"C:[/\\]eli", re.IGNORECASE), "local absolute path"),
+    (re.compile(r"\bagent-worktrees\b", re.IGNORECASE), "local workspace path"),
+    (re.compile(r"\bwn-hw\b", re.IGNORECASE), "local workspace repo"),
+    (re.compile(r"\bprivate kicad_monkey\b", re.IGNORECASE), "private-suite reference"),
+    (re.compile(r"\bprivate test\b", re.IGNORECASE), "private-test reference"),
+    (re.compile(r"\bcruncher workflows\b", re.IGNORECASE), "internal workflow reference"),
+    (re.compile(r"\bPhase\s+[A-Z0-9]", re.IGNORECASE), "development phase label"),
+    (re.compile(r"\bSlice\s+[A-Z0-9]", re.IGNORECASE), "development slice label"),
+    (
+        re.compile(r"\b(?:C|D|E|F|G|N)-\d+(?:\.\d+)?[a-z]?\b"),
+        "development rollout id",
+    ),
+    (
+        re.compile(r"\b(?:this|later|follow-on)\s+slice\b", re.IGNORECASE),
+        "development slice prose",
+    ),
+)
 
 
 def test_version_contract_matches_date_based_release() -> None:
@@ -97,3 +144,38 @@ def test_developer_working_docs_are_excluded_from_release_artifacts() -> None:
 def test_promoted_public_api_contract_has_no_failures() -> None:
     """Verify the promoted package-root API contract is part of L99 signoff."""
     assert collect_public_api_contract_failures() == []
+
+
+def _iter_public_text_files() -> list[Path]:
+    """Return public source/docs files that should not expose local history."""
+    files: list[Path] = []
+    for relative in PUBLIC_TEXT_PATHS:
+        root = PACKAGE_ROOT / relative
+        if root.is_file():
+            candidates = [root]
+        else:
+            candidates = [path for path in root.rglob("*") if path.is_file()]
+        for path in candidates:
+            if path.suffix.lower() not in PUBLIC_TEXT_SUFFIXES:
+                continue
+            relative_parts = path.relative_to(PACKAGE_ROOT).parts
+            if any(part in PUBLIC_TEXT_EXCLUDED_PARTS for part in relative_parts):
+                continue
+            if relative_parts[:2] in {("docs", "plans"), ("docs", "research")}:
+                continue
+            files.append(path)
+    return sorted(set(files))
+
+
+def test_public_text_has_no_private_or_rollout_references() -> None:
+    """Verify public source/docs avoid local history and outside-project prose."""
+    failures: list[str] = []
+    for path in _iter_public_text_files():
+        rel_path = path.relative_to(PACKAGE_ROOT).as_posix()
+        text = path.read_text(encoding="utf-8")
+        for line_number, line in enumerate(text.splitlines(), start=1):
+            for pattern, reason in FORBIDDEN_PUBLIC_TEXT_PATTERNS:
+                if pattern.search(line):
+                    failures.append(f"{rel_path}:{line_number}: {reason}: {line.strip()}")
+
+    assert failures == []

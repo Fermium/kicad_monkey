@@ -17,7 +17,7 @@ this schema by simple ``wxString::FromUTF8(EnumName)``.
 
 This module is pure data: no rendering, no parser dependencies, no
 external libraries. The flat-function SVG renderer that consumes it
-lives in :mod:`kicad_monkey.kicad_sch_svg_renderer` (Phase F-2/F-5).
+lives in :mod:`kicad_monkey.kicad_sch_svg_renderer`.
 """
 
 from __future__ import annotations
@@ -904,10 +904,9 @@ class KiCadPlotterRecord:
     """
     One source-item-keyed sub-stream of plotter ops.
 
-    Mirrors the altium ``SchGeometryRecord`` shape so the IR plays nice
-    with downstream diff and DWG-scene tooling: every record corresponds
-    to one schematic / PCB item (symbol, wire, label, footprint, pad,
-    track, ...) and groups all of its plotter calls.
+    Every record corresponds to one schematic or PCB item (symbol, wire,
+    label, footprint, pad, track, ...) and groups all of its plotter calls
+    for downstream diff and scene tooling.
     """
 
     uuid: str

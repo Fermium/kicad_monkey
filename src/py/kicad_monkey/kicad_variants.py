@@ -4,8 +4,8 @@ Variant model layer — bridges KiCad's three legacy variant carriers
 per-symbol & per-footprint override blocks) into one queryable model.
 
 This module is purely additive on top of the existing low-level
-dataclasses. It does not mutate them; the resolver layer (Slice C-3)
-consumes ``VariantOverride`` produced here.
+dataclasses. It does not mutate them; the resolver layer consumes
+``VariantOverride`` produced here.
 """
 
 from __future__ import annotations
@@ -70,8 +70,7 @@ class VariantCatalog:
        block (defensive — surfaces inconsistency if an override
        references a variant that's not in the canonical catalog).
 
-    The catalog is read-only in this slice; mutation is part of the
-    project read/write slice (C-7).
+    The catalog is read-only; mutation belongs to project read/write helpers.
     """
 
     variants: list[ProjectVariant] = field(default_factory=list)
@@ -262,7 +261,7 @@ def collect_footprint_overrides(
 
 
 # ---------------------------------------------------------------------------
-# Effective-properties resolver (Slice C-3)
+# Effective-properties resolver
 # ---------------------------------------------------------------------------
 
 @dataclass(frozen=True)
@@ -522,7 +521,7 @@ def resolve_footprint(
 
 
 # ---------------------------------------------------------------------------
-# Cross-domain assembly view (Slice C-4)
+# Cross-domain assembly view
 # ---------------------------------------------------------------------------
 
 @dataclass(frozen=True)

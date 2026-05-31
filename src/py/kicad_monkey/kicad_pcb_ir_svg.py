@@ -1,5 +1,5 @@
 """
-KiCad PCB → IR → SVG renderer (render-cache cutover, Phase A/B).
+KiCad PCB to IR to SVG renderer.
 
 This is the public board SVG path. It composes:
 
@@ -17,13 +17,13 @@ Coordinate conventions:
 * The viewBox semantics are ``0 0 width height`` in user units (mm by default
   via :class:`KiCadSvgRenderOptions`).
 
-Layer filtering (Phase B) is record-granular: a record is kept when any
-of its layer-bearing extras / ops intersects the requested set, and
-otherwise dropped. Phase B.2(c) additionally applies per-op layer
-filtering inside surviving multi-layer records (e.g. footprints whose
-ops are tagged with their own layers via ``_op_with_pcb_layer``) so a
-``layers=["F.SilkS"]`` request does not drag F.Fab fp_lines into the
-output. Block markers and ops without any layer metadata pass through.
+Layer filtering is record-granular: a record is kept when any of its
+layer-bearing extras or ops intersects the requested set, and otherwise
+dropped. Surviving multi-layer records also get per-op layer filtering
+(e.g. footprints whose ops are tagged with their own layers via
+``_op_with_pcb_layer``) so a ``layers=["F.SilkS"]`` request does not drag
+F.Fab fp_lines into the output. Block markers and ops without any layer
+metadata pass through.
 """
 
 from __future__ import annotations
@@ -210,9 +210,9 @@ def _filter_records_by_layer(
     transforms) pass through unconditionally. When ``layers`` is ``None``
     every record is kept.
 
-    Phase B.2(c): surviving records additionally have their internal ops
-    filtered so multi-layer records (footprints whose fp_lines / fp_texts
-    span multiple layers) only emit ops on the requested layers.
+    Surviving records additionally have their internal ops filtered so
+    multi-layer records (footprints whose fp_lines / fp_texts span multiple
+    layers) only emit ops on the requested layers.
     """
 
     if layers is None:

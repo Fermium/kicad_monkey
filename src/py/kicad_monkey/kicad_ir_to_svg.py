@@ -1,15 +1,17 @@
 """
-KiCad Plotter-IR → SVG renderer (Phase F-5).
+KiCad Plotter-IR to SVG renderer.
 
 Consumes a :class:`KiCadPlotterDocument` (the JSON-safe plotter-call IR
-produced by Phase F-3 / F-4) and emits an SVG string by dispatching
+produced by the symbol, schematic, footprint, and PCB converters) and emits
+an SVG string by dispatching
 each :class:`KiCadPlotterOp` to the matching ``svg_*`` primitive in
 :mod:`kicad_monkey.kicad_sch_svg_renderer`.
 
 Cross-validation contract (formal):
-    parser → SVG-direct  ≡  parser → IR (F-3/F-4) → SVG-from-IR (F-5)
+    parser to SVG-direct equals parser to IR to SVG-from-IR
 
-F-5 covers the SCH op kinds emitted by F-3/F-4:
+The renderer covers the schematic op kinds emitted by the symbol and
+schematic converters:
 
   * ``Circle``         → ``svg_circle``
   * ``ArcThreePoint``  → ``svg_arc``
@@ -18,7 +20,7 @@ F-5 covers the SCH op kinds emitted by F-3/F-4:
   * ``PlotPoly``       → ``svg_polygon`` (filled) / ``svg_polyline`` (open)
   * ``Text``           → ``svg_text_or_poly`` (multiline → per-line stack)
 
-F-7 extends the dispatch with the PCB / footprint ops:
+The dispatcher also supports PCB and footprint ops:
 
   * ``ThickSegment``        → ``svg_polyline`` with stroke width
   * ``ThickArc``            → centre+angle → 3-point ``svg_arc``
@@ -1123,7 +1125,7 @@ def _variant_overlay_attrs(
     options: KiCadSvgRenderOptions,
 ) -> str | None:
     """
-    Translate F-8's ``extras["variant_state"]`` annotation into group
+    Translate the ``extras["variant_state"]`` annotation into group
     attributes. Returns ``None`` when no overlay applies (record
     active, mode NONE, or extras missing).
     """
@@ -1217,7 +1219,7 @@ def _render_block_group(payload: dict, body: str) -> str:
     )
 
 
-# Style-bucket grouping (Phase B.2(b)): each rendered op fragment is
+# Style-bucket grouping: each rendered op fragment is
 # wrapped in a ``<g style="...">`` whose CSS mirrors the element-local
 # attributes. This mirrors ``kicad-cli pcb export svg`` output structure
 # (one CLI ``<g>`` per fill/stroke combination) so style-keyed metrics
@@ -1492,9 +1494,8 @@ def render_record(
     the record kind. Empty-op records still emit a placeholder group
     so downstream tooling can hook on identity.
 
-    Records carrying ``extras["variant_state"] == "dimmed"`` (set by
-    Phase F-8's :func:`apply_variant_overlay`) get an opacity / filter
-    overlay on the wrapper ``<g>`` per ``ctx.options.variant_dim_*``.
+    Records carrying ``extras["variant_state"] == "dimmed"`` get an opacity
+    or filter overlay on the wrapper ``<g>`` per ``ctx.options.variant_dim_*``.
     """
     operations: Iterable[KiCadPlotterOp] = record.operations
     visible_layers = _visible_pcb_layers(ctx)

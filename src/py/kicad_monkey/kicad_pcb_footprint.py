@@ -619,7 +619,7 @@ class Footprint:
         return items
 
     # ------------------------------------------------------------------
-    # Variant override write API (Phase E-2)
+    # Variant override write API
     # ------------------------------------------------------------------
 
     def set_variant_override(

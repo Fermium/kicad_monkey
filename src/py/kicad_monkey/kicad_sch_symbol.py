@@ -475,7 +475,7 @@ class SchSymbol:
         return iter(self.properties)
 
     # ------------------------------------------------------------------
-    # Variant override write API (Phase E-2)
+    # Variant override write API
     # ------------------------------------------------------------------
 
     def _find_instance(

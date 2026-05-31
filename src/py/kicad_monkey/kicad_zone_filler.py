@@ -201,8 +201,8 @@ class ZoneFiller:
             if zone_poly.points and len(zone_poly.points) >= 3:
                 result.add_outline(zone_poly.points)
 
-        # TODO: Apply corner smoothing based on zone.hatch_style
-        # For now, return raw outline (corner smoothing is Phase 2)
+        # TODO: Apply corner smoothing based on zone.hatch_style.
+        # Return the raw outline until smoothing is implemented.
 
         return result
 

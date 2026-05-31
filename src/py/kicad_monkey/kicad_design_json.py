@@ -1,9 +1,8 @@
-"""Altium-shaped JSON envelopes for :class:`KiCadDesign`.
+"""KiCad-native JSON payload builders for :class:`KiCadDesign`.
 
-This module deliberately keeps the existing generic ``netlist_a0`` bridge
-untouched.  The payloads here are KiCad-native contracts with top-level field
-names chosen to mirror ``altium_monkey.design.a1`` / ``netlist.a0`` so callers
-can compare source-CAD payloads before converting to ``data_models``.
+The payloads in this module describe KiCad projects, hierarchy, components,
+nets, variants, and optional lookup indexes using KiCad-owned schema IDs. The
+generic netlist bridge remains a separate API on :class:`KiCadDesign`.
 """
 
 from __future__ import annotations
@@ -69,7 +68,7 @@ _GRAPHICAL_ID_KEYS = (
 
 
 def kicad_design_to_json(design: "KiCadDesign", *, include_indexes: bool = True) -> dict:
-    """Build a KiCad-native design payload shaped like AltiumDesign JSON."""
+    """Build a KiCad-native design payload."""
     netlist = design.to_netlist()
     component_svg_ids = _component_svg_ids(netlist)
     components = [
@@ -105,7 +104,7 @@ def kicad_design_to_json(design: "KiCadDesign", *, include_indexes: bool = True)
 
 
 def kicad_netlist_to_json(netlist: KiCadNetlist) -> dict:
-    """Build a KiCad-native raw netlist payload in the Altium raw-netlist shape."""
+    """Build a KiCad-native raw netlist payload."""
     component_svg_ids = _component_svg_ids(netlist)
     return {
         "schema": KICAD_NETLIST_JSON_SCHEMA,

@@ -422,7 +422,7 @@ class KiCadSymbolLib:
     ):
         """Render one symbol from this library to plotter IR.
 
-        ``part_id`` is accepted as an Altium-style alias for KiCad's
+        ``part_id`` is accepted as a compatibility alias for KiCad's
         ``unit`` selector. When neither is supplied, every unit matching
         ``style`` is included in the IR document.
         """
@@ -462,8 +462,8 @@ class KiCadSymbolLib:
     ) -> str:
         """Render one symbol from this library as standalone SVG.
 
-        ``part_id`` mirrors the Altium SchLib API while ``unit`` keeps the
-        KiCad terminology. Supplying both is allowed only when they match.
+        ``part_id`` is a compatibility alias for ``unit``. Supplying both is
+        allowed only when they match.
         If neither is supplied, unit 1 is rendered.
         """
         from .kicad_symbol_svg import (

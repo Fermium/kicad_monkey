@@ -1,5 +1,5 @@
 """
-Multi-sheet KiCad netlist compile (Phase G — Slice N-4).
+Multi-sheet KiCad netlist compiler.
 
 Walks a hierarchical :class:`~kicad_monkey.KiCadSchematic` design,
 compiles each sheet via :func:`compile_sheet_subgraphs`, then performs
@@ -19,8 +19,8 @@ names the net (KiCad's ``compareDrivers`` rules — same as the
 single-sheet path). Sequential net codes are assigned in stable
 discovery order.
 
-This slice covers nets only; component / lib-part collation lives in
-slice N-4b.
+The resulting netlist includes resolved nets plus component, library-part,
+library, sheet, and net-class metadata needed by the emitters.
 """
 
 from __future__ import annotations
@@ -1084,11 +1084,11 @@ def _materialise_nets(
 
 
 # ---------------------------------------------------------------------------
-# Component + libpart collation (Phase G — Slice N-4b)
+# Component and libpart collation
 # ---------------------------------------------------------------------------
 #
 # Walks every ``CompiledSheet`` to materialise the ``(components ...)`` and
-# ``(libparts ...)`` blocks the kicadsexpr emit (slice N-5) needs. The walk
+# ``(libparts ...)`` blocks the kicadsexpr emit needs. The walk
 # mirrors KiCad's own logic in ``netlist_exporter_xml.cpp::makeListOfNets``:
 #
 # * Components are deduped by symbol UUID — a multi-unit symbol placed on

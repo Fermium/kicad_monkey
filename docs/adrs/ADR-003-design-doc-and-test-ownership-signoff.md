@@ -9,8 +9,8 @@ Date: 2026-05-31
 including `kicad-cruncher`, need a stable parser/model/rendering surface with
 clear intent before depending on it.
 
-The package intentionally keeps a broad package-root export surface while the
-first cruncher workflows prove what should become durable public API. The
+The package intentionally keeps a broad package-root export surface while early
+downstream integration proves what should become durable public API. The
 promoted public contract is the narrower, reviewable set recorded in
 `kicad_monkey.kicad_api_contract`.
 

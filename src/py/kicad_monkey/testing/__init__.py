@@ -1,1 +1,1 @@
-"""Testing helpers for private kicad_monkey suites."""
+"""Testing helpers for corpus-backed kicad_monkey suites."""

@@ -57,7 +57,9 @@ class PartKiCadConverter:
     ):
         """Initialize converter with KiCad CLI path and library root context."""
         if library_root is None:
-            raise ValueError("library_root is required; kicad_monkey does not read private app settings")
+            raise ValueError(
+                "library_root is required; kicad_monkey does not read external app settings"
+            )
         self.library_root = Path(library_root).resolve()
         self.symbol_root = Path(symbol_root or self.library_root / "symbols").resolve()
         self.footprint_root = Path(footprint_root or self.library_root / "footprints").resolve()

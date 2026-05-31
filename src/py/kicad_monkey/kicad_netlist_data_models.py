@@ -1,9 +1,8 @@
 """
 Bridge from :class:`~kicad_monkey.KiCadNetlist` to ``data_models.Netlist``.
 
-Slice N-6 of the netlist plan: render the KiCad-specific internal model
-into the cross-CAD ``netlist_a0`` shape so consumers (sch-viz, BOM,
-exporters) can speak one schema regardless of source CAD.
+Renders the KiCad-specific internal model into the generic ``netlist_a0``
+shape so consumers can speak one schema regardless of source CAD.
 
 Mapping rules:
 
@@ -24,10 +23,10 @@ Mapping rules:
   (bus member alternates etc.).
 * ``DesignNetConnection`` ← one per terminal; ``pin_name`` from KiCad's
   pin function (the symbol-pin name).
-* ``DesignNetClass`` rows mirror ``KiCadNetlist.net_classes`` (populated
-  by :func:`apply_project_net_classes` in slice N-10). Each row carries
-  the class name + the list of nets currently assigned to it; a synthetic
-  ``"Default"`` class always exists as the implicit fallback.
+* ``DesignNetClass`` rows mirror ``KiCadNetlist.net_classes`` after project
+  net classes have been applied. Each row carries the class name plus the
+  list of nets currently assigned to it; a synthetic ``"Default"`` class
+  always exists as the implicit fallback.
 * ``Netlist.metadata`` carries project-level info (sheets, kicad version
   marker, source path).
 * ``Netlist.source`` carries ``{"cad": "kicad", "tool": ..., "date": ...}``.

@@ -226,7 +226,7 @@ class KiCadSchematic:
         self.sheet_instances: list = []
         self.symbol_instances: list = []
 
-        # Hierarchical loading state (D-1).
+        # Hierarchical loading state.
         # ``source_path`` is the on-disk file this instance was loaded from,
         # used to resolve sub-sheet ``Sheetfile`` properties relatively.
         # ``sub_schematics`` caches loaded child schematics keyed by the
@@ -720,7 +720,7 @@ class KiCadSchematic:
         return len(self.symbols)
 
     # ------------------------------------------------------------------
-    # Hierarchical traversal (D-1)
+    # Hierarchical traversal
     # ------------------------------------------------------------------
 
     @public_api

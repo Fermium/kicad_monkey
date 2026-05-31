@@ -1,5 +1,5 @@
 """
-Bus-label parsing + expansion (Phase G — Slice N-2).
+Bus-label parsing and expansion.
 
 Ports KiCad's :func:`NET_SETTINGS::ParseBusVector` and
 :func:`NET_SETTINGS::ParseBusGroup` (``common/project/net_settings.cpp``)
@@ -28,8 +28,7 @@ Quirks faithfully replicated:
 * Group members can themselves be vectors or alias references; we
   recursively expand.
 
-Out of scope for this slice (deferred until a corpus fixture surfaces a
-need):
+Known unsupported bus-label syntax:
 
 * Formatting markers (``^{…}``, ``_{…}``, ``~{…}``) inside prefixes —
   KiCad treats these as part of the signal name; our port keeps them

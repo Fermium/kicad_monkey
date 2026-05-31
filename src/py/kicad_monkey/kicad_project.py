@@ -240,10 +240,9 @@ class KiCadProject:
     """Typed `.kicad_pro` project view.
 
     This is the canonical reader for KiCad project files. The full
-    parsed JSON is preserved verbatim in :attr:`raw` so a future
-    write/save path (Slice C-7) can round-trip without loss; typed
-    views like :attr:`variants` and :attr:`net_settings` are derived
-    from it.
+    parsed JSON is preserved verbatim in :attr:`raw` so the write/save path
+    can round-trip without loss; typed views like :attr:`variants` and
+    :attr:`net_settings` are derived from it.
     """
 
     project_path: Path | None = None
@@ -354,7 +353,7 @@ class KiCadProject:
         return iter(self.variants)
 
     # ------------------------------------------------------------------
-    # Write API (Slice C-7)
+    # Write API
     # ------------------------------------------------------------------
 
     def to_text(self) -> str:

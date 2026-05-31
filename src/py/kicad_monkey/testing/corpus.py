@@ -1,4 +1,4 @@
-"""Shared corpus helpers for private kicad_monkey tests."""
+"""Shared corpus helpers for kicad_monkey tests."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ def _require_dir(path: Path, *, label: str) -> Path:
 def get_test_corpus_root() -> Path:
     value = os.environ.get("WN_TEST_CORPUS")
     if not value:
-        raise RuntimeError("WN_TEST_CORPUS must be set for private kicad_monkey tests")
+        raise RuntimeError("WN_TEST_CORPUS must be set for corpus-backed tests")
     return _require_dir(Path(value), label="WN_TEST_CORPUS")
 
 
@@ -168,7 +168,7 @@ def get_kicad_topic_case_file(topic: str, case_name: str, filename: str) -> Path
 def get_kicad_pcb_foundation_dir() -> Path:
     """Return the synthetic-PCB foundation corpus root.
 
-    Layout (matches Altium ``pcbdoc_synthesized``):
+    Layout:
 
         <corpus>/kicad/pcb_foundation/<case>/
             input/<case files>
@@ -205,7 +205,7 @@ def get_kicad_pcb_foundation_case_reference_output_dir(case_name: str) -> Path:
 
 
 def get_kicad_upstream_qa_dir() -> Path:
-    """Mirrored KiCad ``qa/data/`` tree (curated 41-file slice).
+    """Mirrored KiCad ``qa/data/`` tree (curated 41-file subset).
 
     Refresh via the package-local upstream QA fixture sync script.
     """

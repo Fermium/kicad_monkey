@@ -1,31 +1,21 @@
-"""
-KiCad project / design aggregator (Phase F-6.5 follow-on).
+"""KiCad project and design aggregator.
 
-A :class:`KiCadDesign` ties together the three on-disk artefacts that
-make up a single KiCad project:
+A :class:`KiCadDesign` ties together the on-disk files that make up a
+single KiCad project:
 
-* ``.kicad_pro`` — :class:`KiCadProject` (text variables, net settings,
-  variant catalog).
-* ``.kicad_sch`` — one or more :class:`KiCadSchematic` instances. The
-  parser already recurses into sub-sheets via ``Sheetfile``; this
-  class is the aggregator that owns the top-level entry sheet plus a
-  cache of any explicitly-loaded extras.
-* ``.kicad_pcb`` — lazy :class:`KiCadPcb`. Loaded on first access so
-  schematic-only workflows don't pay the parse cost.
+* ``.kicad_pro``: :class:`KiCadProject` with text variables, net settings,
+  and the variant catalog.
+* ``.kicad_sch``: one or more :class:`KiCadSchematic` instances. The
+  parser recurses into sub-sheets via ``Sheetfile``; this class owns the
+  top-level entry sheet plus any explicitly-loaded extras.
+* ``.kicad_pcb``: a lazy :class:`KiCadPcb`, parsed on first access so
+  schematic-only workflows do not pay the PCB parse cost.
 
-The primary motivation is **cross-document ``${VAR}`` resolution**:
-title-block text in ``.kicad_sch`` / ``.kicad_pcb`` may reference
-custom variables defined under ``text_variables`` in the sidecar
-``.kicad_pro``. F-6.5 already plumbed the ``project_vars`` dict
-through :func:`drawing_sheet_to_ops` and :func:`schematic_to_ir`;
-:class:`KiCadDesign` is the seam that fills that dict in automatically.
-KiCad's built-in sheet/title variables still take precedence over
-same-named project text variables.
-
-Parallel to ``altium_monkey``'s :class:`AltiumDesign`. Intentionally
-minimal in this slice: typed views over the underlying parsers, a
-single drop-in :meth:`to_schematic_ir` wrapper, and the discovery
-helpers needed to walk a project from any of its file types.
+The aggregator also provides cross-document ``${VAR}`` resolution.
+Title-block text in schematics and boards may reference custom variables
+defined under ``text_variables`` in the sidecar project file. KiCad's
+built-in sheet and title variables take precedence over same-named
+project text variables.
 """
 
 from __future__ import annotations
@@ -301,7 +291,7 @@ class KiCadDesign:
 
 
     # ------------------------------------------------------------------
-    # Netlist API — Phase G Slice N-7
+    # Netlist API
     # ------------------------------------------------------------------
 
     def to_netlist(self) -> "KiCadNetlist":
@@ -357,9 +347,8 @@ class KiCadDesign:
     def to_netlist_json(self) -> dict:
         """Render the design as a generic ``netlist_a0`` JSON dict.
 
-        Bridges through ``data_models.Netlist.to_json`` so consumers
-        (sch-viz, BOM, exporters) can validate against the cross-CAD
-        contract.
+        Bridges through ``data_models.Netlist.to_json`` so consumers can
+        validate against the cross-CAD contract.
         """
         from .kicad_netlist_data_models import (
             kicad_netlist_to_data_models_netlist,
@@ -368,13 +357,12 @@ class KiCadDesign:
         return kicad_netlist_to_data_models_netlist(self.to_netlist()).to_json()
 
     def to_json(self, include_indexes: bool = True) -> dict:
-        """Render a KiCad-native, Altium-shaped design JSON payload.
+        """Render a KiCad-native design JSON payload.
 
-        This is intentionally distinct from :meth:`to_netlist_json`, which
-        remains the generic ``data_models`` bridge.  The payload returned here
-        uses KiCad-owned schema IDs while mirroring the top-level terminology
-        used by ``altium_monkey.design.a1`` for cross-CAD comparisons and
-        future schematic-visualizer integration.
+        This is distinct from :meth:`to_netlist_json`, which returns the
+        generic netlist bridge payload. The payload returned here uses
+        KiCad-owned schema IDs and includes project, sheet, component, net,
+        variant, and optional index sections.
         """
         from .kicad_design_json import kicad_design_to_json
 
@@ -408,7 +396,7 @@ class KiCadDesign:
         return kicad_netlist_to_json(self.to_netlist())
 
     def get_net(self, name: str) -> Optional["KiCadNet"]:
-        """Look up a net by name (parity with altium_monkey)."""
+        """Look up a compiled net by name."""
         return self.to_netlist().get_net(name)
 
     def get_component(self, reference: str) -> Optional["KiCadNetlistComponent"]:
@@ -449,8 +437,7 @@ class KiCadDesign:
             subpart_first_id=subpart_first_id,
             subpart_id_separator=subpart_id_separator,
         )
-        # Slice N-10: project-side enrichment (net classes from .kicad_pro).
-        # No-op when no .kicad_pro is loaded.
+        # Project-side net classes are applied when a .kicad_pro is loaded.
         apply_project_net_classes(netlist, self.project)
         return netlist
 

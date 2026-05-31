@@ -1,9 +1,9 @@
 """
-KiCadSchematic → KiCadPlotterDocument converter (Phase F-4).
+KiCadSchematic to KiCadPlotterDocument converter.
 
 Walks a parsed :class:`KiCadSchematic` and emits a
 :class:`KiCadPlotterDocument` whose records contain
-:class:`KiCadPlotterOp` instances drawn from the F-1 PLOTTER vocabulary.
+:class:`KiCadPlotterOp` instances drawn from the PLOTTER vocabulary.
 
 Mirrors the natural emit order in
 ``SCH_IO_KICAD_SEXPR::saveSchematicFile``:
@@ -17,24 +17,21 @@ by KiCad's PLOTTER. Unlike :mod:`kicad_lib_symbol_to_ir` (which
 flips Y-up library coords), the schematic boundary applies *no* Y
 flip; we just multiply by 1_000_000 to land in nm.
 
-F-4 scope (deliberately bounded):
+The converter emits:
   * Sheet header w/ paper size + title block.
   * Wires / buses / bus entries / junctions / no_connects:
     full geometry.
-  * Labels (local / global / hierarchical): text body only —
-    decoration shapes (global-label arrow, hier-label triangle)
-    deferred to a follow-on slice.
+  * Labels (local / global / hierarchical): text body only.
   * Top-level (text ...) annotations: full geometry.
   * Hierarchical sheets: header records only (sheet name & file +
     rectangle).
 
-Phase F-6.4 extends ``symbol_instance`` records: when the placement's
-``lib_id`` resolves against the schematic's embedded ``lib_symbols``
-block, the body is composed via :func:`lib_symbol_to_ir` and
-re-anchored at the placement via
-:class:`KiCadPlotterTransform2D`. Placements whose library symbol
-isn't in ``lib_symbols`` (rare in well-formed schematics) fall back
-to empty-ops header-only records.
+``symbol_instance`` records include composed symbol bodies when the
+placement's ``lib_id`` resolves against the schematic's embedded
+``lib_symbols`` block. The body is composed via :func:`lib_symbol_to_ir` and
+re-anchored at the placement via :class:`KiCadPlotterTransform2D`.
+Placements whose library symbol is not in ``lib_symbols`` fall back to
+empty-ops header-only records.
 """
 
 from __future__ import annotations
@@ -217,8 +214,8 @@ DEFAULT_DNP_MARKER_STROKE_WIDTH_NM = mm_to_nm(DEFAULT_WIRE_WIDTH_MM * 3.0)
 DEFAULT_TEXT_SIZE_MM = 1.27
 # Global-label box-margin / text-height ratio (``DEFAULT_LABEL_SIZE_RATIO``
 # in eeschema's ``default_values.h``, surfaced via
-# ``SCH_LABEL_BASE::GetLabelBoxExpansion``). Used by F-6.9b to compute
-# the symmetric margin around the global-label arrow-box outline.
+# ``SCH_LABEL_BASE::GetLabelBoxExpansion``). Used to compute the symmetric
+# margin around the global-label arrow-box outline.
 DEFAULT_LABEL_SIZE_RATIO = 0.375
 # ``DEFAULT_TEXT_OFFSET_RATIO`` from eeschema/default_values.h. KiCad applies
 # this to label text before plotting so the glyphs sit clear of the wire.
@@ -841,10 +838,9 @@ def global_label_to_op(
 ) -> KiCadPlotterOp:
     """Convert a :class:`SchGlobalLabel` to a ``Text`` op (body only).
 
-    The arrow-shaped border around the text is deferred — F-4 emits
-    the readable text content; F-5 will add the decoration polygon
-    once we wire global-label shape geometry from
-    ``SCH_GLOBAL_LABEL::CreateGraphicShape``.
+    The arrow-shaped border around the text is emitted separately once
+    global-label shape geometry from ``SCH_GLOBAL_LABEL::CreateGraphicShape``
+    is available.
     """
     return _label_to_op(
         label,
@@ -863,7 +859,7 @@ def hierarchical_label_to_op(
     """Convert a :class:`SchHierarchicalLabel` to a ``Text`` op (body only).
 
     The triangular shape decoration is emitted separately by
-    :func:`hierarchical_label_decoration_to_op` (F-6.9).
+    :func:`hierarchical_label_decoration_to_op`.
     """
     return _label_to_op(
         label,
@@ -874,7 +870,7 @@ def hierarchical_label_to_op(
 
 
 # ---------------------------------------------------------------------------
-# Label / sheet-pin triangle decorations (F-6.9)
+# Label / sheet-pin triangle decorations
 # ---------------------------------------------------------------------------
 #
 # Verbatim port of KiCad's ``TemplateShape[5][4]`` table from
@@ -1342,7 +1338,7 @@ def sheet_pin_decoration_to_op(
 
 
 # ---------------------------------------------------------------------------
-# Global-label arrow box (F-6.9b)
+# Global-label arrow box
 # ---------------------------------------------------------------------------
 
 
@@ -4373,7 +4369,7 @@ def _sheet_record(
     default_line_width_nm: int | None = None,
     text_offset_ratio: float = DEFAULT_TEXT_OFFSET_RATIO,
 ) -> KiCadPlotterRecord:
-    """Composed record for a hierarchical sheet (F-6.8).
+    """Composed record for a hierarchical sheet.
 
     Op order mirrors ``SCH_SHEET::Plot``:
     optional background fill → border rect → sheet pins → property
@@ -4492,12 +4488,10 @@ def _sheet_header_record(
 ) -> KiCadPlotterRecord:
     """One leading record per document — paper + title block + identity.
 
-    Phase F-6.5: ``operations`` now carries the drawing-sheet ops
-    (border rects, tick marks, tick labels, title-block fields)
-    emitted from KiCad's default page-layout template by
-    :func:`drawing_sheet_to_ops`. The default template is loaded once
-    and shared; future slices may honour an explicit ``.kicad_wks``
-    referenced by the project file.
+    ``operations`` carries the drawing-sheet ops (border rects, tick marks,
+    tick labels, title-block fields) emitted from KiCad's default page-layout
+    template by :func:`drawing_sheet_to_ops`. The default template is loaded
+    once and shared.
     """
     width_nm, height_nm = paper_size_to_nm(sch.paper)
     extras: dict = {

@@ -1,5 +1,5 @@
 """
-Drawing sheet (kicad_wks) → KiCadPlotterOp emission (Phase F-6.5).
+Drawing sheet (kicad_wks) to KiCadPlotterOp emission.
 
 Ports KiCad's default drawing-sheet template (the
 ``defaultDrawingSheet[]`` C string in
@@ -29,13 +29,9 @@ Design notes:
   Unknown ``${VAR}`` tokens are left in place; unknown ``%X`` codes
   pass through.
 
-Project-variable expansion (a future, deeper concern — fields like
-``${SHORT_FILE_NAME}``, custom user vars defined in the
-``.kicad_pro``) is not handled here. The caller can pass a
-``project_vars`` dict to override / supplement the standard set; the
-recommended longer-term home is a project-level wrapper class
-(parallel to ``altium_design.py`` in altium_monkey) that resolves
-project-scoped variables across all the per-document IR emitters.
+The caller can pass ``project_vars`` to provide custom variables from a
+``.kicad_pro`` file. Built-in sheet and title variables take precedence
+over same-named project variables.
 """
 
 from __future__ import annotations
@@ -757,8 +753,8 @@ def drawing_sheet_to_ops(
     ``${VAR}`` / legacy ``%X`` format codes in tbtext bodies, and
     emits PlotPoly + Rect + Text ops.
 
-    Polygons are skipped in F-6.5 (the default sheet contains none);
-    worksheet bitmaps are surfaced as ``PlotImage`` placeholders with
+    Polygon worksheet items are not emitted; worksheet bitmaps are surfaced
+    as ``PlotImage`` placeholders with
     the embedded PNG payload preserved for downstream renderers.
     """
     page_w_mm = paper_width_nm / _MM_PER_NM
@@ -819,7 +815,7 @@ def drawing_sheet_to_ops(
             ))
         elif kind == "bitmap":
             ops.extend(_bitmap_repeat_ops(cast("WksBitmap", item), page_w_mm, page_h_mm, margins))
-        # polygon intentionally skipped in F-6.5.
+        # Polygon worksheet items are currently not emitted.
 
     return ops
 
