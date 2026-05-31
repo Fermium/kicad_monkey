@@ -16,8 +16,7 @@ Source-side only. Classifies elements as:
                     possible re-emission / debug.
 
 Downstream classifications (``mapped``, ``derived``, ``unsupported_expected``)
-are intentionally NOT computed here; that's the job of data_models comparing
-this inventory to the v1.1 object map.
+are intentionally NOT computed here; this module stays source-side only.
 """
 
 from __future__ import annotations

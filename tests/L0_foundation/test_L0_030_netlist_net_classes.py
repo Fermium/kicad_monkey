@@ -1,7 +1,7 @@
-"""L0 — Phase G Slice N-10: net-class assignment from .kicad_pro.
+"""L0 tests for net-class assignment from .kicad_pro.
 
-Validates :func:`apply_project_net_classes` plus the data_models bridge
-plumbing for ``DesignNet.net_class`` and ``DesignNetClass`` records.
+Validates :func:`apply_project_net_classes` plus KiCad-native JSON plumbing
+for net-class membership.
 """
 
 from __future__ import annotations
@@ -14,9 +14,7 @@ from kicad_monkey.kicad_netlist_model import (
     KiCadNetlistTerminal,
 )
 from kicad_monkey.kicad_netlist_project import apply_project_net_classes
-from kicad_monkey.kicad_netlist_data_models import (
-    kicad_netlist_to_data_models_netlist,
-)
+from kicad_monkey.kicad_design_json import kicad_netlist_to_json
 from kicad_monkey.kicad_project import KiCadProject
 
 
@@ -127,11 +125,11 @@ def test_apply_is_idempotent():
 
 
 # ---------------------------------------------------------------------------
-# data_models bridge
+# KiCad-native JSON
 # ---------------------------------------------------------------------------
 
 
-def test_bridge_emits_net_classes_with_membership():
+def test_kicad_json_emits_net_classes_with_membership():
     nl = KiCadNetlist(
         nets=[_net("VCC"), _net("GND"), _net("SIG")],
         net_classes=[
@@ -143,29 +141,27 @@ def test_bridge_emits_net_classes_with_membership():
     nl.nets[1].net_class = "Power"  # GND
     nl.nets[2].net_class = "Default"
 
-    out = kicad_netlist_to_data_models_netlist(nl)
+    out = kicad_netlist_to_json(nl)
 
-    by_name = {c.name: c for c in out.net_classes}
+    by_name = {row["name"]: row for row in out["net_classes"]}
     assert set(by_name) == {"Default", "Power"}
-    assert sorted(by_name["Power"].nets) == ["GND", "VCC"]
-    assert by_name["Power"].description == "rails"
-    assert by_name["Default"].nets == ["SIG"]
+    assert sorted(by_name["Power"]["nets"]) == ["GND", "VCC"]
+    assert by_name["Power"]["description"] == "rails"
+    assert by_name["Default"]["nets"] == ["SIG"]
 
 
-def test_bridge_assigns_net_class_on_each_design_net():
+def test_kicad_json_assigns_net_class_on_each_net():
     nl = KiCadNetlist(
         nets=[_net("VCC")],
         net_classes=[KiCadNetClass(name="Power")],
     )
     nl.nets[0].net_class = "Power"
 
-    out = kicad_netlist_to_data_models_netlist(nl)
-    assert out.nets[0].net_class == "Power"
+    out = kicad_netlist_to_json(nl)
+    assert out["nets"][0]["net_class"] == "Power"
 
 
-def test_bridge_round_trips_through_json_with_net_classes():
-    from data_models import Netlist
-
+def test_kicad_json_payload_contains_component_and_net_class_sections():
     nl = KiCadNetlist(
         components=[KiCadNetlistComponent(reference="R1", value="10k")],
         nets=[_net("VCC")],
@@ -173,9 +169,8 @@ def test_bridge_round_trips_through_json_with_net_classes():
     )
     nl.nets[0].net_class = "Power"
 
-    out = kicad_netlist_to_data_models_netlist(nl)
-    payload = out.to_json()
-    restored = Netlist.from_json(payload)
-    by_name = {c.name: c for c in restored.net_classes}
+    payload = kicad_netlist_to_json(nl)
+    by_name = {row["name"]: row for row in payload["net_classes"]}
     assert set(by_name) == {"Default", "Power"}
-    assert restored.nets[0].net_class == "Power"
+    assert payload["components"][0]["designator"] == "R1"
+    assert payload["nets"][0]["net_class"] == "Power"

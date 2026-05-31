@@ -7,6 +7,7 @@ from pathlib import Path, PurePosixPath
 
 TESTS_DIR = Path(__file__).resolve().parent
 KICAD_PACKAGE_ROOT = TESTS_DIR.parent
+WORKSPACE_ROOT = KICAD_PACKAGE_ROOT.parent
 KICAD_MODULE_ROOT = KICAD_PACKAGE_ROOT / "src" / "py" / "kicad_monkey"
 TESTS_REPO_ROOT = KICAD_PACKAGE_ROOT
 TEST_CORPUS_DIR = TESTS_DIR / "corpus"

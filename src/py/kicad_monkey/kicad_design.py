@@ -345,24 +345,16 @@ class KiCadDesign:
         )
 
     def to_netlist_json(self) -> dict:
-        """Render the design as a generic ``netlist_a0`` JSON dict.
+        """Render the design as a KiCad-native netlist JSON payload."""
+        from .kicad_design_json import kicad_netlist_to_json
 
-        Bridges through ``data_models.Netlist.to_json`` so consumers can
-        validate against the cross-CAD contract.
-        """
-        from .kicad_netlist_data_models import (
-            kicad_netlist_to_data_models_netlist,
-        )
-
-        return kicad_netlist_to_data_models_netlist(self.to_netlist()).to_json()
+        return kicad_netlist_to_json(self.to_netlist())
 
     def to_json(self, include_indexes: bool = True) -> dict:
         """Render a KiCad-native design JSON payload.
 
-        This is distinct from :meth:`to_netlist_json`, which returns the
-        generic netlist bridge payload. The payload returned here uses
-        KiCad-owned schema IDs and includes project, sheet, component, net,
-        variant, and optional index sections.
+        The payload uses KiCad-owned schema IDs and includes project, sheet,
+        component, net, variant, and optional index sections.
         """
         from .kicad_design_json import kicad_design_to_json
 

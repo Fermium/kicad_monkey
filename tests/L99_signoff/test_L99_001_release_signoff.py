@@ -44,6 +44,8 @@ FORBIDDEN_PUBLIC_TEXT_PATTERNS = (
     (re.compile(r"\baltium_monkey\b", re.IGNORECASE), "outside package reference"),
     (re.compile(r"\bAltiumDesign\b"), "outside package type reference"),
     (re.compile(r"\bSchGeometryRecord\b"), "outside package type reference"),
+    (re.compile(r"\bdata_models\b", re.IGNORECASE), "external model package reference"),
+    (re.compile(r"\bnetlist_a0\b", re.IGNORECASE), "external model schema reference"),
     (re.compile(r"\b(?:toolz|appz|toolz-tests)\b", re.IGNORECASE), "local workspace reference"),
     (
         re.compile(

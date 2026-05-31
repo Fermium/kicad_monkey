@@ -604,8 +604,6 @@ __all__ = [
     # KiCad-format netlist emit (lazy loaded)
     "KICAD_NETLIST_VERSION",
     "to_kicad_sexpr",
-    # Generic netlist_a0 bridge (lazy loaded)
-    "kicad_netlist_to_data_models_netlist",
 ]
 
 
@@ -1616,8 +1614,4 @@ def __getattr__(name: str) -> Any:
     ):
         from . import kicad_netlist_kicadsexpr as _nlk
         return getattr(_nlk, name)
-    # Generic netlist_a0 bridge
-    if name in ("kicad_netlist_to_data_models_netlist",):
-        from . import kicad_netlist_data_models as _nldm
-        return getattr(_nldm, name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

@@ -1,11 +1,10 @@
 """Modular KiCad conversion functions for single parts."""
-import importlib
 import logging
 import re
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Any, Callable, cast
+from typing import Any, Mapping
 
 from .kicad_environment import KiCadEnvironment
 from .kicad_filters import KiCadFilterPipeline
@@ -17,29 +16,21 @@ _KICAD_SYMBOL_NAME_RE = re.compile(r'\(\s*symbol\s+"((?:[^"\\]|\\.)*)"')
 _KICAD_FOOTPRINT_NAME_RE = re.compile(r'\(\s*(?:footprint|module)\s+(?:"((?:[^"\\]|\\.)*)"|([^\s()]+))')
 
 
-class _UnavailablePartA0:
-    pass
-
-
 def _default_flags_to_parameter(flags: Any) -> str:
     return ",".join(str(flag) for flag in (flags or ()))
 
 
-try:
-    _part_a0_module = importlib.import_module("data_models.part_a0")
-    PartA0: type[Any] = cast(type[Any], getattr(_part_a0_module, "PartA0"))
-    _flags_to_parameter_impl: Callable[[Any], str] = cast(
-        Callable[[Any], str],
-        getattr(_part_a0_module, "flags_to_parameter"),
-    )
-except ModuleNotFoundError:
-    PartA0 = _UnavailablePartA0
-
-    _flags_to_parameter_impl = _default_flags_to_parameter
-
-
 def _flags_to_parameter(flags: Any) -> str:
-    return _flags_to_parameter_impl(flags)
+    return _default_flags_to_parameter(flags)
+
+
+def _cad_option(part: Any, cad: str, kind: str) -> Mapping[str, Any]:
+    """Return a part-like object's CAD option mapping, or an empty mapping."""
+    default_cad_option = getattr(part, "default_cad_option", None)
+    if not callable(default_cad_option):
+        return {}
+    option = default_cad_option(cad, kind)
+    return option if isinstance(option, Mapping) else {}
 
 
 class PartKiCadConverter:
@@ -105,26 +96,27 @@ class PartKiCadConverter:
 
     @staticmethod
     def _part_field(part: Any, field_name: str) -> str:
-        """Read a UI CAD field from Part A0 or a mapping-like test double."""
-        if isinstance(part, PartA0):
+        """Read a UI CAD field from a part-like object or mapping."""
+        default_cad_option = getattr(part, "default_cad_option", None)
+        if callable(default_cad_option):
             if field_name == "Manufacturer Part Number":
-                return part.mpn
+                return str(getattr(part, "mpn", "") or "")
             if field_name == "Library Path":
-                return str(part.default_cad_option("altium", "symbol").get("library_path") or "")
+                return str(_cad_option(part, "altium", "symbol").get("library_path") or "")
             if field_name == "Footprint Path 1":
-                return str(part.default_cad_option("altium", "footprint").get("library_path") or "")
+                return str(_cad_option(part, "altium", "footprint").get("library_path") or "")
             if field_name == "kicad-symbol":
-                option = part.default_cad_option("kicad", "symbol")
+                option = _cad_option(part, "kicad", "symbol")
                 return str(option.get("symbol_ref") or option.get("name") or "")
             if field_name == "kicad-symbol-path":
-                return str(part.default_cad_option("kicad", "symbol").get("library_path") or "")
+                return str(_cad_option(part, "kicad", "symbol").get("library_path") or "")
             if field_name == "kicad-footprint":
-                option = part.default_cad_option("kicad", "footprint")
+                option = _cad_option(part, "kicad", "footprint")
                 return str(option.get("footprint_ref") or option.get("name") or "")
             if field_name == "kicad-footprint-path":
-                return str(part.default_cad_option("kicad", "footprint").get("library_path") or "")
+                return str(_cad_option(part, "kicad", "footprint").get("library_path") or "")
             if field_name == "flags":
-                return _flags_to_parameter(part.flags)
+                return _flags_to_parameter(getattr(part, "flags", ()))
 
         getter = getattr(part, "get", None)
         if getter is not None:
@@ -134,7 +126,7 @@ class PartKiCadConverter:
     @staticmethod
     def _set_part_field(part: Any, field_name: str, value: str, results: dict) -> None:
         results.setdefault("updated_fields", {})[field_name] = value
-        if isinstance(part, PartA0):
+        if callable(getattr(part, "default_cad_option", None)):
             return
         try:
             part[field_name] = value
@@ -143,8 +135,8 @@ class PartKiCadConverter:
 
     @classmethod
     def _part_has_flag(cls, part: Any, flag: str) -> bool:
-        if isinstance(part, PartA0):
-            return flag in set(part.flags)
+        if hasattr(part, "flags"):
+            return flag in {str(item).upper() for item in getattr(part, "flags", ())}
         flags = cls._part_field(part, "flags")
         return flag in {item.strip().upper() for item in flags.split(",") if item.strip()}
 

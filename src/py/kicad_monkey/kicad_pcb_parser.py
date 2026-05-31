@@ -87,15 +87,12 @@ class KiCadPcbComponent:
         Convert to generic CAD-agnostic PcbComponent data model.
 
         This legacy conversion hook was removed with the public API cleanup.
-        Use ``kicad_monkey.KiCadPcb`` and
-        ``data_models.converters.kicad.pcb_component_from_kicad_footprint()``
-        instead.
+        Use ``kicad_monkey.KiCadPcb`` for parser-owned PCB data.
         """
         _ = (origin_x_mm, origin_y_mm, id)
         raise RuntimeError(
             "KiCadPcbComponent.to_pcb_component() was removed. Parse with "
-            "kicad_monkey.KiCadPcb and convert with "
-            "data_models.converters.kicad.pcb_component_from_kicad_footprint()."
+            "kicad_monkey.KiCadPcb and convert outside the core parser."
         )
 
 
@@ -329,14 +326,11 @@ class KiCadPcbDoc:
         Convert all components to generic CAD-agnostic PcbComponent data models.
 
         This legacy conversion hook was removed with the public API cleanup.
-        Use ``kicad_monkey.KiCadPcb`` and
-        ``data_models.converters.kicad.pcb_components_from_kicad_pcb()``
-        instead.
+        Use ``kicad_monkey.KiCadPcb`` for parser-owned PCB data.
         """
         raise RuntimeError(
             "KiCadPcbDoc.to_pcb_components() was removed. Parse with "
-            "kicad_monkey.KiCadPcb and convert with "
-            "data_models.converters.kicad.pcb_components_from_kicad_pcb()."
+            "kicad_monkey.KiCadPcb and convert outside the core parser."
         )
 
     def get_unique_footprints(self) -> set[str]:
@@ -353,12 +347,11 @@ class KiCadPcbDoc:
         Convert KiCadPcbDoc to generic PCBData format.
 
         This legacy conversion hook was removed with the public API cleanup.
-        Use ``kicad_monkey.KiCadPcb`` and the data_models KiCad converters
-        instead.
+        Use ``kicad_monkey.KiCadPcb`` for parser-owned PCB data.
         """
         raise RuntimeError(
             "KiCadPcbDoc.to_pcb_data() was removed. Parse with "
-            "kicad_monkey.KiCadPcb and use the data_models KiCad converters."
+            "kicad_monkey.KiCadPcb and convert outside the core parser."
         )
 
     def __str__(self) -> str:
@@ -389,8 +382,7 @@ class KiCadPCBParser:
         """
         _ = (pcb_path, pro_path)
         raise RuntimeError(
-            "KiCadPCBParser.parse_file() was removed. Use kicad_monkey.KiCadPcb "
-            "and the data_models KiCad converters."
+            "KiCadPCBParser.parse_file() was removed. Use kicad_monkey.KiCadPcb."
         )
 
     def _parse_netclasses_from_pro(self, pro_path: Path, nets: dict[int, str]) -> dict[str, list[int]]:

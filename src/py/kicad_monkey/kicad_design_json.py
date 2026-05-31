@@ -2,7 +2,7 @@
 
 The payloads in this module describe KiCad projects, hierarchy, components,
 nets, variants, and optional lookup indexes using KiCad-owned schema IDs. The
-generic netlist bridge remains a separate API on :class:`KiCadDesign`.
+schemas are owned by kicad_monkey and do not depend on external model packages.
 """
 
 from __future__ import annotations

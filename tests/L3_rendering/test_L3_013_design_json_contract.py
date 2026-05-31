@@ -1,7 +1,7 @@
 """L3 contract checks for KiCad-native design/netlist JSON.
 
 The native payloads should be KiCad-owned but close enough to
-``AltiumDesign.to_json(include_indexes=True)`` that downstream tools can make a
+the established downstream design payload conventions that callers can make a
 small source-CAD switch instead of a bespoke KiCad data shape.
 """
 
@@ -135,20 +135,3 @@ def test_public_kicad_netlist_json_uses_raw_netlist_contract():
     assert payload["nets"]
     assert payload["design"]["sheets"]
     assert payload["nets"][0]["terminals"]
-
-
-@pytest.mark.skipif(_CANBOB_PRO is None, reason="canbob corpus project not present")
-def test_kicad_design_json_converts_to_generic_design_a0():
-    from data_models.converters import design_from_kicad_design_json
-
-    assert _CANBOB_PRO is not None
-    raw = KiCadDesign.from_project_file(_CANBOB_PRO).to_json(include_indexes=True)
-    generic = design_from_kicad_design_json(raw).to_json()
-
-    assert generic["schema"] == "wn.design.a0"
-    assert generic["source"]["cad"] == "kicad"
-    assert generic["netlist"]["schema"] == "wn.netlist.a0"
-    assert generic["netlist"]["source"]["cad"] == "kicad"
-    assert generic["netlist"]["components"]
-    assert generic["netlist"]["nets"]
-    assert "kicad_schematic_hierarchy" in generic["metadata"]

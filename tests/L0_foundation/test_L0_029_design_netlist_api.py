@@ -1,4 +1,4 @@
-"""L0 foundation tests — Phase G Slice N-7.
+"""L0 foundation tests for the KiCadDesign netlist API.
 
 Covers ``KiCadDesign.to_netlist`` / ``to_kicad_netlist_sexpr`` /
 ``to_netlist_json`` / ``get_net`` / ``get_component`` / ``refresh_netlist``.
@@ -6,7 +6,8 @@ Covers ``KiCadDesign.to_netlist`` / ``to_kicad_netlist_sexpr`` /
 Tests are pure-unit and decoupled from full schematic compilation: the
 underlying ``compile_design_netlist`` walk is already covered by L0_024-
 028. Here we focus on the routing surface — caching, top-schematic
-guard, JSON shape, and source-path threading into the kicadsexpr emit.
+guard, KiCad-native JSON shape, and source-path threading into the kicadsexpr
+emit.
 """
 
 from __future__ import annotations
@@ -27,6 +28,7 @@ from kicad_monkey import (
     KiCadNetlistTerminal,
 )
 from kicad_monkey.kicad_design_json import kicad_netlist_to_json
+from kicad_monkey.kicad_netlist_model import KiCadNetClass
 
 
 _MIN_SCH_TEXT = """(kicad_sch (version 20250114) (generator "eeschema")
@@ -230,16 +232,16 @@ def test_to_kicad_netlist_sexpr_respects_tool_and_date(tmp_path):
 # ---------------------------------------------------------------------------
 
 
-def test_to_netlist_json_returns_netlist_a0_dict(tmp_path):
+def test_to_netlist_json_returns_kicad_native_dict(tmp_path):
     sch = tmp_path / "demo.kicad_sch"
     _write_min_sch(sch)
     design = KiCadDesign.from_schematic_file(sch)
     design._netlist = _make_synthetic_netlist()
 
     payload = design.to_netlist_json()
-    assert payload["type"] == "netlist_a0"
-    assert payload["schema"] == "wn.netlist.a0"
-    assert payload["source"]["cad"] == "kicad"
+    assert payload["schema"] == "kicad_monkey.netlist.a1"
+    assert payload["generator"] == "kicad_monkey"
+    assert payload["design"]["tool"] == "kicad_monkey"
 
     # Components carry through.
     refs = [c["designator"] for c in payload["components"]]
@@ -250,17 +252,20 @@ def test_to_netlist_json_returns_netlist_a0_dict(tmp_path):
     assert net_names == ["VCC", "GND"]
 
 
-def test_to_netlist_json_round_trips(tmp_path):
+def test_to_netlist_json_includes_kicad_net_classes(tmp_path):
     sch = tmp_path / "demo.kicad_sch"
     _write_min_sch(sch)
     design = KiCadDesign.from_schematic_file(sch)
     design._netlist = _make_synthetic_netlist()
+    design._netlist.net_classes = [KiCadNetClass(name="Default"), KiCadNetClass(name="Power")]
+    design._netlist.nets[0].net_class = "Power"
+    design._netlist.nets[1].net_class = "Default"
 
     payload = design.to_netlist_json()
-    from data_models import Netlist
-    restored = Netlist.from_json(payload)
-    assert restored.get_component("R1") is not None
-    assert restored.get_net("VCC") is not None
+    by_name = {row["name"]: row for row in payload["net_classes"]}
+    assert set(by_name) == {"Default", "Power"}
+    assert by_name["Power"]["nets"] == ["VCC"]
+    assert by_name["Default"]["nets"] == ["GND"]
 
 
 def test_kicad_netlist_json_pin_endpoints_keep_source_pin_identity():

@@ -1416,9 +1416,8 @@ def _design_sheet_records(
             if tb is not None:
                 title = getattr(tb, "title", "") or ""
                 company = getattr(tb, "company", "") or ""
-                # TitleBlock uses ``rev`` (KiCad's own token); we surface
-                # it as ``revision`` on KiCadDesignSheet to match the
-                # generic ``netlist_a0`` field naming.
+                # TitleBlock uses ``rev`` (KiCad's own token); the netlist
+                # model exposes the clearer ``revision`` field name.
                 revision = getattr(tb, "rev", "") or ""
                 date = getattr(tb, "date", "") or ""
         out.append(KiCadDesignSheet(

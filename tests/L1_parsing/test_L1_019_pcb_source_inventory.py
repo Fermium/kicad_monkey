@@ -7,7 +7,7 @@ in ``AGENT_KICAD_VIZ_DATA_MODEL_BULLETIN.md``.
 The inventory is **source-side only**: it reports what the parser saw, with
 classifications ``unknown`` / ``unprocessed`` / ``ignored`` / ``passthrough``.
 Downstream classifications (``mapped`` / ``derived`` / ``unsupported_expected``)
-are computed elsewhere by ``data_models`` against the v1.1 object map.
+are intentionally outside this parser-owned inventory.
 """
 
 from __future__ import annotations
