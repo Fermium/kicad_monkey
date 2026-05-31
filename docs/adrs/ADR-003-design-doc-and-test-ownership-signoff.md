@@ -37,6 +37,12 @@ easy to inspect with text tooling.
 Stable machine-readable contracts that leave the package boundary belong under
 `docs/contracts/` and need conformance tests before release.
 
+Planning notes are local working artifacts, not public release artifacts. When a
+plan completes, the relevant durable decisions, API intent, status, and test
+ownership move into ADRs, design docs, release notes, or contracts as
+appropriate. `docs/plans/` is ignored to keep future planning scratch work out
+of public commits.
+
 ## Consequences
 
 `L99_signoff` fails when promoted public classes, major interfaces, design-doc

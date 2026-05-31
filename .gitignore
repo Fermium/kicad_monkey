@@ -11,3 +11,4 @@ tests/**/output/
 tests/corpus/kicad/
 tests/corpus/.unpacked/
 tests/corpus/*.tmp.zip
+docs/plans/

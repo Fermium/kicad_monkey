@@ -85,7 +85,6 @@ Broader fixture families should use this shape:
 
 - [Architecture Decision Records](docs/adrs)
 - [Design Notes](docs/design)
-- [Plans](docs/plans)
 - [Changelog](CHANGELOG.md)
 - [Contributing](CONTRIBUTING.md)
 

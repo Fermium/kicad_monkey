@@ -5,9 +5,7 @@ Status: research note / recommended plugin spike
 
 Implementation update: the installable plugin plan now targets
 footprint-local HLR graphics first so generated outlines move with parts during
-placement. See
-`kicad_monkey/docs/plans/KICAD_FOOTPRINT_HLR_PLUGIN_IMPLEMENTATION_PLAN.md`.
-The board-level path below remains useful as a lower-risk IPC/write-back
+placement. The board-level path below remains useful as a lower-risk IPC/write-back
 debugging fallback and report/overlay path, but it is no longer the first
 product workflow.
 
@@ -531,7 +529,6 @@ Local source:
 - `C:/eli/agent-worktrees/3d-viz-rework/toolz/viz/src/py/viz/altium_pcb_gltf_renderer.py`
 - `C:/eli/agent-worktrees/3d-viz-rework/geometer/INTERFACES.md`
 - `C:/eli/agent-worktrees/3d-viz-rework/geometer/docs/requirements/002_step_hlr_projection.md`
-- `C:/eli/agent-worktrees/3d-viz-rework/geometer/docs/plans/004_poly_hlr_perf_results.md`
 - `C:/eli/agent-worktrees/3d-viz-rework/geometer/src/cpp/lib/geometer/projection.h`
 
 External/current package sources:

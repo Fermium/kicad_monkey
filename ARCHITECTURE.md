@@ -75,9 +75,8 @@ Current readiness outcome:
 - the main remaining blocker is now `data_models` converter thinness, not broad
   uncertainty in the KiCad parser/model contract
 
-The source-model review was folded into
-`docs/plans/KICAD_MONKEY_REWORK_PLAN.md` and completed as part of the
-2026-05-18 viz-enabling milestone.
+The source-model review outcome is recorded in this architecture document and
+was completed as part of the 2026-05-18 viz-enabling milestone.
 
 ## Design Philosophy
 

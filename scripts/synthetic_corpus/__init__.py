@@ -4,8 +4,8 @@ Per-family generators produce one ``.kicad_pcb`` + ``.kicad_pro`` +
 ``.kicad_sch`` + ``case_metadata.json`` per case under
 ``<corpus>/kicad/pcb_foundation/case<NNN>__<descriptor>/input/``.
 
-See ``docs/plans/KICAD_PCB_FOUNDATION_SYNTHETIC_CORPUS_PLAN.md`` for the
-naming convention and case roadmap.
+See ``docs/adrs/ADR-002-kicad-test-corpus-and-lanes.md`` for the corpus layout
+and lane rules.
 """
 
 from __future__ import annotations

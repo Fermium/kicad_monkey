@@ -131,7 +131,7 @@ of the `tools/kicad` OOP parser/model.
 - We need to avoid misclassifying converter-contract drift as parser failure
 
 **Verification**:
-- [x] Source-model readiness is folded into `docs/plans/KICAD_MONKEY_REWORK_PLAN.md`
+- [x] Source-model readiness outcome is recorded in `ARCHITECTURE.md`
 - [x] Parser-readiness tests cover curated shared-corpus KiCad boards
 - [x] The current blocker list distinguishes parser/model issues from converter issues
 

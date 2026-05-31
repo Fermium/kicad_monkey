@@ -4,9 +4,8 @@ Stratum: L1_parsing
 Purpose: Prove every promoted KiCad S-expression file in the shared corpus
 round-trips through the parser/writer without the typed OOP layer.
 
-This is the Phase 2 parser gate from
-``toolz/kicad_monkey/docs/plans/KICAD_MONKEY_REWORK_PLAN.md`` — it must run
-``parse_sexp -> build_sexp -> parse_sexp`` only and tag failures by parse
+This parser-only gate must run ``parse_sexp -> build_sexp -> parse_sexp`` only
+and tag failures by parse
 phase (``lex`` / ``tree`` / ``build`` / ``reparse`` / ``compare``) so a
 downstream SVG/IR failure cannot hide a low-level parse defect.
 """
