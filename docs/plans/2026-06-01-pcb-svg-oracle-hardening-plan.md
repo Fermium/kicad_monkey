@@ -115,6 +115,11 @@ decisions KiCad makes, not only visual similarity.
   from the file end point back to the start point, matching kicad-cli's arc
   path sweep. Promoted `case007` F.Cu into strict structural coverage and
   pinned the arc path command family.
+- 2026-06-01: Probed the existing synthetic semantic oracle registry with
+  the strict comparator. Promoted additional exact-match cases for knockout
+  text, center dimensions, and dashed/dotted line and arc stroke decomposition.
+  Left footprint knockout text fill-rule and leader/radial dimension geometry
+  mismatches out of strict coverage as follow-on implementation targets.
 
 ## Goals
 

@@ -34,6 +34,10 @@ class StrictSvgCase:
     command_families: tuple[str, ...] | None = None
 
 
+def _paths(count: int) -> tuple[str, ...]:
+    return ("path",) * count
+
+
 STRICT_CASES: tuple[StrictSvgCase, ...] = (
     StrictSvgCase(
         case_id="track_top_1mil_f_cu",
@@ -59,6 +63,42 @@ STRICT_CASES: tuple[StrictSvgCase, ...] = (
         layers=("F.Cu",),
         kind_sequence=("path",),
         command_families=("M/A",),
+    ),
+    StrictSvgCase(
+        case_id="line_silk_dashed",
+        board_relpath="case243__line_silk_dashed/silk_line_top_dashed.kicad_pcb",
+        layers=("F.SilkS",),
+        kind_sequence=_paths(4),
+    ),
+    StrictSvgCase(
+        case_id="line_silk_dotted",
+        board_relpath="case244__line_silk_dotted/silk_line_top_dotted.kicad_pcb",
+        layers=("F.SilkS",),
+        kind_sequence=_paths(12),
+    ),
+    StrictSvgCase(
+        case_id="line_silk_dash_dot",
+        board_relpath="case245__line_silk_dash_dot/silk_line_top_dash_dot.kicad_pcb",
+        layers=("F.SilkS",),
+        kind_sequence=_paths(5),
+    ),
+    StrictSvgCase(
+        case_id="line_silk_dash_dot_dot",
+        board_relpath="case246__line_silk_dash_dot_dot/silk_line_top_dash_dot_dot.kicad_pcb",
+        layers=("F.SilkS",),
+        kind_sequence=_paths(7),
+    ),
+    StrictSvgCase(
+        case_id="arc_silk_dash_dot",
+        board_relpath="case232__arc_silk_dash_dot/silk_arc_top_dash_dot.kicad_pcb",
+        layers=("F.SilkS",),
+        kind_sequence=_paths(239),
+    ),
+    StrictSvgCase(
+        case_id="arc_silk_dash_dot_dot",
+        board_relpath="case233__arc_silk_dash_dot_dot/silk_arc_top_dash_dot_dot.kicad_pcb",
+        layers=("F.SilkS",),
+        kind_sequence=_paths(177),
     ),
     StrictSvgCase(
         case_id="via_basic_f_cu",
@@ -143,6 +183,18 @@ STRICT_CASES: tuple[StrictSvgCase, ...] = (
         board_relpath="case024__fill_top_zone/one_zone_filled_top.kicad_pcb",
         layers=("F.Cu",),
         kind_sequence=("path",),
+    ),
+    StrictSvgCase(
+        case_id="knockout_text_silk",
+        board_relpath="case200__text_knockout_basic/simple_test_knockout.kicad_pcb",
+        layers=("F.SilkS",),
+        kind_sequence=("path",),
+    ),
+    StrictSvgCase(
+        case_id="dim_center",
+        board_relpath="case221__dim_center/dim_center.kicad_pcb",
+        layers=("Cmts.User",),
+        kind_sequence=("path", "path"),
     ),
 )
 
