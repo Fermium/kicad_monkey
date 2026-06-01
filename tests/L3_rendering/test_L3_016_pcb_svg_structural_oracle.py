@@ -53,10 +53,22 @@ STRICT_CASES: tuple[StrictSvgCase, ...] = (
         kind_sequence=("path",),
     ),
     StrictSvgCase(
+        case_id="pad_th_oval_f_cu",
+        board_relpath="case018__pad_th_oval/case018__pad_th_oval.kicad_pcb",
+        layers=("F.Cu",),
+        kind_sequence=("path", "circle"),
+    ),
+    StrictSvgCase(
         case_id="slot_copper_drill_f_cu",
         board_relpath="case084__pad_slot_hole/one_slot_drill.kicad_pcb",
         layers=("F.Cu",),
         kind_sequence=("path", "path"),
+    ),
+    StrictSvgCase(
+        case_id="zone_fill_f_cu",
+        board_relpath="case024__fill_top_zone/one_zone_filled_top.kicad_pcb",
+        layers=("F.Cu",),
+        kind_sequence=("path",),
     ),
 )
 

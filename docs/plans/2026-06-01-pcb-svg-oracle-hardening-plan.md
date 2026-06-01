@@ -93,6 +93,10 @@ decisions KiCad makes, not only visual similarity.
   pad size equals the drill, but not the extra drill-derived aperture when the
   NPTH pad body already exceeds the drill. Added pad-size hints to the IR and
   L0 coverage for both cases.
+- 2026-06-01: Promoted two additional strict structural cases that already
+  match after the emitter fixes: through-hole oval F.Cu (`path` + drill
+  `circle`) and filled zone F.Cu (`path`). Left Edge.Cuts outline path/stroke
+  width differences as an explicit follow-on target.
 
 ## Goals
 
