@@ -688,6 +688,49 @@ def _render_stroked_polyline_like_cli(
     )
 
 
+def _render_rect_like_cli(
+    x1: int,
+    y1: int,
+    x2: int,
+    y2: int,
+    *,
+    ctx: KiCadSvgRenderContext,
+    fill: KiCadFillType | str | None = KiCadFillType.NO_FILL.value,
+    fill_color: str | None = None,
+    stroke_color: str | None = None,
+    width_nm: int | float | None = None,
+    corner_radius_nm: int = 0,
+    line_style: KiCadLineStyle | str | None = None,
+) -> str:
+    if _profile_is_kicad_cli(ctx.options) and corner_radius_nm <= 0:
+        d = _path_d_from_polygon_points(
+            [(x1, y1), (x2, y1), (x2, y2), (x1, y2)],
+            ctx=ctx,
+        )
+        return svg_path(
+            d,
+            ctx=ctx,
+            fill=fill,
+            fill_color=fill_color,
+            stroke_color=stroke_color,
+            width_nm=width_nm,
+            line_style=line_style,
+        )
+    return svg_rect(
+        x1,
+        y1,
+        x2,
+        y2,
+        ctx=ctx,
+        fill=fill,
+        fill_color=fill_color,
+        stroke_color=stroke_color,
+        width_nm=width_nm,
+        corner_radius_nm=corner_radius_nm,
+        line_style=line_style,
+    )
+
+
 def _drill_render_mode(role: str, ctx: KiCadSvgRenderContext) -> str:
     # NPTH holes are rendered identically to PTH drills by kicad-cli:
     # white knockout on copper/mask, outline on silk/fab/edge.
@@ -1148,7 +1191,7 @@ def render_op(op: KiCadPlotterOp, *, ctx: KiCadSvgRenderContext) -> str:
         )
 
     if kind == KiCadPlotterOpKind.RECT.value:
-        return svg_rect(
+        return _render_rect_like_cli(
             int(p.get("x1", 0)),
             int(p.get("y1", 0)),
             int(p.get("x2", 0)),

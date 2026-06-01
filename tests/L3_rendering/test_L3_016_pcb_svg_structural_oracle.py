@@ -41,6 +41,12 @@ STRICT_CASES: tuple[StrictSvgCase, ...] = (
         kind_sequence=("circle", "circle"),
     ),
     StrictSvgCase(
+        case_id="via_basic_edgecuts",
+        board_relpath="case019__via_basic/one_via.kicad_pcb",
+        layers=("Edge.Cuts",),
+        kind_sequence=("path",),
+    ),
+    StrictSvgCase(
         case_id="pad_chamfered_roundrect_f_cu",
         board_relpath="case083__pad_chamfered_roundrect/one_chamfer_roundrect.kicad_pcb",
         layers=("F.Cu",),
@@ -62,6 +68,12 @@ STRICT_CASES: tuple[StrictSvgCase, ...] = (
         case_id="slot_copper_drill_f_cu",
         board_relpath="case084__pad_slot_hole/one_slot_drill.kicad_pcb",
         layers=("F.Cu",),
+        kind_sequence=("path", "path"),
+    ),
+    StrictSvgCase(
+        case_id="slot_edgecuts_drill_outline",
+        board_relpath="case084__pad_slot_hole/one_slot_drill.kicad_pcb",
+        layers=("Edge.Cuts",),
         kind_sequence=("path", "path"),
     ),
     StrictSvgCase(

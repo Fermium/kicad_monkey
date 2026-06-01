@@ -63,7 +63,6 @@ from .kicad_footprint_to_ir import (
 from .kicad_lib_symbol_to_ir import (
     _effects_to_text_kwargs,
     mm_to_nm,
-    stroke_width_nm,
 )
 from .kicad_plotter_ir import (
     KiCadFillType,
@@ -113,6 +112,15 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------------
 
 
+def _pcb_stroke_width_nm(stroke: Any) -> int:
+    """Return PCB graphic stroke width without schematic pen-width clamping."""
+
+    width = float(getattr(stroke, "width", 0.0) or 0.0)
+    if width <= 0.0:
+        return 0
+    return mm_to_nm(width)
+
+
 def gr_line_to_op(line: "GrLine") -> KiCadPlotterOp:
     """Convert a ``gr_line`` into a ``ThickSegment`` op (solid only)."""
     return KiCadPlotterOp.thick_segment(
@@ -120,7 +128,7 @@ def gr_line_to_op(line: "GrLine") -> KiCadPlotterOp:
         start_y=mm_to_nm(line.start_y),
         end_x=mm_to_nm(line.end_x),
         end_y=mm_to_nm(line.end_y),
-        width_nm=stroke_width_nm(line.stroke),
+        width_nm=_pcb_stroke_width_nm(line.stroke),
     )
 
 
@@ -132,7 +140,7 @@ def gr_line_to_ops(line: "GrLine") -> list[KiCadPlotterOp]:
     ``STROKE_PARAMS::Stroke`` output: one segment per dash).
     """
     style = getattr(line.stroke, "type", None) if line.stroke else None
-    width_nm = stroke_width_nm(line.stroke)
+    width_nm = _pcb_stroke_width_nm(line.stroke)
     if not is_decomposable_style(style):
         return [gr_line_to_op(line)]
     pieces = decompose_segment(
@@ -161,7 +169,7 @@ def gr_arc_to_op(arc: "GrArc") -> KiCadPlotterOp:
         end_x=mm_to_nm(arc.end_x),
         end_y=mm_to_nm(arc.end_y),
         fill=KiCadFillType.NO_FILL,
-        width_nm=stroke_width_nm(arc.stroke),
+        width_nm=_pcb_stroke_width_nm(arc.stroke),
     )
 
 
@@ -173,7 +181,7 @@ def gr_arc_to_ops(arc: "GrArc") -> list[KiCadPlotterOp]:
     (0.5-degree steps within each dash, single chord per dot interval).
     """
     style = getattr(arc.stroke, "type", None) if arc.stroke else None
-    width_nm = stroke_width_nm(arc.stroke)
+    width_nm = _pcb_stroke_width_nm(arc.stroke)
     if not is_decomposable_style(style):
         return [gr_arc_to_op(arc)]
     pieces = decompose_arc(
@@ -209,7 +217,7 @@ def gr_circle_to_op(circle: "GrCircle") -> KiCadPlotterOp:
         cy=mm_to_nm(circle.center_y),
         diameter_nm=mm_to_nm(radius_mm * 2.0),
         fill=fp_fill_to_kicad_fill(circle.fill),
-        width_nm=stroke_width_nm(circle.stroke),
+        width_nm=_pcb_stroke_width_nm(circle.stroke),
     )
 
 
@@ -221,7 +229,7 @@ def gr_rect_to_op(rect: "GrRect") -> KiCadPlotterOp:
         x2=mm_to_nm(rect.end_x),
         y2=mm_to_nm(rect.end_y),
         fill=fp_fill_to_kicad_fill(rect.fill),
-        width_nm=stroke_width_nm(rect.stroke),
+        width_nm=_pcb_stroke_width_nm(rect.stroke),
     )
 
 
@@ -231,7 +239,7 @@ def gr_poly_to_op(poly: "GrPoly") -> KiCadPlotterOp:
     return KiCadPlotterOp.plot_poly(
         points=points,
         fill=fp_fill_to_kicad_fill(poly.fill),
-        width_nm=stroke_width_nm(poly.stroke),
+        width_nm=_pcb_stroke_width_nm(poly.stroke),
     )
 
 
@@ -250,7 +258,7 @@ def gr_curve_to_op(curve: "GrCurve") -> KiCadPlotterOp | None:
         ctrl1_x=mm_to_nm(pts[1][0]), ctrl1_y=mm_to_nm(pts[1][1]),
         ctrl2_x=mm_to_nm(pts[2][0]), ctrl2_y=mm_to_nm(pts[2][1]),
         end_x=mm_to_nm(pts[3][0]), end_y=mm_to_nm(pts[3][1]),
-        width_nm=stroke_width_nm(curve.stroke),
+        width_nm=_pcb_stroke_width_nm(curve.stroke),
     )
 
 

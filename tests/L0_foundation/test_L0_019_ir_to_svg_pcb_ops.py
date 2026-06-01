@@ -146,6 +146,29 @@ def test_render_op_text_uses_typed_render_cache_holes(
 
 
 # ---------------------------------------------------------------------------
+# Rect
+# ---------------------------------------------------------------------------
+
+
+def test_render_op_rect_kicad_cli_uses_path() -> None:
+    op = KiCadPlotterOp.rect(
+        x1=0,
+        y1=0,
+        x2=10_000_000,
+        y2=5_000_000,
+        width_nm=50_000,
+    )
+
+    svg = render_op(op, ctx=kicad_cli_ctx())
+
+    assert svg.startswith("<path")
+    assert 'd="M 0,0 L 10,0 L 10,5 L 0,5 Z"' in svg
+    assert 'fill="none"' in svg
+    assert 'stroke-width="0.05"' in svg
+    assert "<rect" not in svg
+
+
+# ---------------------------------------------------------------------------
 # ThickSegment
 # ---------------------------------------------------------------------------
 

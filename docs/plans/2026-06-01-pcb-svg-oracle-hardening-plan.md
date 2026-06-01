@@ -97,6 +97,10 @@ decisions KiCad makes, not only visual similarity.
   match after the emitter fixes: through-hole oval F.Cu (`path` + drill
   `circle`) and filled zone F.Cu (`path`). Left Edge.Cuts outline path/stroke
   width differences as an explicit follow-on target.
+- 2026-06-01: Fixed the Edge.Cuts follow-on target by using PCB stroke widths
+  without the schematic minimum pen-width clamp and emitting `gr_rect` as a
+  path in `profile="kicad_cli"`. Promoted via Edge.Cuts and slot Edge.Cuts
+  into strict structural coverage.
 
 ## Goals
 
