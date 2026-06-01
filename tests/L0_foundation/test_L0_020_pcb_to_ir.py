@@ -786,6 +786,10 @@ def test_track_arc_to_op_uses_track_width():
     op = track_arc_to_op(arc)
     assert op.kind == KiCadPlotterOpKind.ARC_THREE_POINT
     assert op.payload["width_nm"] == 300_000
+    assert op.payload["start_x"] == 2_000_000
+    assert op.payload["start_y"] == 0
+    assert op.payload["end_x"] == 0
+    assert op.payload["end_y"] == 0
 
 
 def test_via_to_op_emits_flash_pad_circle_with_full_size():

@@ -111,6 +111,10 @@ decisions KiCad makes, not only visual similarity.
   custom anchor shape and primitive stroke widths through the IR, then unioning
   them into the single filled path KiCad emits. Promoted `case122` custom pad
   F.Cu into strict structural coverage.
+- 2026-06-01: Fixed routed track-arc plot direction by emitting plotter IR
+  from the file end point back to the start point, matching kicad-cli's arc
+  path sweep. Promoted `case007` F.Cu into strict structural coverage and
+  pinned the arc path command family.
 
 ## Goals
 

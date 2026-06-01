@@ -31,6 +31,7 @@ class StrictSvgCase:
     board_relpath: str
     layers: tuple[str, ...]
     kind_sequence: tuple[str, ...]
+    command_families: tuple[str, ...] | None = None
 
 
 STRICT_CASES: tuple[StrictSvgCase, ...] = (
@@ -51,6 +52,13 @@ STRICT_CASES: tuple[StrictSvgCase, ...] = (
         board_relpath="case012__pad_smd_round/case012__pad_smd_round.kicad_pcb",
         layers=("F.Cu",),
         kind_sequence=("circle",),
+    ),
+    StrictSvgCase(
+        case_id="arc_top_quarter_f_cu",
+        board_relpath="case007__arc_top_quarter/case007__arc_top_quarter.kicad_pcb",
+        layers=("F.Cu",),
+        kind_sequence=("path",),
+        command_families=("M/A",),
     ),
     StrictSvgCase(
         case_id="via_basic_f_cu",
@@ -207,6 +215,9 @@ def test_pcb_svg_strict_draw_items_match_kicad_cli(case, kicad_cli_path, tmp_pat
 
     assert tuple(item.kind for item in cli_items) == case.kind_sequence
     assert tuple(item.kind for item in ours_items) == case.kind_sequence
+    if case.command_families is not None:
+        assert tuple(item.command_family for item in cli_items) == case.command_families
+        assert tuple(item.command_family for item in ours_items) == case.command_families
     assert len(ours_items) == len(cli_items)
 
     for index, (ours, reference) in enumerate(zip(ours_items, cli_items)):

@@ -662,13 +662,16 @@ def track_segment_to_op(seg: "Segment") -> KiCadPlotterOp:
 
 def track_arc_to_op(arc: "TrackArc") -> KiCadPlotterOp:
     """Convert a track ``arc`` into an ``ArcThreePoint`` op with width."""
+    # KiCad's track-arc plotter emits the arc from the file's end point back
+    # to its start point. Keep that plot direction in the IR so SVG sweep
+    # flags and path endpoints match kicad-cli.
     return KiCadPlotterOp.arc_three_point(
-        start_x=mm_to_nm(arc.start_x),
-        start_y=mm_to_nm(arc.start_y),
+        start_x=mm_to_nm(arc.end_x),
+        start_y=mm_to_nm(arc.end_y),
         mid_x=mm_to_nm(arc.mid_x),
         mid_y=mm_to_nm(arc.mid_y),
-        end_x=mm_to_nm(arc.end_x),
-        end_y=mm_to_nm(arc.end_y),
+        end_x=mm_to_nm(arc.start_x),
+        end_y=mm_to_nm(arc.start_y),
         fill=KiCadFillType.NO_FILL,
         width_nm=mm_to_nm(arc.width),
     )
