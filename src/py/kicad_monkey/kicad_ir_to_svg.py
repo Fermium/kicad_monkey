@@ -214,7 +214,7 @@ def _render_typed_cache_polygons(
             stroke_color=color,
             width_nm=0,
         )
-        if len(contours) > 1:
+        if len(contours) > 1 or _profile_is_kicad_cli(ctx.options):
             fragment = fragment.replace(" />", ' fill-rule="evenodd" clip-rule="evenodd" />')
         fragments.append(fragment)
     return "\n".join(fragments)

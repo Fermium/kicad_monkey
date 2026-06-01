@@ -120,6 +120,10 @@ decisions KiCad makes, not only visual similarity.
   text, center dimensions, and dashed/dotted line and arc stroke decomposition.
   Left footprint knockout text fill-rule and leader/radial dimension geometry
   mismatches out of strict coverage as follow-on implementation targets.
+- 2026-06-01: Matched KiCad CLI's `fill-rule:evenodd` style for typed render
+  cache paths in `profile="kicad_cli"`. Re-probing footprint knockout text
+  then exposed a separate path bbox/order mismatch, so that case remains a
+  follow-on geometry target rather than entering strict coverage.
 
 ## Goals
 

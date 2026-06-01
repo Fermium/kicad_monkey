@@ -146,6 +146,42 @@ def test_render_op_text_uses_typed_render_cache_holes(
     assert ">O<" not in svg
 
 
+def test_render_op_text_kicad_cli_typed_cache_uses_evenodd() -> None:
+    op = KiCadPlotterOp.text(
+        x=10_000_000,
+        y=10_000_000,
+        text="I",
+        size_x_nm=2_000_000,
+        size_y_nm=2_000_000,
+        render_cache={
+            "schema": "kicad.render_cache.v1",
+            "unit": "nm",
+            "coordinate_space": "board",
+            "text": "I",
+            "angle": 0.0,
+            "polygons": [
+                {
+                    "contours": [
+                        [
+                            [10_000_000, 10_000_000],
+                            [12_000_000, 10_000_000],
+                            [12_000_000, 12_000_000],
+                            [10_000_000, 12_000_000],
+                        ],
+                    ]
+                }
+            ],
+        },
+    )
+
+    svg = render_op(op, ctx=kicad_cli_ctx())
+
+    assert svg.startswith("<path")
+    assert 'fill-rule="evenodd"' in svg
+    assert 'clip-rule="evenodd"' in svg
+    assert ">I<" not in svg
+
+
 # ---------------------------------------------------------------------------
 # Rect
 # ---------------------------------------------------------------------------
