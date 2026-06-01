@@ -84,6 +84,10 @@ decisions KiCad makes, not only visual similarity.
   fill-only `<path>` items with `stroke:none` and `fill-rule:evenodd`.
   Promoted `case083` chamfered roundrect F.Cu into strict structural
   coverage alongside the via case.
+- 2026-06-01: Extended `profile="kicad_cli"` path output to stroked thick
+  segments, covering oval pads, routed/stroked segments, and slot drill
+  strokes while preserving default review `<polyline>` output. Promoted
+  SMD oval F.Cu and slot-drill F.Cu into strict structural SVG coverage.
 
 ## Goals
 

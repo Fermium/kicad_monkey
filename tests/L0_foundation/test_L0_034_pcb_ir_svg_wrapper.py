@@ -203,7 +203,7 @@ def test_render_pcb_ir_to_svg_kicad_cli_profile_suppresses_metadata():
     assert 'data-ref="' not in svg
     assert 'data-uuid="' not in svg
     assert 'id="' not in svg
-    assert "<polyline" in svg
+    assert "<path" in svg
 
 
 def test_render_pcb_ir_to_svg_kicad_cli_options_suppress_metadata():

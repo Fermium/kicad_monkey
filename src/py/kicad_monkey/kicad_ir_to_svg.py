@@ -639,6 +639,55 @@ def _render_filled_polygon_like_cli(
     )
 
 
+def _path_d_from_polyline_points(
+    points: Iterable[tuple[int, int]] | Iterable[tuple[float, float]],
+    *,
+    ctx: KiCadSvgRenderContext,
+) -> str:
+    pts = list(points)
+    if len(pts) < 2:
+        return ""
+    first_x, first_y = pts[0]
+    commands = [
+        f"M {fmt_user_number(ctx.to_user_x(first_x))},{fmt_user_number(ctx.to_user_y(first_y))}"
+    ]
+    commands.extend(
+        f"L {fmt_user_number(ctx.to_user_x(x))},{fmt_user_number(ctx.to_user_y(y))}"
+        for x, y in pts[1:]
+    )
+    return " ".join(commands)
+
+
+def _render_stroked_polyline_like_cli(
+    points: Iterable[tuple[int, int]] | Iterable[tuple[float, float]],
+    *,
+    ctx: KiCadSvgRenderContext,
+    stroke_color: str | None = None,
+    width_nm: int | float | None = None,
+    line_style: KiCadLineStyle | str | None = None,
+) -> str:
+    pts = list(points)
+    if _profile_is_kicad_cli(ctx.options):
+        d = _path_d_from_polyline_points(pts, ctx=ctx)
+        if not d:
+            return ""
+        return svg_path(
+            d,
+            ctx=ctx,
+            fill=KiCadFillType.NO_FILL.value,
+            stroke_color=stroke_color,
+            width_nm=width_nm,
+            line_style=line_style,
+        )
+    return svg_polyline(
+        pts,
+        ctx=ctx,
+        stroke_color=stroke_color,
+        width_nm=width_nm,
+        line_style=line_style,
+    )
+
+
 def _drill_render_mode(role: str, ctx: KiCadSvgRenderContext) -> str:
     # NPTH holes are rendered identically to PTH drills by kicad-cli:
     # white knockout on copper/mask, outline on silk/fab/edge.
@@ -702,7 +751,7 @@ def _render_drill_slot_op(p: dict, *, ctx: KiCadSvgRenderContext) -> str:
         stroke_color = "#000000"
     elif mode == "white":
         stroke_color = "#FFFFFF"
-    return svg_polyline(
+    return _render_stroked_polyline_like_cli(
         [
             (int(p.get("start_x", 0)), int(p.get("start_y", 0))),
             (int(p.get("end_x", 0)), int(p.get("end_y", 0))),
@@ -717,7 +766,7 @@ def _render_drill_slot_op(p: dict, *, ctx: KiCadSvgRenderContext) -> str:
 def _render_thick_segment_op(p: dict, *, ctx: KiCadSvgRenderContext) -> str:
     """Two-point polyline with a draw width — round caps come from ctx defaults."""
     width_nm = int(p.get("width_nm", 0)) or None
-    return svg_polyline(
+    return _render_stroked_polyline_like_cli(
         [
             (int(p.get("start_x", 0)), int(p.get("start_y", 0))),
             (int(p.get("end_x", 0)), int(p.get("end_y", 0))),
@@ -893,7 +942,7 @@ def _render_flash_pad_oval_op(p: dict, *, ctx: KiCadSvgRenderContext) -> str:
             width_nm = size_x
 
         pts = _absolutize(local, cx=cx, cy=cy, orient_deg=orient_deg)
-        return svg_polyline(
+        return _render_stroked_polyline_like_cli(
             pts,
             ctx=ctx,
             stroke_color=_stroke_color(payload),
@@ -1132,7 +1181,7 @@ def render_op(op: KiCadPlotterOp, *, ctx: KiCadSvgRenderContext) -> str:
                 width_nm=width_nm,
                 line_style=_line_style(p),
             )
-        return svg_polyline(
+        return _render_stroked_polyline_like_cli(
             normalised,
             ctx=ctx,
             stroke_color=_stroke_color(p),

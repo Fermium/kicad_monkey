@@ -164,6 +164,24 @@ def test_render_op_thick_segment(ctx: KiCadSvgRenderContext) -> None:
     assert 'stroke-width="0.2"' in svg
 
 
+def test_render_op_thick_segment_kicad_cli_uses_path() -> None:
+    op = KiCadPlotterOp.thick_segment(
+        start_x=10_000_000,
+        start_y=20_000_000,
+        end_x=30_000_000,
+        end_y=40_000_000,
+        width_nm=200_000,
+    )
+
+    svg = render_op(op, ctx=kicad_cli_ctx())
+
+    assert svg.startswith("<path")
+    assert 'd="M 10,20 L 30,40"' in svg
+    assert 'fill="none"' in svg
+    assert 'stroke-width="0.2"' in svg
+    assert "<polyline" not in svg
+
+
 def test_render_op_thick_segment_default_width_falls_through(
     ctx: KiCadSvgRenderContext,
 ) -> None:
@@ -318,6 +336,24 @@ def test_render_op_flash_pad_oval_thick_segment(ctx: KiCadSvgRenderContext) -> N
     # at cx +/- (size_x - size_y) / 2 for a horizontal oval.
     assert "13,15" in svg
     assert "17,15" in svg
+
+
+def test_render_op_flash_pad_oval_kicad_cli_uses_stroked_path() -> None:
+    op = KiCadPlotterOp.flash_pad_oval(
+        x=15_000_000,
+        y=15_000_000,
+        size_x_nm=6_000_000,
+        size_y_nm=2_000_000,
+        orient_deg=0.0,
+    )
+
+    svg = render_op(op, ctx=kicad_cli_ctx())
+
+    assert svg.startswith("<path")
+    assert 'd="M 13,15 L 17,15"' in svg
+    assert 'fill="none"' in svg
+    assert 'stroke-width="2"' in svg
+    assert "<polyline" not in svg
 
 
 # ---------------------------------------------------------------------------
