@@ -1143,6 +1143,155 @@ def _rotate_vector_kicad(
 
 _DIM_ARROW_ANGLE_DEG = 27.5
 _DIM_INWARD_ARROW_TAIL_RATIO = 2.0
+_DIM_TEXT_MARGIN_RATIO = 0.625
+
+
+def _dimension_text_alignment(text_object: "GrText") -> tuple[str, str]:
+    effects = getattr(text_object, "effects", None)
+    justify = getattr(effects, "justify", None) or []
+    h_align = "center"
+    v_align = "center"
+    for tok in justify:
+        if tok in ("left", "right", "center"):
+            h_align = tok
+        elif tok in ("top", "bottom"):
+            v_align = tok
+    return h_align, v_align
+
+
+def _stroke_text_width(text: str) -> float:
+    from .kicad_stroke_font import get_glyph, get_space_width
+
+    width = 0.0
+    for char in text:
+        if char == " ":
+            width += get_space_width()
+            continue
+        glyph = get_glyph(char)
+        if glyph is not None:
+            width += glyph.width
+    return width
+
+
+def _dimension_text_box(text_object: "GrText") -> tuple[float, float, float, float] | None:
+    """Return KiCad's logical dimension-text box, including text margin."""
+
+    text_str = getattr(text_object, "text", "") or ""
+    effects = getattr(text_object, "effects", None)
+    font = effects.font if effects else None
+    if not text_str or font is None:
+        return None
+
+    text_width = _stroke_text_width(text_str) * float(font.size_x)
+    text_height = (22.0 / 21.0) * float(font.size_y)
+    margin = _DIM_TEXT_MARGIN_RATIO * float(font.size_y)
+
+    h_align, v_align = _dimension_text_alignment(text_object)
+    if h_align == "left":
+        min_x = 0.0
+        max_x = text_width
+    elif h_align == "right":
+        min_x = -text_width
+        max_x = 0.0
+    else:
+        min_x = -text_width / 2.0
+        max_x = text_width / 2.0
+
+    if v_align == "top":
+        min_y = 0.0
+        max_y = text_height
+    elif v_align == "bottom":
+        min_y = -text_height
+        max_y = 0.0
+    else:
+        min_y = -text_height / 2.0
+        max_y = text_height / 2.0
+
+    min_x -= margin
+    max_x += margin
+    min_y -= margin
+    max_y += margin
+
+    angle = float(getattr(text_object, "at_angle", 0.0) or 0.0)
+    corners = (
+        (min_x, min_y),
+        (max_x, min_y),
+        (max_x, max_y),
+        (min_x, max_y),
+    )
+    transformed = [
+        _vec_add(
+            _rotate_vector_kicad((x, y), angle),
+            (float(text_object.at_x), float(text_object.at_y)),
+        )
+        for x, y in corners
+    ]
+    xs = [x for x, _y in transformed]
+    ys = [y for _x, y in transformed]
+    return (min(xs), min(ys), max(xs), max(ys))
+
+
+def _segment_box_intersection(
+    start: tuple[float, float],
+    target: tuple[float, float],
+    box: tuple[float, float, float, float],
+) -> tuple[float, float] | None:
+    min_x, min_y, max_x, max_y = box
+    dx = target[0] - start[0]
+    dy = target[1] - start[1]
+    candidates: list[tuple[float, float, float]] = []
+    eps = 1e-12
+
+    if abs(dx) > eps:
+        for x in (min_x, max_x):
+            t = (x - start[0]) / dx
+            y = start[1] + t * dy
+            if -eps <= t <= 1.0 + eps and min_y - eps <= y <= max_y + eps:
+                candidates.append((max(0.0, min(1.0, t)), x, y))
+    if abs(dy) > eps:
+        for y in (min_y, max_y):
+            t = (y - start[1]) / dy
+            x = start[0] + t * dx
+            if -eps <= t <= 1.0 + eps and min_x - eps <= x <= max_x + eps:
+                candidates.append((max(0.0, min(1.0, t)), x, y))
+
+    if not candidates:
+        return None
+    _t, x, y = min(candidates, key=lambda item: item[0])
+    return (x, y)
+
+
+def _dimension_text_connector_end(
+    start: tuple[float, float],
+    text_object: "GrText",
+) -> tuple[float, float]:
+    target = (float(text_object.at_x), float(text_object.at_y))
+    box = _dimension_text_box(text_object)
+    if box is None:
+        return target
+    return _segment_box_intersection(start, target, box) or target
+
+
+def _dimension_text_frame_ops(
+    text_object: "GrText",
+    *,
+    width_mm: float,
+    layer: str,
+) -> list[KiCadPlotterOp]:
+    box = _dimension_text_box(text_object)
+    if box is None:
+        return []
+    min_x, min_y, max_x, max_y = box
+    left_top = (min_x, min_y)
+    left_bottom = (min_x, max_y)
+    right_bottom = (max_x, max_y)
+    right_top = (max_x, min_y)
+    return [
+        _layered_segment_op(left_top, left_bottom, width_mm=width_mm, layer=layer),
+        _layered_segment_op(left_bottom, right_bottom, width_mm=width_mm, layer=layer),
+        _layered_segment_op(right_bottom, right_top, width_mm=width_mm, layer=layer),
+        _layered_segment_op(right_top, left_top, width_mm=width_mm, layer=layer),
+    ]
 
 
 def _dimension_arrow_ops(
@@ -1347,13 +1496,6 @@ def _dimension_radial_shape_ops(dimension: "Dimension") -> list[KiCadPlotterOp]:
     radial = _vec_sub(radius_point, center)
     if _vec_len(radial) == 0.0:
         return []
-    leader_length = (
-        float(dimension.leader_length)
-        if dimension.leader_length is not None
-        else style.arrow_length * 3.0
-    )
-    leader = _vec_resize(radial, leader_length)
-    knee = _vec_add(radius_point, leader)
 
     ops = [
         _layered_segment_op(_vec_sub(center, arm), _vec_add(center, arm), width_mm=width, layer=layer),
@@ -1362,12 +1504,20 @@ def _dimension_radial_shape_ops(dimension: "Dimension") -> list[KiCadPlotterOp]:
     ops.append(
         _layered_segment_op(_vec_sub(center, arm), _vec_add(center, arm), width_mm=width, layer=layer)
     )
-    ops.append(_layered_segment_op(radius_point, knee, width_mm=width, layer=layer))
+    text_object = dimension.resolved_gr_text()
+    if text_object is not None and text_object.text:
+        leader_end = _dimension_text_connector_end(radius_point, text_object)
+    else:
+        leader_length = (
+            float(dimension.leader_length)
+            if dimension.leader_length is not None
+            else style.arrow_length * 3.0
+        )
+        leader_end = _vec_add(radius_point, _vec_resize(radial, leader_length))
+    ops.append(_layered_segment_op(radius_point, leader_end, width_mm=width, layer=layer))
 
-    # NOTE: kicad-cli does not emit a separate visible segment between the
-    # leader knee and the value text position for radial dimensions — the
-    # text simply floats at its at_x/at_y. Emitting a knee→text segment
-    # here regresses stroke count parity against the CLI oracle.
+    # KiCad stops the radial connector at the logical text box edge rather
+    # than drawing through to the value text anchor.
 
     ops.extend(
         _dimension_arrow_ops(
@@ -1406,35 +1556,12 @@ def _dimension_leader_shape_ops(dimension: "Dimension") -> list[KiCadPlotterOp]:
     )
     text_object = dimension.resolved_gr_text()
     if text_object is not None and text_object.text:
-        text_pos = (text_object.at_x, text_object.at_y)
+        # text_frame == 1 draws the logical text box before the connector.
+        if style.text_frame == 1:
+            ops.extend(_dimension_text_frame_ops(text_object, width_mm=width, layer=layer))
+        text_pos = _dimension_text_connector_end(end, text_object)
         if _vec_len(_vec_sub(text_pos, end)) > 0.0:
             ops.append(_layered_segment_op(end, text_pos, width_mm=width, layer=layer))
-        # text_frame == 1 → rectangular frame around the value text.
-        # kicad-cli emits four explicit segment sides; emit the same count
-        # using the text's stroke-font bounding box plus a small padding.
-        if style.text_frame == 1:
-            font = text_object.effects.font
-            size_x = float(font.size_x)
-            size_y = float(font.size_y)
-            n_chars = len(text_object.text)
-            half_w = (n_chars * size_x * 0.7) / 2.0 + size_x * 0.4
-            half_h = size_y / 2.0 + size_y * 0.65
-            cx, cy = text_pos
-            corners = (
-                (cx - half_w, cy - half_h),
-                (cx + half_w, cy - half_h),
-                (cx + half_w, cy + half_h),
-                (cx - half_w, cy + half_h),
-            )
-            for i in range(4):
-                ops.append(
-                    _layered_segment_op(
-                        corners[i],
-                        corners[(i + 1) % 4],
-                        width_mm=width,
-                        layer=layer,
-                    )
-                )
     return ops
 
 

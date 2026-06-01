@@ -129,6 +129,10 @@ decisions KiCad makes, not only visual similarity.
   transforms. Promoted `case066` footprint text knockout F.SilkS into strict
   structural coverage after the text, line, and arc draw items matched fresh
   KiCad CLI output.
+- 2026-06-01: Closed the remaining dimension follow-on by clipping leader and
+  radial connector segments to KiCad's logical dimension text box and using
+  that same box for rectangular leader frames. Promoted aligned, orthogonal,
+  leader, and radial synthetic dimensions into strict structural coverage.
 
 ## Goals
 

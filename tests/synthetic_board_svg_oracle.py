@@ -91,12 +91,9 @@ SYNTHETIC_ORACLE_CASES: Tuple[SyntheticOracleCase, ...] = (
         metrics=("viewbox",),
         minimums=(),
     ),
-    # Phase C dimensions: synthetic per-type dimension fixtures. ``dim_center``
-    # is the only case with full IR-vs-CLI metric parity today (crosshair has
-    # no value text). The other six types embed a tessellated dimension-value
-    # text on Cmts.User that the IR renderer does not yet emit — they are
-    # registered here for fixture stability and listed as known gaps in
-    # ``test_L3_007_pcb_ir_svg_oracle.py``.
+    # Phase C dimensions: synthetic per-type dimension fixtures. These cover
+    # center, aligned, orthogonal, leader, and radial dimension geometry plus
+    # tessellated stroke-font value text on Cmts.User.
     SyntheticOracleCase(
         case_id="dim_center",
         board_relpath="case221__dim_center/dim_center.kicad_pcb",

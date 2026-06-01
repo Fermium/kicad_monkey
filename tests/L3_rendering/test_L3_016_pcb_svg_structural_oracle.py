@@ -202,6 +202,42 @@ STRICT_CASES: tuple[StrictSvgCase, ...] = (
         layers=("Cmts.User",),
         kind_sequence=("path", "path"),
     ),
+    StrictSvgCase(
+        case_id="dim_aligned_horizontal",
+        board_relpath="case220__dim_aligned_horizontal/dim_aligned_horizontal.kicad_pcb",
+        layers=("Cmts.User",),
+        kind_sequence=_paths(148),
+    ),
+    StrictSvgCase(
+        case_id="dim_orthogonal_horizontal",
+        board_relpath="case224__dim_orthogonal_horizontal/dim_orthogonal_horizontal.kicad_pcb",
+        layers=("Cmts.User",),
+        kind_sequence=(*_paths(142), "circle", *_paths(5)),
+    ),
+    StrictSvgCase(
+        case_id="dim_orthogonal_vertical",
+        board_relpath="case225__dim_orthogonal_vertical/dim_orthogonal_vertical.kicad_pcb",
+        layers=("Cmts.User",),
+        kind_sequence=_paths(148),
+    ),
+    StrictSvgCase(
+        case_id="dim_leader_plain",
+        board_relpath="case223__dim_leader_plain/dim_leader_plain.kicad_pcb",
+        layers=("Cmts.User",),
+        kind_sequence=_paths(29),
+    ),
+    StrictSvgCase(
+        case_id="dim_leader_frame_rect",
+        board_relpath="case222__dim_leader_frame_rect/dim_leader_frame_rect.kicad_pcb",
+        layers=("Cmts.User",),
+        kind_sequence=_paths(16),
+    ),
+    StrictSvgCase(
+        case_id="dim_radial",
+        board_relpath="case226__dim_radial/dim_radial.kicad_pcb",
+        layers=("Cmts.User",),
+        kind_sequence=_paths(118),
+    ),
 )
 
 

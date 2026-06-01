@@ -652,6 +652,120 @@ def test_pcb_to_ir_dimension_geometry_emits_lines_arrows_and_svg():
     assert svg.count("<polyline") >= 7
 
 
+def _dimension_segment_tuples(
+    dimension_sexp: str,
+) -> list[tuple[int, int, int, int, int]]:
+    pcb = KiCadPcb.from_string(f"""(kicad_pcb
+\t(version 20240108)
+\t(generator "pcbnew")
+\t(layers (41 "Cmts.User" user))
+\t{dimension_sexp}
+)
+""")
+    record = next(record for record in pcb_to_ir(pcb).records if record.kind == "dimension")
+    return [
+        (
+            op.payload["start_x"],
+            op.payload["start_y"],
+            op.payload["end_x"],
+            op.payload["end_y"],
+            op.payload["width_nm"],
+        )
+        for op in record.operations
+        if op.kind == KiCadPlotterOpKind.THICK_SEGMENT
+    ]
+
+
+def test_pcb_to_ir_leader_dimension_connector_stops_at_text_box():
+    segments = _dimension_segment_tuples("""(dimension
+\t\t(type leader)
+\t\t(layer "Cmts.User")
+\t\t(pts (xy 8 8) (xy 20 16))
+\t\t(format (units 3) (units_format 0) (precision 4) (override_value "NOTE"))
+\t\t(style
+\t\t\t(thickness 0.2)
+\t\t\t(arrow_length 1.27)
+\t\t\t(text_position_mode 0)
+\t\t\t(text_frame 0)
+\t\t\t(extension_offset 0)
+\t\t\t(keep_text_aligned yes)
+\t\t)
+\t\t(gr_text "NOTE"
+\t\t\t(at 24 16 0)
+\t\t\t(layer "Cmts.User")
+\t\t\t(effects (font (size 1 1) (thickness 0.15)))
+\t\t)
+\t)""")
+
+    assert segments[-1] == (
+        20_000_000,
+        16_000_000,
+        21_494_048,
+        16_000_000,
+        200_000,
+    )
+
+
+def test_pcb_to_ir_leader_dimension_frame_uses_logical_text_box():
+    segments = _dimension_segment_tuples("""(dimension
+\t\t(type leader)
+\t\t(layer "Cmts.User")
+\t\t(pts (xy 8 8) (xy 20 16))
+\t\t(format (units 3) (units_format 0) (precision 4) (override_value "A1"))
+\t\t(style
+\t\t\t(thickness 0.2)
+\t\t\t(arrow_length 1.27)
+\t\t\t(text_position_mode 0)
+\t\t\t(text_frame 1)
+\t\t\t(extension_offset 0)
+\t\t\t(keep_text_aligned yes)
+\t\t)
+\t\t(gr_text "A1"
+\t\t\t(at 24 16 0)
+\t\t\t(layer "Cmts.User")
+\t\t\t(effects (font (size 1 1) (thickness 0.15)))
+\t\t)
+\t)""")
+
+    assert segments[-5:] == [
+        (22_470_238, 14_851_190, 22_470_238, 17_148_810, 200_000),
+        (22_470_238, 17_148_810, 25_529_762, 17_148_810, 200_000),
+        (25_529_762, 17_148_810, 25_529_762, 14_851_190, 200_000),
+        (25_529_762, 14_851_190, 22_470_238, 14_851_190, 200_000),
+        (20_000_000, 16_000_000, 22_470_238, 16_000_000, 200_000),
+    ]
+
+
+def test_pcb_to_ir_radial_dimension_connector_stops_at_text_box():
+    segments = _dimension_segment_tuples("""(dimension
+\t\t(type radial)
+\t\t(layer "Cmts.User")
+\t\t(pts (xy 15 15) (xy 22 15))
+\t\t(leader_length 3)
+\t\t(format (units 3) (units_format 1) (precision 4))
+\t\t(style
+\t\t\t(thickness 0.2)
+\t\t\t(arrow_length 1.27)
+\t\t\t(text_position_mode 0)
+\t\t\t(extension_offset 0)
+\t\t\t(keep_text_aligned yes)
+\t\t)
+\t\t(gr_text "R7"
+\t\t\t(at 27 15 0)
+\t\t\t(layer "Cmts.User")
+\t\t\t(effects (font (size 1 1) (thickness 0.15)))
+\t\t)
+\t)""")
+
+    assert segments[-3] == (
+        22_000_000,
+        15_000_000,
+        22_041_667,
+        15_000_000,
+        200_000,
+    )
+
+
 def test_gr_text_to_record_carries_text_and_hide_flag():
     text = GrText(text="REF", at_x=0.0, at_y=0.0, layer="F.SilkS")
     rec = gr_text_to_record(text)
