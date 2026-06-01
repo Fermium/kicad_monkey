@@ -7,7 +7,7 @@ from __future__ import annotations
 import math
 import re
 
-from kicad_monkey import render_pcb_ir_to_svg
+from kicad_monkey import KiCadSvgRenderOptions, render_pcb_ir_to_svg
 from kicad_monkey.kicad_pcb import KiCadPcb
 
 
@@ -185,6 +185,45 @@ def test_kicad_pcb_to_svg_uses_ir_renderer():
     pcb = KiCadPcb.from_string(_PCB_FIXTURE)
 
     assert pcb.to_svg() == render_pcb_ir_to_svg(pcb)
+
+
+def test_render_pcb_ir_to_svg_default_profile_keeps_review_metadata():
+    pcb = KiCadPcb.from_string(_PCB_FIXTURE)
+
+    svg = render_pcb_ir_to_svg(pcb)
+
+    assert 'data-ref="gr_line"' in svg
+
+
+def test_render_pcb_ir_to_svg_kicad_cli_profile_suppresses_metadata():
+    pcb = KiCadPcb.from_string(_PCB_FIXTURE)
+
+    svg = render_pcb_ir_to_svg(pcb, profile="kicad_cli")
+
+    assert 'data-ref="' not in svg
+    assert 'data-uuid="' not in svg
+    assert 'id="' not in svg
+    assert "<polyline" in svg
+
+
+def test_render_pcb_ir_to_svg_kicad_cli_options_suppress_metadata():
+    pcb = KiCadPcb.from_string(_PCB_FIXTURE)
+    options = KiCadSvgRenderOptions(profile="kicad_cli")
+
+    svg = render_pcb_ir_to_svg(pcb, options=options)
+
+    assert 'data-ref="' not in svg
+    assert 'data-uuid="' not in svg
+    assert 'id="' not in svg
+
+
+def test_kicad_pcb_to_svg_forwards_profile_to_ir_renderer():
+    pcb = KiCadPcb.from_string(_PCB_FIXTURE)
+
+    assert pcb.to_svg(profile="kicad_cli") == render_pcb_ir_to_svg(
+        pcb,
+        profile="kicad_cli",
+    )
 
 
 # ---------------------------------------------------------------------------

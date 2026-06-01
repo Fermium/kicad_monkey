@@ -37,6 +37,7 @@ from typing import Iterator, List, Optional, Union, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .kicad_geometry import BoundingBox
+    from .kicad_sch_svg_renderer import KiCadSvgRenderOptions
 from ._api_markers import public_api
 from .kicad_defaults import (
     KICAD_FOOTPRINT_FILE_VERSION,
@@ -565,6 +566,8 @@ class KiCadFootprint:
         fill: str = "#000000",
         stroke: str = "#000000",
         black_and_white: bool = True,
+        profile: str | None = None,
+        options: Optional["KiCadSvgRenderOptions"] = None,
     ) -> str:
         """
         Render footprint to SVG format matching KiCad's output.
@@ -577,6 +580,9 @@ class KiCadFootprint:
             fill: Fill color for solid shapes (default: black)
             stroke: Stroke color for lines (default: black)
             black_and_white: If True, use black/white only (matches --black-and-white)
+            profile: Optional SVG output profile, such as ``"review"`` or
+                ``"kicad_cli"``.
+            options: Optional low-level SVG render options.
 
         Returns:
             Complete SVG document as string
@@ -597,7 +603,9 @@ class KiCadFootprint:
         if bbox.is_empty:
             return self._empty_svg()
 
-        opts = KiCadSvgRenderOptions(
+        base_opts = options if options is not None else KiCadSvgRenderOptions()
+        opts = replace(
+            base_opts,
             black_and_white=black_and_white,
             background_color=None,
             default_fill_color=fill,
@@ -605,6 +613,10 @@ class KiCadFootprint:
             visible_layers=tuple(layers) if layers is not None else None,
             text_polyline_per_segment=True,
         )
+        if profile is not None:
+            from .kicad_sch_svg_renderer import KiCadSvgRenderProfile
+
+            opts = replace(opts, profile=KiCadSvgRenderProfile(profile))
         ctx = KiCadSvgRenderContext(
             sheet_width_nm=mm_to_nm(bbox.width),
             sheet_height_nm=mm_to_nm(bbox.height),

@@ -1,7 +1,7 @@
 # PCB SVG Oracle Hardening Plan
 
 Date: 2026-06-01
-Status: Draft execution plan
+Status: In progress
 Owner: kicad_monkey rendering/API cleanup
 Depends on: `2026-06-01-pcb-svg-parity-audit-and-fix.md`
 
@@ -51,6 +51,17 @@ Example: `speedy_processing_module` F.Cu
 
 This plan improves tests so `kicad_monkey` can target the same plotting
 decisions KiCad makes, not only visual similarity.
+
+## Progress Log
+
+- 2026-06-01: Landed checkpoint `68b74ec` for the first geometry fixes:
+  arc sweep parity, footprint-local pad placement, pad orientation, filled
+  pad stroke suppression, and drill overlay ordering.
+- 2026-06-01: Started Phase 1 profile plumbing. Added explicit
+  `KiCadSvgRenderProfile` support, propagated `profile` / `options` through
+  `render_pcb_ir_to_svg`, `KiCadPcb.to_svg`, `KiCadPcb.to_svg_ir`, and
+  `KiCadFootprint.to_svg`, and added L0 coverage proving `kicad_cli`
+  suppresses monkey-only source metadata while default review output keeps it.
 
 ## Goals
 

@@ -516,6 +516,41 @@ def test_render_record_applies_pcb_footprint_placement_transform(
     assert '<circle cx="1" cy="2"' in svg
 
 
+def test_render_record_kicad_cli_profile_suppresses_source_metadata() -> None:
+    ctx = KiCadSvgRenderContext(
+        sheet_width_nm=40_000_000,
+        sheet_height_nm=30_000_000,
+        options=KiCadSvgRenderOptions(profile="kicad_cli"),
+    )
+    rec = KiCadPlotterRecord(
+        uuid="fp-cli",
+        kind="footprint",
+        object_id="lib:R",
+        operations=[
+            KiCadPlotterOp.flash_pad_circle(
+                x=1_000_000,
+                y=2_000_000,
+                diameter_nm=500_000,
+            )
+        ],
+        extras={
+            "placement": {
+                "x_nm": 10_000_000,
+                "y_nm": 20_000_000,
+                "angle_deg": 90.0,
+            }
+        },
+    )
+
+    svg = render_record(rec, ctx=ctx)
+
+    assert 'transform="translate(10 20) rotate(-90)"' in svg
+    assert 'id="fp-cli"' not in svg
+    assert "data-uuid" not in svg
+    assert "data-ref" not in svg
+    assert '<circle cx="1" cy="2"' in svg
+
+
 def test_render_record_keeps_footprint_local_coords_out_of_board_offset() -> None:
     """Placed footprint children stay footprint-local when the board view is offset."""
 

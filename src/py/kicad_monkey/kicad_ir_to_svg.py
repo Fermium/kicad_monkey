@@ -63,6 +63,7 @@ from .kicad_plotter_ir import (
 from .kicad_sch_svg_renderer import (
     KiCadSvgRenderContext,
     KiCadSvgRenderOptions,
+    KiCadSvgRenderProfile,
     KiCadVariantDimMode,
     fmt_user_number,
     svg_arc,
@@ -1240,6 +1241,33 @@ def _svg_attr(name: str, value: object) -> str:
     return f'{name}="{html.escape(str(value), quote=True)}"'
 
 
+def _svg_profile(options: KiCadSvgRenderOptions) -> str:
+    profile = getattr(options, "profile", KiCadSvgRenderProfile.REVIEW)
+    if isinstance(profile, KiCadSvgRenderProfile):
+        return profile.value
+    return str(profile)
+
+
+def _profile_is_kicad_cli(options: KiCadSvgRenderOptions) -> bool:
+    return _svg_profile(options) == KiCadSvgRenderProfile.KICAD_CLI.value
+
+
+def _profile_is_review(options: KiCadSvgRenderOptions) -> bool:
+    return _svg_profile(options) == KiCadSvgRenderProfile.REVIEW.value
+
+
+def _emit_metadata(options: KiCadSvgRenderOptions) -> bool:
+    if _profile_is_kicad_cli(options):
+        return False
+    return _profile_is_review(options) or bool(getattr(options, "include_metadata", False))
+
+
+def _emit_ids(options: KiCadSvgRenderOptions) -> bool:
+    if _profile_is_kicad_cli(options):
+        return False
+    return _profile_is_review(options) or bool(getattr(options, "include_ids", False))
+
+
 def _block_extra_attrs(payload: dict) -> str | None:
     attrs: list[str] = []
     object_id = payload.get("object_id")
@@ -1261,16 +1289,26 @@ def _block_extra_attrs(payload: dict) -> str | None:
     return " ".join(attrs) or None
 
 
-def _render_block_group(payload: dict, body: str) -> str:
+def _render_block_group(
+    payload: dict,
+    body: str,
+    *,
+    ctx: KiCadSvgRenderContext,
+) -> str:
     label = str(payload.get("label", "") or "")
     data_uuid = str(payload.get("data_uuid", "") or "")
     data_ref = str(payload.get("data_ref", "") or "")
+    emit_metadata = _emit_metadata(ctx.options)
+    emit_ids = _emit_ids(ctx.options)
+    extra_attrs = _block_extra_attrs(payload) if emit_metadata else None
+    if not emit_ids and not emit_metadata and not extra_attrs:
+        return body
     return svg_group(
         body,
-        label=label or None,
-        data_uuid=data_uuid or None,
-        data_ref=data_ref or None,
-        extra_attrs=_block_extra_attrs(payload),
+        label=(label or None) if emit_ids else None,
+        data_uuid=(data_uuid or None) if emit_metadata else None,
+        data_ref=(data_ref or None) if emit_metadata else None,
+        extra_attrs=extra_attrs,
     )
 
 
@@ -1366,7 +1404,7 @@ def _render_ops_with_blocks(
             if not stack:
                 continue
             payload, fragments = stack.pop()
-            _append(_render_block_group(payload, "\n".join(fragments)))
+            _append(_render_block_group(payload, "\n".join(fragments), ctx=ctx))
             continue
         _append(_wrap_with_style_bucket(render_op(op, ctx=ctx)))
 
@@ -1374,7 +1412,7 @@ def _render_ops_with_blocks(
     # recorder stream still produces valid SVG.
     while stack:
         payload, fragments = stack.pop()
-        group = _render_block_group(payload, "\n".join(fragments))
+        group = _render_block_group(payload, "\n".join(fragments), ctx=ctx)
         if stack:
             stack[-1][1].append(group)
         else:
@@ -1585,12 +1623,19 @@ def _render_record_operations(
     extra_attrs = _variant_overlay_attrs(record, options=ctx.options)
     transform = _record_placement_transform(record, ctx=ctx)
     label = f"{record.uuid}{label_suffix}" if record.uuid else None
+    emit_metadata = _emit_metadata(ctx.options)
+    emit_ids = _emit_ids(ctx.options)
+    data_uuid = label if emit_metadata else None
+    data_ref_value = (data_ref if data_ref is not None else record.kind) if emit_metadata else None
+    label_value = label if emit_ids else None
+    if not any((label_value, transform, data_uuid, data_ref_value, extra_attrs)):
+        return body
     return svg_group(
         body,
-        label=label,
+        label=label_value,
         transform=transform,
-        data_uuid=label,
-        data_ref=data_ref if data_ref is not None else record.kind,
+        data_uuid=data_uuid,
+        data_ref=data_ref_value,
         extra_attrs=extra_attrs,
     )
 

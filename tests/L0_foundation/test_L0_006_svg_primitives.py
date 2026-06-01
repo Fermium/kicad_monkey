@@ -22,6 +22,7 @@ from kicad_monkey import (
     KiCadLineStyle,
     KiCadSvgRenderContext,
     KiCadSvgRenderOptions,
+    KiCadSvgRenderProfile,
     KiCadVariantDimMode,
     KiCadVertAlign,
     fmt_user_number,
@@ -92,6 +93,7 @@ def test_options_kicad_native_factory():
     assert o.bezier_as_lines is False
     assert o.junction_z_order == KiCadJunctionZOrder.NATIVE
     assert o.truncate_font_size_for_baseline is True
+    assert o.profile == KiCadSvgRenderProfile.KICAD_CLI
 
 
 def test_options_onscreen_factory():
@@ -102,7 +104,9 @@ def test_options_onscreen_factory():
 
 def test_options_review_default_factory():
     o = KiCadSvgRenderOptions.review_default()
+    assert o.profile == KiCadSvgRenderProfile.REVIEW
     assert o.include_metadata is True
+    assert o.include_ids is True
     assert o.junction_z_order == KiCadJunctionZOrder.ALWAYS_ON_TOP
 
 
@@ -119,6 +123,7 @@ def test_options_black_and_white_native_factory():
 
 def test_options_dataclass_is_mutable():
     o = KiCadSvgRenderOptions()
+    assert o.profile == KiCadSvgRenderProfile.REVIEW
     o.background_color = "#123456"
     assert o.background_color == "#123456"
 

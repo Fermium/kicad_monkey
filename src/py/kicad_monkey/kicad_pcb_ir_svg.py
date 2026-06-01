@@ -358,6 +358,7 @@ def render_pcb_ir_to_svg(
     fill: str = "#000000",
     stroke: str = "#000000",
     black_and_white: bool = True,
+    profile: str | None = None,
     options: "Optional[KiCadSvgRenderOptions]" = None,
 ) -> str:
     """Render a :class:`KiCadPcb` to SVG via the plotter-IR pipeline.
@@ -373,7 +374,11 @@ def render_pcb_ir_to_svg(
     from .kicad_lib_symbol_to_ir import mm_to_nm
     from .kicad_pcb_bounds import compute_pcb_svg_bounding_box, empty_pcb_svg
     from .kicad_pcb_to_ir import pcb_to_ir
-    from .kicad_sch_svg_renderer import KiCadSvgRenderContext, KiCadSvgRenderOptions
+    from .kicad_sch_svg_renderer import (
+        KiCadSvgRenderContext,
+        KiCadSvgRenderOptions,
+        KiCadSvgRenderProfile,
+    )
 
     bbox = compute_pcb_svg_bounding_box(pcb, None)
     if bbox.is_empty:
@@ -385,12 +390,18 @@ def render_pcb_ir_to_svg(
     height_nm = mm_to_nm(bbox.height)
 
     base_opts = options if options is not None else KiCadSvgRenderOptions()
+    resolved_profile = (
+        KiCadSvgRenderProfile(profile)
+        if profile is not None
+        else base_opts.profile
+    )
     opts = replace(
         base_opts,
         black_and_white=black_and_white,
         default_fill_color=fill,
         default_stroke_color=stroke,
         visible_layers=tuple(layers) if layers is not None else None,
+        profile=resolved_profile,
     )
     ctx = KiCadSvgRenderContext(
         sheet_width_nm=width_nm,

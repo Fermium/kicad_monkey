@@ -44,6 +44,7 @@ from typing import Any, Iterator, List, Optional, Union, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .kicad_geometry import BoundingBox
+    from .kicad_sch_svg_renderer import KiCadSvgRenderOptions
 
 from ._api_markers import public_api
 from .kicad_defaults import (
@@ -957,6 +958,8 @@ class KiCadPcb:
         fill: str = "#000000",
         stroke: str = "#000000",
         black_and_white: bool = True,
+        profile: str | None = None,
+        options: Optional["KiCadSvgRenderOptions"] = None,
     ) -> str:
         """
         Render PCB to SVG using the plotter-IR pipeline.
@@ -969,6 +972,9 @@ class KiCadPcb:
             fill: Fill color (default black)
             stroke: Stroke color (default black)
             black_and_white: If True, force all elements to black/white
+            profile: Optional SVG output profile, such as ``"review"`` or
+                ``"kicad_cli"``.
+            options: Optional low-level SVG render options.
 
         Returns:
             Complete SVG document string
@@ -981,6 +987,8 @@ class KiCadPcb:
             fill=fill,
             stroke=stroke,
             black_and_white=black_and_white,
+            profile=profile,
+            options=options,
         )
 
     def to_svg_ir(
@@ -989,6 +997,8 @@ class KiCadPcb:
         fill: str = "#000000",
         stroke: str = "#000000",
         black_and_white: bool = True,
+        profile: str | None = None,
+        options: Optional["KiCadSvgRenderOptions"] = None,
     ) -> str:
         """
         Render PCB via the plotter-IR pipeline.
@@ -1004,6 +1014,8 @@ class KiCadPcb:
             fill=fill,
             stroke=stroke,
             black_and_white=black_and_white,
+            profile=profile,
+            options=options,
         )
 
     def to_svg_elements(

@@ -49,6 +49,13 @@ class KiCadVariantDimMode(Enum):
     GREYSCALE = auto()        # convert item colour to greyscale
 
 
+class KiCadSvgRenderProfile(Enum):
+    """High-level SVG output contract."""
+
+    REVIEW = "review"         # enriched output with source identity hooks
+    KICAD_CLI = "kicad_cli"   # oracle output shaped like kicad-cli SVG
+
+
 @dataclass
 class KiCadSvgRenderOptions:
     """
@@ -126,6 +133,12 @@ class KiCadSvgRenderOptions:
     variant_dim_color: str = "#FFFFFF"
     variant_dim_opacity: float = 0.6
 
+    # ---- output profile ----
+    # REVIEW preserves the historical enriched SVG output with record
+    # id/data hooks. KICAD_CLI suppresses monkey-only identity hooks so oracle
+    # tests can compare against stock `kicad-cli pcb export svg` structure.
+    profile: KiCadSvgRenderProfile | str = KiCadSvgRenderProfile.REVIEW
+
     # ---- metadata ----
     # When True, primitives that have a UUID / reference designator
     # add ``data-uuid`` / ``data-ref`` attributes for downstream
@@ -147,6 +160,7 @@ class KiCadSvgRenderOptions:
             bezier_as_lines=False,
             junction_z_order=KiCadJunctionZOrder.NATIVE,
             truncate_font_size_for_baseline=True,
+            profile=KiCadSvgRenderProfile.KICAD_CLI,
         )
 
     @classmethod
@@ -169,7 +183,9 @@ class KiCadSvgRenderOptions:
             bezier_as_lines=False,
             junction_z_order=KiCadJunctionZOrder.ALWAYS_ON_TOP,
             truncate_font_size_for_baseline=False,
+            profile=KiCadSvgRenderProfile.REVIEW,
             include_metadata=True,
+            include_ids=True,
         )
 
     @classmethod
@@ -1148,6 +1164,7 @@ __all__ = [
     "KiCadJunctionZOrder",
     "KiCadSvgRenderContext",
     "KiCadSvgRenderOptions",
+    "KiCadSvgRenderProfile",
     "KiCadVariantDimMode",
     "fmt_user_number",
     "svg_arc",
