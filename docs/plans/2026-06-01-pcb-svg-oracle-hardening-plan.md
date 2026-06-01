@@ -68,6 +68,13 @@ decisions KiCad makes, not only visual similarity.
   Verified with `test_L0_034_pcb_ir_svg_wrapper.py`,
   `test_L3_006_synthetic_svg_oracle.py`, and
   `test_L3_007_pcb_ir_svg_oracle.py`.
+- 2026-06-01: Added the first canonical SVG analyzer under `tests/svg/`.
+  It parses draw items with inherited styles, flattened transforms, element
+  histograms, path command families, bbox/area summaries, and the semantic
+  metric dict used by synthetic PCB SVG oracle tests. Removed the older
+  duplicate regex/XML metric implementation from
+  `tests/synthetic_board_svg_oracle.py` while leaving active symbol/schematic
+  SVG helpers in place.
 
 ## Goals
 

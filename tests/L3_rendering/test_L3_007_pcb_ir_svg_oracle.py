@@ -1,33 +1,26 @@
 """Subtest: PCB IR SVG oracle.
 
 Stratum: L3_rendering
-Purpose: Verify that ``render_pcb_ir_to_svg`` reaches viewBox + gross
-element-count parity with the canonical ``kicad-cli pcb export svg`` on
-the existing synthetic oracle fixtures.
+Purpose: Verify that ``render_pcb_ir_to_svg`` reaches viewBox and gross
+element-count parity with the canonical ``kicad-cli pcb export svg`` on the
+existing synthetic oracle fixtures.
 
 Comparison:
 
-* IR     — ``render_pcb_ir_to_svg(pcb, layers=...)``
-* CLI    — ``kicad-cli pcb export svg --layers ...``
+* IR: ``render_pcb_ir_to_svg(pcb, layers=...)``
+* CLI: ``kicad-cli pcb export svg --layers ...``
 
-Asserted today (Phases B + B.2(a) + B.2(b) complete):
+Asserted today:
 
-* viewBox: IR ≈ CLI within ``viewbox_tol_mm`` (≤ 0.1 mm).
-* gross counts: ``total_strokes`` (``<path> + <polyline> + <line> +
-  <rect> + <polygon>``) and ``total_circles`` match between IR and
-  CLI. ``total_strokes`` is used instead of ``total_paths`` because
-  the IR renderer prefers ``<polyline>`` / ``<rect>`` while kicad-cli
-  prefers ``<path>`` — same geometry, different SVG element.
-  Background canvas ``<rect>`` is excluded from the count.
-* style-keyed counts: ``white_drill_circles``,
-  ``white_stroke_paths``, ``stroke_paths_0p1000``,
-  ``stroke_paths_1p0000``. Enabled by Phase B.2(b)'s
-  ``_wrap_with_style_bucket`` in ``kicad_ir_to_svg.py``, which wraps
-  every rendered op fragment in a ``<g style="...">`` mirroring its
-  element-local fill / stroke / stroke-width — same structural
-  pattern kicad-cli uses for its style buckets. The oracle helpers
-  (``_count_white_stroke_paths``, ``_count_paths_for_stroke_width``)
-  count ``<path|polyline|line>`` for renderer-agnostic comparison.
+* viewBox: IR approximately matches CLI within ``viewbox_tol_mm``.
+* gross counts: ``total_strokes`` and ``total_circles`` match between IR and
+  CLI. ``total_strokes`` is renderer-agnostic, so KiCad ``<path>`` output and
+  monkey ``<polyline>`` / ``<polygon>`` output can still compare when the
+  painted geometry is equivalent.
+* style-keyed counts: ``white_drill_circles``, ``white_stroke_paths``,
+  ``stroke_paths_0p1000``, and ``stroke_paths_1p0000``. These metrics are
+  extracted by the shared canonical SVG analyzer, which applies inherited group
+  styles and element overrides before counting draw items.
 
 Note: this oracle compares against ``kicad-cli`` as the source of truth.
 """
@@ -55,11 +48,9 @@ from synthetic_board_svg_oracle import (
 ALL_IR_ORACLE_CASES = SYNTHETIC_ORACLE_CASES + IR_ONLY_ORACLE_CASES
 
 
-# Metrics we hold the IR renderer accountable for. Phase B.2(b) closed
-# the style-bucket gap (the IR renderer now wraps every rendered op in a
-# ``<g style="...">`` mirroring its element-local fill / stroke /
-# stroke-width), so the style-keyed CLI metrics are enforced alongside
-# the renderer-agnostic stroke / circle counts.
+# Metrics we hold the IR renderer accountable for. The shared canonical SVG
+# analyzer flattens inherited styles, so style-keyed CLI metrics are enforced
+# alongside renderer-agnostic stroke / circle counts.
 IR_ENFORCED_METRICS: tuple[str, ...] = (
     "viewbox",
     "total_strokes",
@@ -72,15 +63,8 @@ IR_ENFORCED_METRICS: tuple[str, ...] = (
 
 
 # Cases where the IR renderer does not yet emit the same geometry as
-# kicad-cli (see module docstring for context). All phase C dimension
-# shape-geometry gaps closed 2026-05-17:
-# - ``dim_radial`` — knee→text segment removed.
-# - ``dim_orthogonal_horizontal`` — 0.1 mm marker dot at second reference.
-# - ``dim_aligned_horizontal`` / ``dim_orthogonal_vertical`` — stroke-font
-#   dimension value text emitted per-segment.
-# - ``dim_leader_plain`` / ``dim_leader_frame_rect`` — leader value text
-#   driven by ``format.override_value`` (CLI parity); frame_rect=1 emits
-#   four rectangle sides around the text bounding box.
+# kicad-cli. The previous phase C dimension shape-geometry gaps closed on
+# 2026-05-17; keep this map empty until a new intentional gap is documented.
 IR_KNOWN_GAPS: dict[str, str] = {}
 
 
