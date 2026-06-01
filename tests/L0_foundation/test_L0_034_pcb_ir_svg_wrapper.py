@@ -118,7 +118,7 @@ def test_render_pcb_ir_to_svg_empty_board_returns_empty_svg():
     assert 'viewBox="0 0 0 0"' in svg
 
 
-def test_npth_mask_layer_renders_expanded_aperture_and_hole():
+def test_npth_mask_layer_renders_hole_without_extra_aperture():
     pcb = KiCadPcb.from_string(
         """(kicad_pcb
 \t(version 20240108)
@@ -145,7 +145,7 @@ def test_npth_mask_layer_renders_expanded_aperture_and_hole():
     mask_radii = sorted(round(radius, 4) for radius in _circle_radii(mask_svg))
     silk_radii = sorted(round(radius, 4) for radius in _circle_radii(silk_svg))
 
-    assert mask_radii == [1.25, 1.3516]
+    assert mask_radii == [1.25]
     assert silk_radii == [1.25]
 
 

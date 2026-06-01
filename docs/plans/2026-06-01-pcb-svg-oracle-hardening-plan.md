@@ -62,6 +62,12 @@ decisions KiCad makes, not only visual similarity.
   `render_pcb_ir_to_svg`, `KiCadPcb.to_svg`, `KiCadPcb.to_svg_ir`, and
   `KiCadFootprint.to_svg`, and added L0 coverage proving `kicad_cli`
   suppresses monkey-only source metadata while default review output keeps it.
+- 2026-06-01: During the broad L3 SVG oracle rerun, `case082` mask-layer
+  checks exposed an NPTH mask mismatch. Removed the synthetic black NPTH mask
+  aperture so mask layers emit only the KiCad CLI-matching white NPTH drill.
+  Verified with `test_L0_034_pcb_ir_svg_wrapper.py`,
+  `test_L3_006_synthetic_svg_oracle.py`, and
+  `test_L3_007_pcb_ir_svg_oracle.py`.
 
 ## Goals
 

@@ -590,38 +590,13 @@ def _drill_render_mode(role: str, ctx: KiCadSvgRenderContext) -> str:
     return "outline"
 
 
-def _npth_mask_aperture_circle(p: dict, *, ctx: KiCadSvgRenderContext) -> str:
-    if str(p.get("role", "")) != "npth_hole":
-        return ""
-    margin = _mask_margin_nm(p)
-    if margin <= 0:
-        return ""
-    mask_visible, _ = _pad_op_layer_visibility(p, ctx)
-    if not mask_visible:
-        return ""
-    diameter = int(p.get("diameter_nm", 0)) + 2 * margin
-    if diameter <= 0:
-        return ""
-    return svg_circle(
-        int(p.get("cx", 0)),
-        int(p.get("cy", 0)),
-        diameter // 2,
-        ctx=ctx,
-        fill=KiCadFillType.FILLED_SHAPE.value,
-        fill_color="#000000",
-        stroke_color="#000000",
-        width_nm=0,
-    )
-
-
 def _render_drill_circle_op(p: dict, *, ctx: KiCadSvgRenderContext) -> str:
     role = str(p.get("role", ""))
     diameter = int(p.get("diameter_nm", 0))
     radius_nm = diameter // 2
     mode = _drill_render_mode(role, ctx)
-    mask_aperture = _npth_mask_aperture_circle(p, ctx=ctx)
     if mode == "black":
-        nominal = svg_circle(
+        return svg_circle(
             int(p.get("cx", 0)),
             int(p.get("cy", 0)),
             radius_nm,
@@ -631,9 +606,8 @@ def _render_drill_circle_op(p: dict, *, ctx: KiCadSvgRenderContext) -> str:
             stroke_color="#000000",
             width_nm=0,
         )
-        return "\n".join(part for part in (mask_aperture, nominal) if part)
     if mode == "white":
-        nominal = svg_circle(
+        return svg_circle(
             int(p.get("cx", 0)),
             int(p.get("cy", 0)),
             radius_nm,
@@ -643,8 +617,7 @@ def _render_drill_circle_op(p: dict, *, ctx: KiCadSvgRenderContext) -> str:
             stroke_color="#FFFFFF",
             width_nm=0,
         )
-        return "\n".join(part for part in (mask_aperture, nominal) if part)
-    nominal = svg_circle(
+    return svg_circle(
         int(p.get("cx", 0)),
         int(p.get("cy", 0)),
         radius_nm,
@@ -653,7 +626,6 @@ def _render_drill_circle_op(p: dict, *, ctx: KiCadSvgRenderContext) -> str:
         stroke_color=_stroke_color(p),
         width_nm=100_000,
     )
-    return "\n".join(part for part in (mask_aperture, nominal) if part)
 
 
 def _render_drill_slot_op(p: dict, *, ctx: KiCadSvgRenderContext) -> str:
