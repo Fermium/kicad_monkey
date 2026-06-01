@@ -14,18 +14,17 @@ Reference Generation:
 """
 
 import pytest
-from pathlib import Path
 import re
 
-from kicad_monkey import KiCadSchematic, render_schematic_svg, SchematicTheme
+from kicad_monkey import KiCadSchematic, render_schematic_svg
 from kicad_monkey.testing.corpus import get_kicad_topic_dir
 
 # Shared persistent asset directories
 CASES_DIR = get_kicad_topic_dir("schematic_svg")
 INPUT_DIR = CASES_DIR / "input"
 REFERENCE_DIR = CASES_DIR / "reference_output"
-OUTPUT_DIR = Path(__file__).parent / "output" / "schematic_svg"
-DIFF_DIR = Path(__file__).parent / "diff" / "schematic_svg"
+OUTPUT_DIR = CASES_DIR / "output"
+DIFF_DIR = OUTPUT_DIR / "diff"
 
 
 def get_schematic_test_cases():

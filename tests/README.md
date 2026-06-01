@@ -69,3 +69,13 @@ Examples:
 
 Keep new persistent assets under `tests/corpus/kicad/...` with the mirrored
 corpus layout unless they are synthetic/local-only by design.
+
+Generated visual-review outputs should use the owning corpus case's
+`output/<domain>/` folder. For example, board SVG review files for a real-world
+project belong under `${WN_TEST_CORPUS}/kicad/projects/<name>/output/board_svg/`;
+synthetic PCB foundation review files belong under
+`${WN_TEST_CORPUS}/kicad/pcb_foundation/<case>/output/board_svg/`.
+
+Real-world `projects/*_assembly` entries are assembly-procedure documentation
+projects. They are valid schematic SVG/IR cases, but their PCB files are
+intentionally empty/header-only and are not useful `board_svg` review cases.

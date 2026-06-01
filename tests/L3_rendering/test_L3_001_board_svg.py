@@ -21,8 +21,6 @@ from typing import List, Set, Tuple
 from collections import Counter, defaultdict
 from xml.etree import ElementTree as ET
 
-log = logging.getLogger(__name__)
-
 from kicad_monkey.testing.corpus import (
     get_kicad_corpus_case,
     get_kicad_corpus_root,
@@ -30,7 +28,10 @@ from kicad_monkey.testing.corpus import (
     resolve_kicad_manifest_path,
 )
 
+log = logging.getLogger(__name__)
+
 OUTPUT_DIR = Path(__file__).parent / "output" / "board_svg"
+_BOARD_REVIEW_CACHE = {}
 
 # Map from legacy single-name fixture identifiers to manifest case_ids.
 # Named-fixture tests resolve a specific board via the corpus manifest
@@ -86,6 +87,13 @@ ALL_LAYERS_LIST = [
     "F.Mask", "B.Mask", "F.CrtYd", "B.CrtYd", "Edge.Cuts",
     "User.Drawings", "User.Comments",
 ]
+
+LAYER_REVIEW_ALIASES = {
+    "Cmts.User": "User.Comments",
+    "Dwgs.User": "User.Drawings",
+    "Eco1.User": "User.Eco1",
+    "Eco2.User": "User.Eco2",
+}
 
 
 def layer_filename_token(layer: str) -> str:
@@ -369,14 +377,14 @@ _IDENTITY_MATRIX: SvgMatrix = (1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
 def _mat_mul(left: SvgMatrix, right: SvgMatrix) -> SvgMatrix:
     """Compose two SVG affine matrices."""
     a, b, c, d, e, f = left
-    g, h, i, j, k, l = right
+    g, h, i, j, k, l_ = right
     return (
         a * g + c * h,
         b * g + d * h,
         a * i + c * j,
         b * i + d * j,
-        a * k + c * l + e,
-        b * k + d * l + f,
+        a * k + c * l_ + e,
+        b * k + d * l_ + f,
     )
 
 
@@ -666,7 +674,6 @@ def compare_svg_shapes(
     """
     our_paths = extract_paths_from_svg(our_svg)
     our_circles = extract_circles_from_svg(our_svg)
-    ref_paths = extract_paths_from_svg(ref_svg)
     ref_circles = extract_circles_from_svg(ref_svg)
 
     # Detect coordinate offset between SVGs using circles
@@ -840,10 +847,28 @@ def get_test_cases() -> List[Tuple[Path, str]]:
     return test_cases
 
 
+def get_board_review_cases() -> list[dict]:
+    """Get all active synthetic and real-world board SVG review cases."""
+    cases = []
+    for case in iter_kicad_corpus_cases(domain="board_svg"):
+        if case.get("origin") not in {"synthetic", "real_world"}:
+            continue
+        board_path = _review_case_board_path(case)
+        if board_path is None or not board_path.exists():
+            continue
+        cases.append(case)
+    cases.sort(key=lambda item: str(item.get("id", "")))
+    return cases
+
+
 def _make_test_id(test_case: Tuple[Path, str]) -> str:
     """Generate test ID for a test case."""
     board_path, layer = test_case
     return f"{board_path.stem}__{layer_filename_token(layer)}"
+
+
+def _make_review_case_id(case: dict) -> str:
+    return _safe_path_token(str(case.get("id") or case.get("name") or "board"))
 
 
 # Known failing tests to skip - format: (board_name, layer)
@@ -864,6 +889,192 @@ MATCH_THRESHOLDS: dict[tuple[str, str], float] = {
 def match_threshold_for(board_name: str, layer: str) -> float:
     """Return the minimum coordinate match threshold for a board layer."""
     return MATCH_THRESHOLDS.get((board_name, layer), MATCH_THRESHOLDS.get((board_name, "*"), 90.0))
+
+
+def _svg_viewbox(svg_content: str) -> tuple[float, float, float, float]:
+    """Return the SVG viewBox tuple as floats."""
+    match = re.search(r'viewBox="([^"]+)"', svg_content)
+    assert match is not None, "SVG missing viewBox"
+    parts = [float(part) for part in match.group(1).split()]
+    assert len(parts) == 4, f"unexpected viewBox: {match.group(1)}"
+    return (parts[0], parts[1], parts[2], parts[3])
+
+
+def _svg_arc_flags(svg_content: str) -> list[tuple[str, str]]:
+    """Return ``(large_arc, sweep)`` flags for SVG path arc commands."""
+    flags: list[tuple[str, str]] = []
+    for d_attr in re.findall(r'<path[^>]*\sd="([^"]+)"', svg_content, flags=re.DOTALL):
+        for match in re.finditer(
+            r'\bA\s+[-0-9.]+\s+[-0-9.]+\s+[-0-9.]+\s+([01])\s+([01])',
+            " ".join(d_attr.split()),
+        ):
+            flags.append((match.group(1), match.group(2)))
+    return flags
+
+
+def _footprint_group_chunk(
+    svg_content: str,
+    footprint_uuid: str,
+) -> str:
+    """Return one footprint group's SVG chunk."""
+    group_re = re.compile(
+        rf'<g[^>]*id="{re.escape(footprint_uuid)}"[^>]*data-ref="footprint"[^>]*>',
+        flags=re.DOTALL,
+    )
+    match = group_re.search(svg_content)
+    assert match is not None, f"footprint group not found: {footprint_uuid}"
+
+    next_match = re.search(
+        r'<g[^>]*data-ref="footprint"[^>]*>',
+        svg_content[match.end():],
+        flags=re.DOTALL,
+    )
+    chunk_end = match.end() + next_match.start() if next_match else len(svg_content)
+    return svg_content[match.start():chunk_end]
+
+
+def _footprint_polygon_bboxes(
+    svg_content: str,
+    footprint_uuid: str,
+) -> list[tuple[float, float, float, float]]:
+    """Return transformed polygon bboxes for one footprint group."""
+    chunk = _footprint_group_chunk(svg_content, footprint_uuid)
+
+    transform_match = re.search(
+        r'transform="translate\(([-\d.]+)\s+([-\d.]+)\)\s+rotate\(([-\d.]+)\)"',
+        chunk,
+    )
+    assert transform_match is not None, f"footprint group missing transform: {footprint_uuid}"
+    tx, ty, angle = (float(part) for part in transform_match.groups())
+    angle_rad = math.radians(angle)
+    cos_a = math.cos(angle_rad)
+    sin_a = math.sin(angle_rad)
+
+    bboxes: list[tuple[float, float, float, float]] = []
+    for points_attr in re.findall(r'<polygon[^>]*\spoints="([^"]+)"', chunk):
+        transformed: list[tuple[float, float]] = []
+        for pair in points_attr.split():
+            x, y = (float(part) for part in pair.split(","))
+            transformed.append((tx + x * cos_a - y * sin_a, ty + x * sin_a + y * cos_a))
+        xs = [x for x, _y in transformed]
+        ys = [y for _x, y in transformed]
+        bboxes.append((min(xs), min(ys), max(xs), max(ys)))
+    return bboxes
+
+
+def _safe_path_token(value: str) -> str:
+    """Return a filesystem-friendly token while keeping names recognizable."""
+    token = re.sub(r"[^A-Za-z0-9_.-]+", "__", value).strip("_")
+    return token or "board"
+
+
+def _review_case_board_path(case: dict) -> Path | None:
+    """Resolve the board path for either normalized or case-bucket cases."""
+    return (
+        resolve_kicad_manifest_path(case, "board_file")
+        or resolve_kicad_manifest_path(case, "input_file")
+    )
+
+
+def _review_case_output_dir(case: dict, board_path: Path) -> Path:
+    """Return the output folder for generated review SVGs."""
+    output_root = resolve_kicad_manifest_path(case, "output_root")
+    if output_root is not None:
+        return output_root / "board_svg"
+    if case.get("layout") == "case_bucket":
+        return board_path.parent.parent / "output" / "board_svg"
+    return OUTPUT_DIR / _safe_path_token(str(case.get("id") or board_path.stem))
+
+
+def _board_svg_output_dir_for_board_path(board_path: Path) -> Path:
+    """Return the corpus-local output folder for a synthetic board path."""
+    return board_path.parent.parent / "output" / "board_svg"
+
+
+def _pcb_review_layer_names(pcb) -> list[str]:
+    """Return stable per-layer review names for a board."""
+    layers: list[str] = []
+    seen: set[str] = set()
+
+    def add(layer: str) -> None:
+        if layer and layer not in seen:
+            layers.append(layer)
+            seen.add(layer)
+
+    for layer in TEST_LAYERS:
+        if layer != "All Layers":
+            add(layer)
+
+    for layer in getattr(pcb, "layers", ()):
+        canonical_name = getattr(layer, "canonical_name", "")
+        add(LAYER_REVIEW_ALIASES.get(canonical_name, canonical_name))
+
+    return layers
+
+
+def _write_pcb_layer_review_svgs(
+    pcb,
+    *,
+    output_dir: Path,
+    board_stem: str,
+) -> list[Path]:
+    """Write all individual layer review SVGs plus an all-layer view."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+    outputs: list[Path] = []
+
+    all_layers_path = output_dir / f"{board_stem}__All_Layers__monkey.svg"
+    all_layers_path.write_text(pcb.to_svg(), encoding="utf-8")
+    outputs.append(all_layers_path)
+
+    for layer in _pcb_review_layer_names(pcb):
+        layer_token = layer_filename_token(layer)
+        output_path = output_dir / f"{board_stem}__{layer_token}__monkey.svg"
+        output_path.write_text(pcb.to_svg(layers=[layer]), encoding="utf-8")
+        outputs.append(output_path)
+
+    return outputs
+
+
+def _ensure_board_review_outputs(case: dict):
+    """Load one board and populate its all-layer review output set once."""
+    from kicad_monkey import KiCadPcb
+
+    board_path = _review_case_board_path(case)
+    assert board_path is not None, f"board_svg case missing board path: {case.get('id')}"
+    if not board_path.exists():
+        pytest.skip(f"Input not found: {board_path}")
+
+    cache_key = board_path.resolve()
+    cached = _BOARD_REVIEW_CACHE.get(cache_key)
+    if cached is not None:
+        _pcb, _path, output_paths = cached
+        if all(path.exists() for path in output_paths):
+            return cached
+
+    pcb = KiCadPcb.from_file(board_path)
+    output_dir = _review_case_output_dir(case, board_path)
+    output_paths = _write_pcb_layer_review_svgs(
+        pcb,
+        output_dir=output_dir,
+        board_stem=board_path.stem,
+    )
+    result = (pcb, board_path, output_paths)
+    _BOARD_REVIEW_CACHE[cache_key] = result
+    return result
+
+
+@pytest.fixture(scope="module")
+def taillight_board_review():
+    """Load taillight once and populate its per-layer review output folder."""
+    case = get_kicad_corpus_case("real_world/taillight")
+    return _ensure_board_review_outputs(case)
+
+
+@pytest.fixture(scope="module")
+def speedy_board_review():
+    """Load Speedy once and populate its per-layer review output folder."""
+    case = get_kicad_corpus_case("real_world/speedy_processing_module")
+    return _ensure_board_review_outputs(case)
 
 
 # ============================================================================
@@ -1138,26 +1349,99 @@ class TestBoardSvgGeneration:
         assert mask_radii[1.25] == 8
         assert mask_radii[1.3516] == 8
 
+    @pytest.mark.parametrize("case", get_board_review_cases(), ids=_make_review_case_id)
+    def test_board_review_outputs_all_layers(self, case):
+        """Every board SVG corpus case should leave all layer views for review."""
+        pcb, board_path, output_paths = _ensure_board_review_outputs(case)
+
+        expected_names = {
+            f"{board_path.stem}__All_Layers__monkey.svg",
+            *{
+                f"{board_path.stem}__{layer_filename_token(layer)}__monkey.svg"
+                for layer in _pcb_review_layer_names(pcb)
+            },
+        }
+        actual_names = {path.name for path in output_paths if path.exists()}
+
+        assert expected_names <= actual_names
+        assert all(path.read_text(encoding="utf-8").lstrip().startswith("<?xml") for path in output_paths)
+
+    def test_taillight_fcu_footprint_geometry_lands_inside_viewbox(self, taillight_board_review):
+        """Placed F.Cu footprint geometry should render inside the board SVG viewBox."""
+        pcb, _board_path, _output_paths = taillight_board_review
+        svg = pcb.to_svg(layers=["F.Cu"])
+        assert svg.count('data-ref="footprint"') >= 5
+
+        _, _, width, height = _svg_viewbox(svg)
+        coords = extract_all_shape_coords(svg, precision=3)
+        assert coords, "Expected transformed F.Cu footprint geometry"
+
+        slack = 2.0
+        offenders = [
+            (x, y)
+            for x, y in coords
+            if x < -slack or y < -slack or x > width + slack or y > height + slack
+        ]
+        assert not offenders, (
+            "F.Cu geometry escaped the board viewBox; first offenders: "
+            f"{offenders[:10]} viewBox=0,0,{width},{height}"
+        )
+
+    def test_taillight_edgecuts_arcs_use_positive_screen_sweep(self, taillight_board_review):
+        """Taillight rounded board corners should arc through their midpoint."""
+        pcb, _board_path, _output_paths = taillight_board_review
+        svg = pcb.to_svg(layers=["Edge.Cuts"])
+        arc_flags = _svg_arc_flags(svg)
+
+        assert len(arc_flags) == 4
+        assert arc_flags == [("0", "1")] * 4
+
+    def test_taillight_led_smd_pads_keep_board_orientation(self, taillight_board_review):
+        """The D1 LED SMD pads should remain vertical after footprint placement."""
+        pcb, _board_path, _output_paths = taillight_board_review
+        footprint = next(
+            fp
+            for fp in pcb.footprints
+            if any(prop.name == "Reference" and prop.value == "D1" for prop in fp.properties)
+        )
+        svg = pcb.to_svg(layers=["F.Cu"])
+        bboxes = _footprint_polygon_bboxes(svg, footprint.uuid)
+        led_pad_bboxes = [
+            bbox for bbox in bboxes
+            if round(bbox[2] - bbox[0], 2) == 1.10
+            and round(bbox[3] - bbox[1], 2) == 2.64
+        ]
+
+        assert len(led_pad_bboxes) >= 6
+        assert all((bbox[3] - bbox[1]) > (bbox[2] - bbox[0]) for bbox in led_pad_bboxes)
+
+    def test_speedy_u17_fcu_pads_do_not_inherit_plot_stroke(self, speedy_board_review):
+        """U17 QFN pads should render as filled copper, not filled plus outline."""
+        pcb, _board_path, _output_paths = speedy_board_review
+        footprint = next(
+            fp
+            for fp in pcb.footprints
+            if any(prop.name == "Reference" and prop.value == "U17" for prop in fp.properties)
+        )
+        svg = pcb.to_svg(layers=["F.Cu"])
+        chunk = _footprint_group_chunk(svg, footprint.uuid)
+
+        assert chunk.count('stroke-width="0"') >= 40
+        assert 'stroke-width="0.1524"' not in chunk
+        assert "stroke-width:0.1524" not in chunk
+        assert "stroke:none" in chunk
+
 
 class TestBoardSvgComparison:
     """Tests comparing our SVG output against KiCad CLI references."""
 
-    @pytest.fixture
-    def ensure_output_dir(self):
-        """Ensure output directory exists."""
-        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-        return OUTPUT_DIR
-
     @pytest.mark.parametrize("test_case", get_test_cases(), ids=_make_test_id)
-    def test_layer_matches_reference(self, test_case, ensure_output_dir):
+    def test_layer_matches_reference(self, test_case):
         """Test that layer SVG matches reference."""
         from kicad_monkey import KiCadPcb
 
         board_path, layer = test_case
         board_name = board_path.stem
-        # board_path: <input_root>/<descriptor>.kicad_pcb; case folder is
-        # the parent of input_root (case_bucket layout).
-        board_folder = board_path.parent.parent.name
         layer_safe = layer_filename_token(layer)
 
         # Skip known failing tests
@@ -1188,8 +1472,8 @@ class TestBoardSvgComparison:
         # Generate our SVG
         our_svg = pcb.to_svg(layers=layers_to_render)
 
-        # Save our output for debugging in matching subfolder
-        out_folder = ensure_output_dir / board_folder
+        # Save our output for debugging in the corpus-local case output folder.
+        out_folder = _board_svg_output_dir_for_board_path(board_path)
         out_folder.mkdir(parents=True, exist_ok=True)
         out_path = out_folder / f"{board_name}__{layer_safe}.svg"
         out_path.write_text(our_svg)

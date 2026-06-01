@@ -7,6 +7,7 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, Tuple
+from xml.etree import ElementTree as ET
 
 from kicad_monkey.testing.corpus import get_kicad_pcb_foundation_dir
 
@@ -15,6 +16,11 @@ from kicad_cli_resolver import resolve_kicad_cli
 GROUP_STYLE_RE = re.compile(r'<g style="([^"]*)">(.*?)</g>', re.DOTALL)
 VIEWBOX_RE = re.compile(r'viewBox="([^"]+)"')
 WHITE_GROUP_TAGS = ("fill:#FFFFFF", "stroke:none")
+SVG_NUMBER_RE = re.compile(r"[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?")
+SVG_PATH_TOKEN_RE = re.compile(
+    r"[MmLlHhVvZz]|[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?"
+)
+UNSUPPORTED_AREA_PATH_RE = re.compile(r"[AaCcQqSsTt]")
 
 
 @dataclass(frozen=True)
@@ -26,6 +32,241 @@ class SyntheticOracleCase:
     layers: Tuple[str, ...]
     metrics: Tuple[str, ...]
     minimums: Tuple[Tuple[str, int], ...]
+
+
+def _local_svg_name(tag: str) -> str:
+    return tag.rsplit("}", 1)[-1]
+
+
+def _parse_style(style: str | None) -> dict[str, str]:
+    if not style:
+        return {}
+    parsed: dict[str, str] = {}
+    for item in style.split(";"):
+        if ":" not in item:
+            continue
+        key, value = item.split(":", 1)
+        parsed[key.strip()] = value.strip()
+    return parsed
+
+
+def _iter_svg_elements_with_style(
+    element: ET.Element,
+    inherited: dict[str, str] | None = None,
+):
+    style = dict(inherited or {})
+    style.update(_parse_style(element.attrib.get("style")))
+    for attr_name in ("fill", "stroke", "stroke-width"):
+        attr_value = element.attrib.get(attr_name)
+        if attr_value is not None:
+            style[attr_name] = attr_value.strip()
+
+    yield element, style
+    for child in list(element):
+        yield from _iter_svg_elements_with_style(child, style)
+
+
+def _is_black(value: str | None) -> bool:
+    if value is None:
+        return False
+    compact = value.strip().replace(" ", "").upper()
+    return compact in {"#000", "#000000", "BLACK"}
+
+
+def _style_float(style: dict[str, str], name: str, default: float = 0.0) -> float:
+    raw = style.get(name)
+    if raw is None:
+        return default
+    match = SVG_NUMBER_RE.search(raw)
+    if match is None:
+        return default
+    return float(match.group(0))
+
+
+def _attr_float(element: ET.Element, name: str, default: float = 0.0) -> float:
+    raw = element.attrib.get(name)
+    if raw is None:
+        return default
+    match = SVG_NUMBER_RE.search(raw)
+    if match is None:
+        return default
+    return float(match.group(0))
+
+
+def _polygon_from_points(points: list[tuple[float, float]]):
+    from shapely.geometry import Polygon
+
+    if len(points) < 3:
+        return None
+    geom = Polygon(points)
+    if geom.is_empty or geom.area <= 0:
+        return None
+    if not geom.is_valid:
+        geom = geom.buffer(0)
+    return geom if not geom.is_empty else None
+
+
+def _path_fill_geometries(d_attr: str):
+    """Return polygons for simple M/L/H/V/Z SVG paths used by KiCad pads."""
+    if UNSUPPORTED_AREA_PATH_RE.search(d_attr):
+        return []
+
+    geoms = []
+    tokens = SVG_PATH_TOKEN_RE.findall(d_attr.replace(",", " "))
+    idx = 0
+    cmd = ""
+    current: tuple[float, float] = (0.0, 0.0)
+    subpath: list[tuple[float, float]] = []
+
+    def finish_subpath() -> None:
+        nonlocal subpath
+        geom = _polygon_from_points(subpath)
+        if geom is not None:
+            geoms.append(geom)
+        subpath = []
+
+    def read_number() -> float | None:
+        nonlocal idx
+        if idx >= len(tokens) or re.fullmatch(r"[A-Za-z]", tokens[idx]):
+            return None
+        value = float(tokens[idx])
+        idx += 1
+        return value
+
+    while idx < len(tokens):
+        token = tokens[idx]
+        if re.fullmatch(r"[A-Za-z]", token):
+            cmd = token
+            idx += 1
+            if cmd in "Zz":
+                finish_subpath()
+            continue
+
+        if cmd in "Mm":
+            x = read_number()
+            y = read_number()
+            if x is None or y is None:
+                break
+            if cmd == "m":
+                x += current[0]
+                y += current[1]
+            if subpath:
+                finish_subpath()
+            current = (x, y)
+            subpath = [current]
+            cmd = "l" if cmd == "m" else "L"
+            continue
+
+        if cmd in "Ll":
+            x = read_number()
+            y = read_number()
+            if x is None or y is None:
+                break
+            if cmd == "l":
+                x += current[0]
+                y += current[1]
+            current = (x, y)
+            subpath.append(current)
+            continue
+
+        if cmd in "Hh":
+            x = read_number()
+            if x is None:
+                break
+            if cmd == "h":
+                x += current[0]
+            current = (x, current[1])
+            subpath.append(current)
+            continue
+
+        if cmd in "Vv":
+            y = read_number()
+            if y is None:
+                break
+            if cmd == "v":
+                y += current[1]
+            current = (current[0], y)
+            subpath.append(current)
+            continue
+
+        break
+
+    if subpath:
+        finish_subpath()
+    return geoms
+
+
+def _filled_geometry_for_element(element: ET.Element):
+    from shapely.geometry import Point, box
+
+    tag = _local_svg_name(element.tag)
+    if tag == "circle":
+        radius = _attr_float(element, "r")
+        if radius <= 0:
+            return None
+        return Point(
+            _attr_float(element, "cx"),
+            _attr_float(element, "cy"),
+        ).buffer(radius, quad_segs=32)
+
+    if tag == "rect":
+        width = _attr_float(element, "width")
+        height = _attr_float(element, "height")
+        if width <= 0 or height <= 0:
+            return None
+        x = _attr_float(element, "x")
+        y = _attr_float(element, "y")
+        return box(x, y, x + width, y + height)
+
+    if tag == "polygon":
+        points_attr = element.attrib.get("points", "")
+        points: list[tuple[float, float]] = []
+        for pair in points_attr.split():
+            coords = [float(value) for value in pair.split(",") if value]
+            if len(coords) == 2:
+                points.append((coords[0], coords[1]))
+        return _polygon_from_points(points)
+
+    if tag == "path":
+        geoms = _path_fill_geometries(element.attrib.get("d", ""))
+        if not geoms:
+            return None
+        if len(geoms) == 1:
+            return geoms[0]
+        from shapely.ops import unary_union
+
+        return unary_union(geoms)
+
+    return None
+
+
+def _filled_black_ink_area(svg: str) -> float:
+    """Approximate black filled SVG area, including stroke around filled shapes."""
+    try:
+        root = ET.fromstring(svg)
+    except ET.ParseError:
+        return 0.0
+
+    geoms = []
+    for element, style in _iter_svg_elements_with_style(root):
+        if not _is_black(style.get("fill")):
+            continue
+        geom = _filled_geometry_for_element(element)
+        if geom is None or geom.is_empty:
+            continue
+
+        stroke = style.get("stroke")
+        stroke_width = _style_float(style, "stroke-width")
+        if _is_black(stroke) and stroke_width > 0:
+            geom = geom.buffer(stroke_width / 2.0, quad_segs=16, join_style=1)
+        geoms.append(geom)
+
+    if not geoms:
+        return 0.0
+
+    from shapely.ops import unary_union
+
+    return round(float(unary_union(geoms).area), 4)
 
 
 SYNTHETIC_ORACLE_CASES: Tuple[SyntheticOracleCase, ...] = (
@@ -221,7 +462,7 @@ SYNTHETIC_ORACLE_CASES: Tuple[SyntheticOracleCase, ...] = (
         case_id="pad_chamfered_roundrect_top_copper",
         board_relpath="case083__pad_chamfered_roundrect/one_chamfer_roundrect.kicad_pcb",
         layers=("F.Cu",),
-        metrics=("viewbox", "total_strokes"),
+        metrics=("viewbox", "total_strokes", "filled_black_ink_area"),
         minimums=(("total_strokes", 1),),
     ),
 )
@@ -394,6 +635,7 @@ def semantic_snapshot(svg: str) -> Dict[str, object]:
         "white_stroke_paths": _count_white_stroke_paths(svg),
         "stroke_paths_0p1000": _count_paths_for_stroke_width(svg, 0.1),
         "stroke_paths_1p0000": _count_paths_for_stroke_width(svg, 1.0),
+        "filled_black_ink_area": _filled_black_ink_area(svg),
     }
 
 
@@ -419,6 +661,18 @@ def compare_semantic_metrics(
             if any(delta > viewbox_tol_mm for delta in deltas):
                 issues.append(
                     f"viewBox mismatch ours={ours_vb} ref={ref_vb} deltas={tuple(round(d, 4) for d in deltas)}"
+                )
+            continue
+
+        if metric == "filled_black_ink_area":
+            ours_area = float(ours.get(metric, 0.0))
+            ref_area = float(reference.get(metric, 0.0))
+            tolerance = max(0.005, abs(ref_area) * 0.02)
+            delta = abs(ours_area - ref_area)
+            if delta > tolerance:
+                issues.append(
+                    f"{metric} mismatch ours={ours_area} ref={ref_area} "
+                    f"delta={round(delta, 4)} tolerance={round(tolerance, 4)}"
                 )
             continue
 

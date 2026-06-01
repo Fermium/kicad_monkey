@@ -18,14 +18,14 @@ from collections import Counter
 from pathlib import Path
 from typing import List, Set, Tuple
 
-log = logging.getLogger(__name__)
-
 from conftest import FOOTPRINT_SVG_DIR
+
+log = logging.getLogger(__name__)
 
 # Test case directories
 INPUT_DIR = FOOTPRINT_SVG_DIR / "input"
 REFERENCE_DIR = FOOTPRINT_SVG_DIR / "reference_output"
-OUTPUT_DIR = Path(__file__).parent / "output" / "footprint_svg"
+OUTPUT_DIR = FOOTPRINT_SVG_DIR / "output"
 
 # Layers to test
 TEST_LAYERS = ["F.Cu", "B.Cu", "F.SilkS", "B.SilkS", "F.Fab", "B.Fab", "F.Mask", "B.Mask"]
@@ -122,10 +122,6 @@ def compare_svg_paths(our_svg: str, ref_svg: str) -> Tuple[bool, str]:
     our_circles = extract_circles_from_svg(our_svg)
     ref_paths = extract_paths_from_svg(ref_svg)
     ref_circles = extract_circles_from_svg(ref_svg)
-
-    # Total shape count (we render circles as paths, KiCad uses native circles)
-    our_total = len(our_paths) + len(our_circles)
-    ref_total = len(ref_paths) + len(ref_circles)
 
     # If reference has circles and we have equivalent number of polygon paths,
     # that's acceptable (we render circles as polygon approximations)

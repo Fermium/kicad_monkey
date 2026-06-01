@@ -751,7 +751,7 @@ def _render_flash_pad_circle_op(p: dict, *, ctx: KiCadSvgRenderContext) -> str:
             fill=KiCadFillType.FILLED_SHAPE.value,
             fill_color=_fill_color(payload),
             stroke_color=_stroke_color(payload),
-            width_nm=None,
+            width_nm=0,
             line_style=_line_style(payload),
         )
 
@@ -776,7 +776,12 @@ def _render_flash_pad_rect_op(p: dict, *, ctx: KiCadSvgRenderContext) -> str:
             cy=cy,
             orient_deg=float(payload.get("orient_deg", 0.0)),
         )
-        return svg_polygon(pts, ctx=ctx, fill=KiCadFillType.FILLED_SHAPE.value)
+        return svg_polygon(
+            pts,
+            ctx=ctx,
+            fill=KiCadFillType.FILLED_SHAPE.value,
+            width_nm=0,
+        )
 
     def _render_mask(payload: dict) -> str:
         margin = _mask_margin_nm(payload)
@@ -794,7 +799,12 @@ def _render_flash_pad_rect_op(p: dict, *, ctx: KiCadSvgRenderContext) -> str:
             cy=cy,
             orient_deg=float(payload.get("orient_deg", 0.0)),
         )
-        return svg_polygon(pts, ctx=ctx, fill=KiCadFillType.FILLED_SHAPE.value)
+        return svg_polygon(
+            pts,
+            ctx=ctx,
+            fill=KiCadFillType.FILLED_SHAPE.value,
+            width_nm=0,
+        )
 
     return _render_pad_with_mask_variant(
         p,
@@ -830,7 +840,7 @@ def _render_flash_pad_oval_op(p: dict, *, ctx: KiCadSvgRenderContext) -> str:
                 fill=KiCadFillType.FILLED_SHAPE.value,
                 fill_color=_fill_color(payload),
                 stroke_color=_stroke_color(payload),
-                width_nm=None,
+                width_nm=0,
                 line_style=_line_style(payload),
             )
 
@@ -874,7 +884,12 @@ def _render_flash_pad_roundrect_op(p: dict, *, ctx: KiCadSvgRenderContext) -> st
             cy=cy,
             orient_deg=float(payload.get("orient_deg", 0.0)),
         )
-        return svg_polygon(pts, ctx=ctx, fill=KiCadFillType.FILLED_SHAPE.value)
+        return svg_polygon(
+            pts,
+            ctx=ctx,
+            fill=KiCadFillType.FILLED_SHAPE.value,
+            width_nm=0,
+        )
 
     return _render_pad_with_mask_variant(
         p,
@@ -892,7 +907,12 @@ def _render_flash_pad_trapez_op(p: dict, *, ctx: KiCadSvgRenderContext) -> str:
     if not locals_:
         return ""
     pts = _absolutize(locals_, cx=cx, cy=cy, orient_deg=float(p.get("orient_deg", 0.0)))
-    return svg_polygon(pts, ctx=ctx, fill=KiCadFillType.FILLED_SHAPE.value)
+    return svg_polygon(
+        pts,
+        ctx=ctx,
+        fill=KiCadFillType.FILLED_SHAPE.value,
+        width_nm=0,
+    )
 
 
 def _render_flash_pad_custom_op(p: dict, *, ctx: KiCadSvgRenderContext) -> str:
@@ -942,7 +962,12 @@ def _render_flash_pad_custom_op(p: dict, *, ctx: KiCadSvgRenderContext) -> str:
         for locals_ in _custom_polygons(payload, expand_for_mask=expand_for_mask):
             pts = _absolutize(locals_, cx=cx, cy=cy, orient_deg=orient_deg)
             fragments.append(
-                svg_polygon(pts, ctx=ctx, fill=KiCadFillType.FILLED_SHAPE.value)
+                svg_polygon(
+                    pts,
+                    ctx=ctx,
+                    fill=KiCadFillType.FILLED_SHAPE.value,
+                    width_nm=0,
+                )
             )
         return "\n".join(fragments)
 
@@ -965,7 +990,12 @@ def _render_flash_reg_polygon_op(p: dict, *, ctx: KiCadSvgRenderContext) -> str:
         cy=cy,
         orient_deg=float(p.get("orient_deg", 0.0)),
     )
-    return svg_polygon(pts, ctx=ctx, fill=KiCadFillType.FILLED_SHAPE.value)
+    return svg_polygon(
+        pts,
+        ctx=ctx,
+        fill=KiCadFillType.FILLED_SHAPE.value,
+        width_nm=0,
+    )
 
 
 def render_op(op: KiCadPlotterOp, *, ctx: KiCadSvgRenderContext) -> str:
@@ -1172,13 +1202,38 @@ def _record_placement_transform(
     if x_nm or y_nm:
         parts.append(
             "translate("
-            f"{fmt_user_number(ctx.to_user_length(x_nm))} "
-            f"{fmt_user_number(ctx.to_user_length(y_nm))}"
+            f"{fmt_user_number(ctx.to_user_x(x_nm))} "
+            f"{fmt_user_number(ctx.to_user_y(y_nm))}"
             ")"
         )
     if angle_deg:
         parts.append(f"rotate({fmt_user_number(-angle_deg)})")
     return " ".join(parts) or None
+
+
+def _record_operation_context(
+    record: KiCadPlotterRecord,
+    *,
+    ctx: KiCadSvgRenderContext,
+) -> KiCadSvgRenderContext:
+    """
+    Return the context used to render a record's child operations.
+
+    PCB-embedded footprint records store geometry in footprint-local
+    coordinates and carry board placement in ``extras["placement"]``. The
+    placement group applies the board-space offset, so child ops must not also
+    receive the document bbox offset.
+    """
+    placement = (record.extras or {}).get("placement")
+    if not isinstance(placement, dict):
+        return ctx
+
+    from copy import copy as _copy
+
+    local_ctx = _copy(ctx)
+    local_ctx.offset_x_nm = 0
+    local_ctx.offset_y_nm = 0
+    return local_ctx
 
 
 def _svg_attr(name: str, value: object) -> str:
@@ -1482,6 +1537,64 @@ def _record_ops_for_visible_layers(
     return ops
 
 
+def _record_visible_operations(
+    record: KiCadPlotterRecord,
+    *,
+    ctx: KiCadSvgRenderContext,
+) -> list[KiCadPlotterOp] | None:
+    operations: Iterable[KiCadPlotterOp] = record.operations
+    visible_layers = _visible_pcb_layers(ctx)
+    if visible_layers is not None:
+        visible_ops = _record_ops_for_visible_layers(record, visible_layers)
+        if visible_ops is None:
+            return None
+        operations = visible_ops
+    return list(operations)
+
+
+def _is_drill_overlay_op(op: KiCadPlotterOp) -> bool:
+    return str((op.payload or {}).get("role", "")) in _DRILL_ROLES
+
+
+def _split_drill_overlay_ops(
+    operations: Iterable[KiCadPlotterOp],
+) -> tuple[list[KiCadPlotterOp], list[KiCadPlotterOp]]:
+    normal: list[KiCadPlotterOp] = []
+    drill_overlay: list[KiCadPlotterOp] = []
+    for op in operations:
+        if _is_drill_overlay_op(op):
+            drill_overlay.append(op)
+        else:
+            normal.append(op)
+    return normal, drill_overlay
+
+
+def _render_record_operations(
+    record: KiCadPlotterRecord,
+    operations: Iterable[KiCadPlotterOp],
+    *,
+    ctx: KiCadSvgRenderContext,
+    include_group: bool = True,
+    label_suffix: str = "",
+    data_ref: str | None = None,
+) -> str:
+    op_ctx = _record_operation_context(record, ctx=ctx)
+    body = _render_ops_with_blocks(operations, ctx=op_ctx)
+    if not include_group:
+        return body
+    extra_attrs = _variant_overlay_attrs(record, options=ctx.options)
+    transform = _record_placement_transform(record, ctx=ctx)
+    label = f"{record.uuid}{label_suffix}" if record.uuid else None
+    return svg_group(
+        body,
+        label=label,
+        transform=transform,
+        data_uuid=label,
+        data_ref=data_ref if data_ref is not None else record.kind,
+        extra_attrs=extra_attrs,
+    )
+
+
 def render_record(
     record: KiCadPlotterRecord,
     *,
@@ -1497,26 +1610,14 @@ def render_record(
     Records carrying ``extras["variant_state"] == "dimmed"`` get an opacity
     or filter overlay on the wrapper ``<g>`` per ``ctx.options.variant_dim_*``.
     """
-    operations: Iterable[KiCadPlotterOp] = record.operations
-    visible_layers = _visible_pcb_layers(ctx)
-    if visible_layers is not None:
-        visible_ops = _record_ops_for_visible_layers(record, visible_layers)
-        if visible_ops is None:
-            return ""
-        operations = visible_ops
-
-    body = _render_ops_with_blocks(operations, ctx=ctx)
-    if not include_group:
-        return body
-    extra_attrs = _variant_overlay_attrs(record, options=ctx.options)
-    transform = _record_placement_transform(record, ctx=ctx)
-    return svg_group(
-        body,
-        label=record.uuid or None,
-        transform=transform,
-        data_uuid=record.uuid or None,
-        data_ref=record.kind or None,
-        extra_attrs=extra_attrs,
+    operations = _record_visible_operations(record, ctx=ctx)
+    if operations is None:
+        return ""
+    return _render_record_operations(
+        record,
+        operations,
+        ctx=ctx,
+        include_group=include_group,
     )
 
 
@@ -1661,9 +1762,28 @@ def render_ir_to_svg(
         if ctx.sheet_height_nm <= 0:
             ctx.sheet_height_nm = height_nm
 
-    body_parts: list[str] = [
-        render_record(rec, ctx=ctx) for rec in _svg_document_records(doc.records, ctx=ctx)
-    ]
+    body_parts: list[str] = []
+    drill_overlay_parts: list[str] = []
+    for rec in _svg_document_records(doc.records, ctx=ctx):
+        operations = _record_visible_operations(rec, ctx=ctx)
+        if operations is None:
+            continue
+        normal_ops, drill_overlay_ops = _split_drill_overlay_ops(operations)
+        if normal_ops or not rec.operations:
+            body_parts.append(
+                _render_record_operations(rec, normal_ops, ctx=ctx)
+            )
+        if drill_overlay_ops:
+            drill_overlay_parts.append(
+                _render_record_operations(
+                    rec,
+                    drill_overlay_ops,
+                    ctx=ctx,
+                    label_suffix=":drill_overlay",
+                    data_ref="drill_overlay",
+                )
+            )
+    body_parts.extend(drill_overlay_parts)
     body = "\n".join(part for part in body_parts if part)
     return svg_document(body, ctx=ctx)
 

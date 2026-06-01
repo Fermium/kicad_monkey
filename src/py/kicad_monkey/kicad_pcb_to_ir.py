@@ -1819,6 +1819,7 @@ def pcb_footprint_to_record(
     for poly in footprint.fp_polys:
         ops.append(_op_with_pcb_layer(fp_poly_to_op(poly), poly.layer))
     for pad in footprint.pads:
+        pad_orient_offset = -float(getattr(footprint, "at_angle", 0.0) or 0.0)
         ops.extend(
             _op_with_pad_mask_hints(
                 _op_with_pcb_layers(op, list(pad.layers)),
@@ -1826,7 +1827,10 @@ def pcb_footprint_to_record(
                 footprint,
                 board,
             )
-            for op in [*pad_to_ops(pad), *pad_drill_to_ops(pad)]
+            for op in [
+                *pad_to_ops(pad, orient_deg_offset=pad_orient_offset),
+                *pad_drill_to_ops(pad, orient_deg_offset=pad_orient_offset),
+            ]
         )
 
     extras: dict[str, Any] = {

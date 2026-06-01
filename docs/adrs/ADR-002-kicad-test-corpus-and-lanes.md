@@ -27,6 +27,17 @@ Preferred case shape:
 - `output/`
 
 `output/` is transient and should remain local or temp-backed, not authoritative shared corpus data.
+Visual tests should write generated review artifacts under the owning case's
+`output/<domain>/` folder, such as `projects/<name>/output/board_svg/` or
+`pcb_foundation/<case>/output/board_svg/`. This keeps human-review outputs next
+to the corpus inputs and references while still keeping them out of version
+control.
+
+Real-world project domain tagging is file-role based. Assembly-procedure
+projects with names ending in `_assembly` are promoted for schematic
+rendering/IR and project parsing, but their `.kicad_pcb` files are intentionally
+empty or header-only. They should not be expected to participate in `board_svg`
+or PCB SVG review lanes unless a real board file is later added.
 
 Lane model:
 - `fast` is the default lane

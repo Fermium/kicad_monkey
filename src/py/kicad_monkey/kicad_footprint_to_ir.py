@@ -414,7 +414,11 @@ def _op_with_pad_mask_hints(
     return KiCadPlotterOp(kind=op.kind, payload=payload)
 
 
-def pad_to_ops(pad: "Pad") -> List[KiCadPlotterOp]:
+def pad_to_ops(
+    pad: "Pad",
+    *,
+    orient_deg_offset: float = 0.0,
+) -> List[KiCadPlotterOp]:
     """
     Convert a :class:`Pad` into one or more ``FlashPad*`` ops.
 
@@ -432,10 +436,10 @@ def pad_to_ops(pad: "Pad") -> List[KiCadPlotterOp]:
       points expressed in pad-local nm. Non-``gr_poly`` primitives are
       dropped.
 
-    Pad center is at (``at_x``, ``at_y``); ``at_angle`` becomes
-    ``orient_deg`` on the flash op so consumers can re-derive the
-    rotated geometry. Returns an empty list for unhandled shapes
-    (forward-compat).
+    Pad center is at (``at_x``, ``at_y``); ``at_angle`` plus
+    ``orient_deg_offset`` becomes ``orient_deg`` on the flash op so consumers
+    can re-derive the rotated geometry. Returns an empty list for unhandled
+    shapes (forward-compat).
     """
     drill = getattr(pad, "drill", None)
     if (
@@ -450,7 +454,7 @@ def pad_to_ops(pad: "Pad") -> List[KiCadPlotterOp]:
     y = mm_to_nm(pad.at_y)
     size_x_nm = mm_to_nm(pad.size_x)
     size_y_nm = mm_to_nm(pad.size_y)
-    orient_deg = float(pad.at_angle)
+    orient_deg = float(pad.at_angle) + float(orient_deg_offset)
 
     shape = pad.shape
 
@@ -694,7 +698,11 @@ def _drill_slot_op(
     return KiCadPlotterOp(kind=op.kind, payload={**op.payload, "role": role})
 
 
-def pad_drill_to_ops(pad: "Pad") -> List[KiCadPlotterOp]:
+def pad_drill_to_ops(
+    pad: "Pad",
+    *,
+    orient_deg_offset: float = 0.0,
+) -> List[KiCadPlotterOp]:
     """Emit synthetic drill/hole overlay ops for through-hole pads."""
     pad_type = _pad_type_value(pad)
     if pad_type not in (PadType.THRU_HOLE.value, PadType.NP_THRU_HOLE.value):
@@ -705,10 +713,11 @@ def pad_drill_to_ops(pad: "Pad") -> List[KiCadPlotterOp]:
     cy = mm_to_nm(pad.at_y)
     offset_x_nm = mm_to_nm(pad.drill_offset_x or 0.0)
     offset_y_nm = mm_to_nm(pad.drill_offset_y or 0.0)
+    orient_deg = float(pad.at_angle) + float(orient_deg_offset)
     offset_x_nm, offset_y_nm = _rotate_pad_local_nm(
         offset_x_nm,
         offset_y_nm,
-        float(pad.at_angle),
+        orient_deg,
     )
     cx += offset_x_nm
     cy += offset_y_nm
@@ -725,7 +734,7 @@ def pad_drill_to_ops(pad: "Pad") -> List[KiCadPlotterOp]:
         op = _drill_slot_op(
             cx=cx,
             cy=cy,
-            orient_deg=float(pad.at_angle),
+            orient_deg=orient_deg,
             drill_width_nm=mm_to_nm(float(drill_width)),
             drill_height_nm=mm_to_nm(float(drill_height)),
             role=role,

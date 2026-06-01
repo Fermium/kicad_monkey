@@ -317,6 +317,30 @@ def test_svg_arc_three_point_emits_path():
     assert " A " in s
 
 
+def test_svg_arc_positive_screen_sweep_uses_sweep_flag_one():
+    ctx = _ctx()
+    s = svg_arc(
+        10_000_000, 0,
+        7_071_068, 7_071_068,
+        0, 10_000_000,
+        ctx=ctx,
+    )
+
+    assert re.search(r"A\s+[-0-9.]+\s+[-0-9.]+\s+0\s+0\s+1\s+0\s+10", s)
+
+
+def test_svg_arc_negative_screen_sweep_uses_sweep_flag_zero():
+    ctx = _ctx()
+    s = svg_arc(
+        0, 10_000_000,
+        7_071_068, 7_071_068,
+        10_000_000, 0,
+        ctx=ctx,
+    )
+
+    assert re.search(r"A\s+[-0-9.]+\s+[-0-9.]+\s+0\s+0\s+0\s+10\s+0", s)
+
+
 def test_svg_arc_collinear_falls_back_to_line():
     ctx = _ctx()
     s = svg_arc(0, 0, 5_000_000, 0, 10_000_000, 0, ctx=ctx)

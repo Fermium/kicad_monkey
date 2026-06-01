@@ -4,6 +4,7 @@ Test L0_034: render_pcb_ir_to_svg viewBox / translation behavior.
 
 from __future__ import annotations
 
+import math
 import re
 
 from kicad_monkey import render_pcb_ir_to_svg
@@ -24,6 +25,10 @@ _PCB_FIXTURE = """(kicad_pcb
 
 _VIEWBOX_RE = re.compile(r'viewBox="([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)"')
 _CIRCLE_R_RE = re.compile(r'<circle\b[^>]*\br="([-\d.]+)"')
+_POLYGON_POINTS_RE = re.compile(r'<polygon\b[^>]*\bpoints="([^"]+)"')
+_TRANSFORM_RE = re.compile(
+    r'transform="translate\(([-\d.]+)\s+([-\d.]+)\)\s+rotate\(([-\d.]+)\)"'
+)
 
 
 def _extract_viewbox(svg: str) -> tuple[float, float, float, float]:
@@ -39,6 +44,26 @@ def _extract_viewbox(svg: str) -> tuple[float, float, float, float]:
 
 def _circle_radii(svg: str) -> list[float]:
     return [float(match.group(1)) for match in _CIRCLE_R_RE.finditer(svg)]
+
+
+def _first_transformed_polygon_bbox(svg: str) -> tuple[float, float, float, float]:
+    transform_match = _TRANSFORM_RE.search(svg)
+    assert transform_match is not None, f"transform not found in:\n{svg[:400]}"
+    tx, ty, angle = (float(part) for part in transform_match.groups())
+    points_match = _POLYGON_POINTS_RE.search(svg)
+    assert points_match is not None, f"polygon not found in:\n{svg[:400]}"
+
+    rad = math.radians(angle)
+    cos_a = math.cos(rad)
+    sin_a = math.sin(rad)
+    transformed: list[tuple[float, float]] = []
+    for pair in points_match.group(1).split():
+        x, y = (float(part) for part in pair.split(","))
+        transformed.append((tx + x * cos_a - y * sin_a, ty + x * sin_a + y * cos_a))
+
+    xs = [x for x, _y in transformed]
+    ys = [y for _x, y in transformed]
+    return (min(xs), min(ys), max(xs), max(ys))
 
 
 def test_render_pcb_ir_to_svg_viewbox_uses_centerline_bounds():
@@ -122,6 +147,38 @@ def test_npth_mask_layer_renders_expanded_aperture_and_hole():
 
     assert mask_radii == [1.25, 1.3516]
     assert silk_radii == [1.25]
+
+
+def test_embedded_footprint_pad_angle_is_relative_to_placement():
+    pcb = KiCadPcb.from_string(
+        """(kicad_pcb
+\t(version 20240108)
+\t(generator "pcbnew")
+\t(layers (0 "F.Cu" signal) (44 "Edge.Cuts" user))
+\t(gr_line (start 0 0) (end 30 0) (stroke (width 0.15) (type solid)) (layer "Edge.Cuts"))
+\t(gr_line (start 30 0) (end 30 30) (stroke (width 0.15) (type solid)) (layer "Edge.Cuts"))
+\t(gr_line (start 30 30) (end 0 30) (stroke (width 0.15) (type solid)) (layer "Edge.Cuts"))
+\t(gr_line (start 0 30) (end 0 0) (stroke (width 0.15) (type solid)) (layer "Edge.Cuts"))
+\t(footprint "Test:RotatedPad"
+\t\t(layer "F.Cu")
+\t\t(at 15 15 90)
+\t\t(pad "1" smd rect
+\t\t\t(at 0 0 90)
+\t\t\t(size 4 2)
+\t\t\t(layers "F.Cu" "F.Mask" "F.Paste")
+\t\t)
+\t)
+)
+"""
+    )
+
+    svg = render_pcb_ir_to_svg(pcb, layers=["F.Cu"])
+    min_x, min_y, max_x, max_y = _first_transformed_polygon_bbox(svg)
+    width = round(max_x - min_x, 4)
+    height = round(max_y - min_y, 4)
+
+    assert width == 2.0
+    assert height == 4.0
 
 
 def test_kicad_pcb_to_svg_uses_ir_renderer():

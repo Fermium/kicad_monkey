@@ -570,10 +570,11 @@ def _arc_endpoint_path(
     ux = (a_sq * (by - cy) + b_sq * (cy - ay) + c_sq * (ay - by)) / d_denom
     uy = (a_sq * (cx - bx) + b_sq * (ax - cx) + c_sq * (bx - ax)) / d_denom
     radius = math.hypot(ax - ux, ay - uy)
-    # SVG large-arc / sweep flags. Determine sweep by cross-product sign
-    # of (start->mid) and (start->end).
+    # SVG large-arc / sweep flags. Coordinates are KiCad/SVG Y-down, so a
+    # positive cross product means the mid point lies on the positive screen
+    # sweep from start to end.
     cross_sm = (bx - ax) * (cy - ay) - (by - ay) * (cx - ax)
-    sweep_flag = 1 if cross_sm < 0 else 0
+    sweep_flag = 1 if cross_sm > 0 else 0
     # Determine large-arc by cumulative angle.
     ang_a = math.atan2(ay - uy, ax - ux)
     ang_c = math.atan2(cy - uy, cx - ux)
@@ -587,8 +588,7 @@ def _arc_endpoint_path(
 
     a0 = _normalise(ang_a)
     a2 = _normalise(ang_c)
-    if sweep_flag == 0:
-        # CCW from a0 to a2; mid should fall between
+    if sweep_flag == 1:
         sweep_total = (a2 - a0) % (2 * math.pi)
     else:
         sweep_total = (a0 - a2) % (2 * math.pi)

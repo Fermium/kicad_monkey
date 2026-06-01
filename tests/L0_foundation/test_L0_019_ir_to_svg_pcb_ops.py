@@ -27,9 +27,11 @@ import pytest
 
 from kicad_monkey import (
     KiCadPlotterOp,
+    KiCadPlotterDocument,
     KiCadPlotterRecord,
     KiCadSvgRenderContext,
     KiCadSvgRenderOptions,
+    render_ir_to_svg,
     render_record,
     render_op,
 )
@@ -206,6 +208,41 @@ def test_render_op_flash_pad_circle(ctx: KiCadSvgRenderContext) -> None:
     assert 'r="2"' in svg
     # Pad is filled
     assert 'fill="#000000"' in svg
+    assert 'stroke-width="0"' in svg
+
+
+def test_render_ir_to_svg_filled_flash_pad_uses_stroke_none_bucket() -> None:
+    """Filled pad area should not be inflated by the current plot stroke."""
+    doc = KiCadPlotterDocument(
+        source_kind="PCB",
+        canvas={"width_nm": 5_000_000, "height_nm": 5_000_000},
+        records=[
+            KiCadPlotterRecord(
+                uuid="pad",
+                kind="footprint",
+                object_id="pad",
+                operations=[
+                    KiCadPlotterOp.flash_pad_roundrect(
+                        x=2_000_000,
+                        y=2_000_000,
+                        size_x_nm=820_000,
+                        size_y_nm=220_000,
+                        corner_radius_nm=40_000,
+                        orient_deg=0.0,
+                    )
+                ],
+                extras={"layer": "F.Cu"},
+            ),
+        ],
+    )
+
+    svg = render_ir_to_svg(
+        doc,
+        options=KiCadSvgRenderOptions(visible_layers=("F.Cu",)),
+    )
+
+    assert "fill:#000000; stroke:none" in svg
+    assert "fill:#000000; stroke:#000000; stroke-width:0.1524" not in svg
 
 
 # ---------------------------------------------------------------------------
@@ -227,6 +264,7 @@ def test_render_op_flash_pad_rect_axis_aligned(
     for expected in ("8,9", "12,9", "12,11", "8,11"):
         assert expected in svg, f"missing corner {expected} in {svg!r}"
     assert 'fill="#000000"' in svg
+    assert 'stroke-width="0"' in svg
 
 
 def test_render_op_flash_pad_rect_rotated_90deg(
@@ -291,6 +329,7 @@ def test_render_op_flash_pad_roundrect_polygon(
     svg = render_op(op, ctx=ctx)
     assert svg.startswith("<polygon")
     assert 'fill="#000000"' in svg
+    assert 'stroke-width="0"' in svg
 
 
 def test_render_op_flash_pad_roundrect_zero_radius_falls_back_to_rect(
@@ -333,6 +372,7 @@ def test_render_op_flash_pad_trapez_axis_aligned(
     assert "12,9.5" in svg
     assert "12,10.5" in svg
     assert "8,11" in svg
+    assert 'stroke-width="0"' in svg
 
 
 def test_render_op_flash_pad_trapez_empty_corners_emits_nothing(
@@ -369,6 +409,7 @@ def test_render_op_flash_pad_custom_multiring(
     # Two polygon elements (one per ring)
     assert svg.count("<polygon") == 2
     assert 'fill="#000000"' in svg
+    assert svg.count('stroke-width="0"') == 2
 
 
 def test_render_op_flash_pad_custom_empty_polygons(
@@ -400,6 +441,7 @@ def test_render_op_flash_reg_polygon_hexagon(
     points_attr_end = svg.index('"', points_attr_start)
     pairs = svg[points_attr_start:points_attr_end].split(" ")
     assert len(pairs) == 6
+    assert 'stroke-width="0"' in svg
 
 
 # ---------------------------------------------------------------------------
@@ -472,6 +514,43 @@ def test_render_record_applies_pcb_footprint_placement_transform(
     assert 'data-ref="footprint"' in svg
     assert 'transform="translate(10 20) rotate(-90)"' in svg
     assert '<circle cx="1" cy="2"' in svg
+
+
+def test_render_record_keeps_footprint_local_coords_out_of_board_offset() -> None:
+    """Placed footprint children stay footprint-local when the board view is offset."""
+
+    ctx = KiCadSvgRenderContext(
+        sheet_width_nm=40_000_000,
+        sheet_height_nm=30_000_000,
+        offset_x_nm=-100_000_000,
+        offset_y_nm=-200_000_000,
+    )
+    rec = KiCadPlotterRecord(
+        uuid="fp-offset",
+        kind="footprint",
+        object_id="lib:R",
+        operations=[
+            KiCadPlotterOp.flash_pad_circle(
+                x=1_000_000,
+                y=2_000_000,
+                diameter_nm=500_000,
+            )
+        ],
+        extras={
+            "placement": {
+                "x_nm": 110_000_000,
+                "y_nm": 220_000_000,
+                "angle_deg": 90.0,
+            }
+        },
+    )
+
+    svg = render_record(rec, ctx=ctx)
+
+    assert 'transform="translate(10 20) rotate(-90)"' in svg
+    assert '<circle cx="1" cy="2"' in svg
+    assert 'cx="-99"' not in svg
+    assert 'cy="-198"' not in svg
 
 
 def test_render_record_filters_board_record_by_layer() -> None:
@@ -632,3 +711,58 @@ def test_render_op_pad_drill_slot_white_on_copper() -> None:
 
     assert 'stroke="#FFFFFF"' in svg
     assert 'stroke-width="0.4"' in svg
+
+
+def test_render_ir_to_svg_moves_drill_knockouts_after_later_copper() -> None:
+    """Document rendering should leave drill knockouts above all copper."""
+    via_aperture = op_with_payload(
+        KiCadPlotterOp.flash_pad_circle(
+            x=2_000_000,
+            y=2_000_000,
+            diameter_nm=1_000_000,
+        ),
+        role="via_aperture",
+        layers=["F.Cu", "B.Cu"],
+    )
+    via_drill = op_with_payload(
+        KiCadPlotterOp.circle(
+            cx=2_000_000,
+            cy=2_000_000,
+            diameter_nm=400_000,
+        ),
+        role="via_drill",
+        layers=["F.Cu", "B.Cu"],
+    )
+    covering_copper = KiCadPlotterOp.flash_pad_circle(
+        x=2_000_000,
+        y=2_000_000,
+        diameter_nm=2_000_000,
+    )
+    doc = KiCadPlotterDocument(
+        source_kind="PCB",
+        canvas={"width_nm": 5_000_000, "height_nm": 5_000_000},
+        records=[
+            KiCadPlotterRecord(
+                uuid="via",
+                kind="via",
+                object_id="via",
+                operations=[via_aperture, via_drill],
+                extras={"layers": ["F.Cu", "B.Cu"]},
+            ),
+            KiCadPlotterRecord(
+                uuid="later-copper",
+                kind="footprint",
+                object_id="pad",
+                operations=[covering_copper],
+                extras={"layer": "F.Cu"},
+            ),
+        ],
+    )
+
+    svg = render_ir_to_svg(
+        doc,
+        options=KiCadSvgRenderOptions(visible_layers=("F.Cu",)),
+    )
+
+    assert 'data-ref="drill_overlay"' in svg
+    assert svg.rfind('fill="#FFFFFF"') > svg.rfind('fill="#000000"')

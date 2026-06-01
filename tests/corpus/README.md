@@ -23,6 +23,13 @@ Source snapshot:
 - Excluded generated/local-only directories: `output`, `review`,
   `review_tmp`, `.git`, `.history`
 - Preserved oracle/reference directories such as `reference_output`
+- Generated visual-review artifacts are written under each case's
+  `output/<domain>/` folder, for example `projects/<name>/output/board_svg/`.
+  These files are local review outputs and are not part of the tracked corpus
+  archive.
+- Real-world `projects/*_assembly` entries are assembly-procedure
+  documentation projects. Their PCB files are intentionally empty/header-only,
+  so they are schematic SVG/IR fixtures rather than `board_svg` review cases.
 
 Archive SOP:
 

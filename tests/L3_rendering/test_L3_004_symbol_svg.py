@@ -19,7 +19,6 @@ Comparison Algorithm:
 """
 
 import pytest
-from pathlib import Path
 
 from kicad_monkey import KiCadSymbolLib, render_symbol_svg, SymbolRenderOptions
 from kicad_monkey.testing.corpus import get_kicad_topic_dir
@@ -29,8 +28,8 @@ from svg.compare_svg_elements import compare_svgs, create_overlay_diff
 CASES_DIR = get_kicad_topic_dir("symbol_svg")
 INPUT_DIR = CASES_DIR / "input"
 REFERENCE_DIR = CASES_DIR / "reference_output"
-OUTPUT_DIR = Path(__file__).parent / "output" / "symbol_svg"
-DIFF_DIR = Path(__file__).parent / "diff" / "symbol_svg"
+OUTPUT_DIR = CASES_DIR / "output"
+DIFF_DIR = OUTPUT_DIR / "diff"
 
 
 def get_symbol_test_cases():
