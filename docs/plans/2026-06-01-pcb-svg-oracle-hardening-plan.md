@@ -75,6 +75,10 @@ decisions KiCad makes, not only visual similarity.
   duplicate regex/XML metric implementation from
   `tests/synthetic_board_svg_oracle.py` while leaving active symbol/schematic
   SVG helpers in place.
+- 2026-06-01: Added the first strict structural PCB SVG oracle case
+  (`case019` F.Cu via). This lane renders monkey output with
+  `profile="kicad_cli"` and compares canonical draw-item kind sequence,
+  normalized paint style, bbox, and radii against fresh KiCad CLI SVG.
 
 ## Goals
 

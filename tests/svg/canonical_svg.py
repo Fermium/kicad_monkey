@@ -288,6 +288,24 @@ def _effective_stroke(style: dict[str, str]) -> str | None:
     return stroke
 
 
+def effective_style_signature(item: SvgDrawItem) -> tuple[str | None, str | None, float, str | None]:
+    """Return the comparable paint style for one draw item.
+
+    A zero-width stroke is normalized to ``stroke:none`` so renderer output
+    such as ``stroke="#000000" stroke-width="0"`` compares with KiCad CLI's
+    explicit ``stroke:none``.
+    """
+
+    stroke = _effective_stroke(item.style)
+    stroke_width = 0.0 if stroke in {None, "none"} else item.stroke_width
+    return (
+        item.style.get("fill"),
+        stroke,
+        round(stroke_width, 4),
+        item.style.get("fill-rule"),
+    )
+
+
 def _style_key(style: dict[str, str]) -> str:
     parts: list[str] = []
     fill = style.get("fill")

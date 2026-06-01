@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
-from svg.canonical_svg import analyze_svg, semantic_metrics
+from svg.canonical_svg import (
+    analyze_svg,
+    effective_style_signature,
+    semantic_metrics,
+)
 
 
 def test_analyzer_applies_inherited_style_and_element_overrides():
@@ -20,6 +24,7 @@ def test_analyzer_applies_inherited_style_and_element_overrides():
     assert item.style["fill"] == "#FFFFFF"
     assert item.style["stroke"] == "#FFFFFF"
     assert item.stroke_width == 0.0
+    assert effective_style_signature(item) == ("#FFFFFF", "none", 0.0, None)
     assert metrics["white_drill_circles"] == 1
 
 
@@ -61,4 +66,3 @@ def test_semantic_metrics_exclude_canvas_background_rect():
     assert metrics["total_strokes"] == 1
     assert metrics["total_circles"] == 0
     assert metrics["stroke_paths_0p1000"] == 1
-
