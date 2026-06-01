@@ -55,6 +55,7 @@ from typing import Any, Callable, Iterable
 
 from .kicad_plotter_ir import (
     KiCadFillType,
+    KiCadLineStyle,
     KiCadPlotterDocument,
     KiCadPlotterOp,
     KiCadPlotterOpKind,
@@ -573,6 +574,71 @@ def _render_pad_with_mask_variant(
     return expanded
 
 
+def _path_d_from_polygon_points(
+    points: Iterable[tuple[int, int]] | Iterable[tuple[float, float]],
+    *,
+    ctx: KiCadSvgRenderContext,
+) -> str:
+    pts = list(points)
+    if len(pts) < 3:
+        return ""
+    first_x, first_y = pts[0]
+    commands = [
+        f"M {fmt_user_number(ctx.to_user_x(first_x))},{fmt_user_number(ctx.to_user_y(first_y))}"
+    ]
+    commands.extend(
+        f"L {fmt_user_number(ctx.to_user_x(x))},{fmt_user_number(ctx.to_user_y(y))}"
+        for x, y in pts[1:]
+    )
+    commands.append("Z")
+    return " ".join(commands)
+
+
+def _filled_path_color(
+    fill: KiCadFillType | str | None,
+    fill_color: str | None,
+    *,
+    ctx: KiCadSvgRenderContext,
+) -> str:
+    if fill == KiCadFillType.FILLED_WITH_BG_BODYCOLOR.value:
+        return ctx.sheet_area_color
+    return ctx.resolve_color(
+        fill_color or ctx.options.default_fill_color or ctx.current_color
+    )
+
+
+def _render_filled_polygon_like_cli(
+    points: Iterable[tuple[int, int]] | Iterable[tuple[float, float]],
+    *,
+    ctx: KiCadSvgRenderContext,
+    fill: KiCadFillType | str | None = KiCadFillType.FILLED_SHAPE.value,
+    fill_color: str | None = None,
+    stroke_color: str | None = None,
+    width_nm: int | float | None = 0,
+    line_style: KiCadLineStyle | str | None = None,
+) -> str:
+    pts = list(points)
+    fill_value = fill.value if isinstance(fill, KiCadFillType) else str(fill or "")
+    if _profile_is_kicad_cli(ctx.options) and _is_filled(fill_value) and width_nm == 0:
+        d = _path_d_from_polygon_points(pts, ctx=ctx)
+        if not d:
+            return ""
+        color = _filled_path_color(fill_value, fill_color, ctx=ctx)
+        return (
+            f'<path d="{d}" fill="{color}" stroke="none" '
+            f'fill-rule="evenodd" clip-rule="evenodd" />'
+        )
+    return svg_polygon(
+        pts,
+        ctx=ctx,
+        fill=fill,
+        fill_color=fill_color,
+        stroke_color=stroke_color,
+        width_nm=width_nm,
+        line_style=line_style,
+    )
+
+
 def _drill_render_mode(role: str, ctx: KiCadSvgRenderContext) -> str:
     # NPTH holes are rendered identically to PTH drills by kicad-cli:
     # white knockout on copper/mask, outline on silk/fab/edge.
@@ -749,7 +815,7 @@ def _render_flash_pad_rect_op(p: dict, *, ctx: KiCadSvgRenderContext) -> str:
             cy=cy,
             orient_deg=float(payload.get("orient_deg", 0.0)),
         )
-        return svg_polygon(
+        return _render_filled_polygon_like_cli(
             pts,
             ctx=ctx,
             fill=KiCadFillType.FILLED_SHAPE.value,
@@ -772,7 +838,7 @@ def _render_flash_pad_rect_op(p: dict, *, ctx: KiCadSvgRenderContext) -> str:
             cy=cy,
             orient_deg=float(payload.get("orient_deg", 0.0)),
         )
-        return svg_polygon(
+        return _render_filled_polygon_like_cli(
             pts,
             ctx=ctx,
             fill=KiCadFillType.FILLED_SHAPE.value,
@@ -857,7 +923,7 @@ def _render_flash_pad_roundrect_op(p: dict, *, ctx: KiCadSvgRenderContext) -> st
             cy=cy,
             orient_deg=float(payload.get("orient_deg", 0.0)),
         )
-        return svg_polygon(
+        return _render_filled_polygon_like_cli(
             pts,
             ctx=ctx,
             fill=KiCadFillType.FILLED_SHAPE.value,
@@ -880,7 +946,7 @@ def _render_flash_pad_trapez_op(p: dict, *, ctx: KiCadSvgRenderContext) -> str:
     if not locals_:
         return ""
     pts = _absolutize(locals_, cx=cx, cy=cy, orient_deg=float(p.get("orient_deg", 0.0)))
-    return svg_polygon(
+    return _render_filled_polygon_like_cli(
         pts,
         ctx=ctx,
         fill=KiCadFillType.FILLED_SHAPE.value,
@@ -935,7 +1001,7 @@ def _render_flash_pad_custom_op(p: dict, *, ctx: KiCadSvgRenderContext) -> str:
         for locals_ in _custom_polygons(payload, expand_for_mask=expand_for_mask):
             pts = _absolutize(locals_, cx=cx, cy=cy, orient_deg=orient_deg)
             fragments.append(
-                svg_polygon(
+                _render_filled_polygon_like_cli(
                     pts,
                     ctx=ctx,
                     fill=KiCadFillType.FILLED_SHAPE.value,
@@ -963,7 +1029,7 @@ def _render_flash_reg_polygon_op(p: dict, *, ctx: KiCadSvgRenderContext) -> str:
         cy=cy,
         orient_deg=float(p.get("orient_deg", 0.0)),
     )
-    return svg_polygon(
+    return _render_filled_polygon_like_cli(
         pts,
         ctx=ctx,
         fill=KiCadFillType.FILLED_SHAPE.value,
@@ -1057,7 +1123,7 @@ def render_op(op: KiCadPlotterOp, *, ctx: KiCadSvgRenderContext) -> str:
         fill = str(p.get("fill", KiCadFillType.NO_FILL.value))
         width_nm = _primitive_width_for_svg(p)
         if _is_filled(fill):
-            return svg_polygon(
+            return _render_filled_polygon_like_cli(
                 normalised,
                 ctx=ctx,
                 fill=fill,

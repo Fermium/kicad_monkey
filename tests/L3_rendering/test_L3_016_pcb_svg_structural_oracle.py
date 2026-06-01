@@ -40,6 +40,12 @@ STRICT_CASES: tuple[StrictSvgCase, ...] = (
         layers=("F.Cu",),
         kind_sequence=("circle", "circle"),
     ),
+    StrictSvgCase(
+        case_id="pad_chamfered_roundrect_f_cu",
+        board_relpath="case083__pad_chamfered_roundrect/one_chamfer_roundrect.kicad_pcb",
+        layers=("F.Cu",),
+        kind_sequence=("path",),
+    ),
 )
 
 
@@ -124,4 +130,3 @@ def test_pcb_svg_strict_draw_items_match_kicad_cli(case, kicad_cli_path, tmp_pat
         if ours.radius is not None or reference.radius is not None:
             assert ours.radius is not None and reference.radius is not None
             assert abs(ours.radius - reference.radius) <= 0.0001
-

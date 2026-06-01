@@ -79,6 +79,11 @@ decisions KiCad makes, not only visual similarity.
   (`case019` F.Cu via). This lane renders monkey output with
   `profile="kicad_cli"` and compares canonical draw-item kind sequence,
   normalized paint style, bbox, and radii against fresh KiCad CLI SVG.
+- 2026-06-01: Started KiCad-like emitter choices for filled pads/polygons.
+  In `profile="kicad_cli"`, filled polygon-style output now emits
+  fill-only `<path>` items with `stroke:none` and `fill-rule:evenodd`.
+  Promoted `case083` chamfered roundrect F.Cu into strict structural
+  coverage alongside the via case.
 
 ## Goals
 

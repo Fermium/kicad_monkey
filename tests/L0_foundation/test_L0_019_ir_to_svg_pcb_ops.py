@@ -59,6 +59,14 @@ def layer_ctx(*layers: str) -> KiCadSvgRenderContext:
     )
 
 
+def kicad_cli_ctx() -> KiCadSvgRenderContext:
+    return KiCadSvgRenderContext(
+        sheet_width_nm=297_000_000,
+        sheet_height_nm=210_000_000,
+        options=KiCadSvgRenderOptions(profile="kicad_cli"),
+    )
+
+
 def op_with_payload(op: KiCadPlotterOp, **payload) -> KiCadPlotterOp:
     return KiCadPlotterOp(kind=op.kind, payload={**op.payload, **payload})
 
@@ -347,6 +355,26 @@ def test_render_op_flash_pad_roundrect_zero_radius_falls_back_to_rect(
         assert expected in svg
 
 
+def test_render_op_flash_pad_roundrect_kicad_cli_uses_fill_only_path() -> None:
+    op = KiCadPlotterOp.flash_pad_roundrect(
+        x=10_000_000,
+        y=10_000_000,
+        size_x_nm=4_000_000,
+        size_y_nm=2_000_000,
+        corner_radius_nm=500_000,
+        orient_deg=0.0,
+    )
+
+    svg = render_op(op, ctx=kicad_cli_ctx())
+
+    assert svg.startswith("<path")
+    assert "<polygon" not in svg
+    assert 'fill="#000000"' in svg
+    assert 'stroke="none"' in svg
+    assert "stroke-width" not in svg
+    assert 'fill-rule="evenodd"' in svg
+
+
 # ---------------------------------------------------------------------------
 # FlashPadTrapez
 # ---------------------------------------------------------------------------
@@ -420,6 +448,27 @@ def test_render_op_flash_pad_custom_empty_polygons(
     )
     svg = render_op(op, ctx=ctx)
     assert svg == ""
+
+
+def test_render_op_flash_pad_custom_kicad_cli_uses_paths() -> None:
+    op = KiCadPlotterOp.flash_pad_custom(
+        x=10_000_000,
+        y=10_000_000,
+        size_x_nm=4_000_000,
+        size_y_nm=2_000_000,
+        orient_deg=0.0,
+        polygons=[
+            [[-1_000_000, -1_000_000], [1_000_000, -1_000_000], [0, 1_000_000]],
+            [[-500_000, -500_000], [500_000, -500_000], [0, 500_000]],
+        ],
+    )
+
+    svg = render_op(op, ctx=kicad_cli_ctx())
+
+    assert svg.count("<path") == 2
+    assert "<polygon" not in svg
+    assert svg.count('stroke="none"') == 2
+    assert svg.count('fill-rule="evenodd"') == 2
 
 
 # ---------------------------------------------------------------------------
