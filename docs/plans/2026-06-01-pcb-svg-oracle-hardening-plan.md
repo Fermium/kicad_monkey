@@ -124,6 +124,11 @@ decisions KiCad makes, not only visual similarity.
   cache paths in `profile="kicad_cli"`. Re-probing footprint knockout text
   then exposed a separate path bbox/order mismatch, so that case remains a
   follow-on geometry target rather than entering strict coverage.
+- 2026-06-01: Closed the footprint knockout follow-on by teaching the
+  canonical SVG analyzer to sample `A` arc commands before applying inherited
+  transforms. Promoted `case066` footprint text knockout F.SilkS into strict
+  structural coverage after the text, line, and arc draw items matched fresh
+  KiCad CLI output.
 
 ## Goals
 

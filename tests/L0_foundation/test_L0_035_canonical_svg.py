@@ -9,6 +9,18 @@ from svg.canonical_svg import (
 )
 
 
+def _assert_close_tuple(
+    ours: tuple[float, ...],
+    expected: tuple[float, ...],
+    *,
+    tol: float = 0.0001,
+) -> None:
+    deltas = [abs(a - b) for a, b in zip(ours, expected)]
+    assert all(delta <= tol for delta in deltas), (
+        f"tuple mismatch ours={ours} expected={expected} deltas={deltas}"
+    )
+
+
 def test_analyzer_applies_inherited_style_and_element_overrides():
     svg = """<svg viewBox="0 0 10 10">
 <g style="fill:#000000; stroke:#000000; stroke-width:0.2">
@@ -53,6 +65,36 @@ def test_analyzer_extracts_simple_path_family_bbox_and_area():
     assert item.bbox == (0.0, 0.0, 4.0, 3.0)
     assert item.area == 6.0
     assert metrics["filled_black_ink_area"] == 6.0
+
+
+def test_analyzer_samples_svg_arc_bbox():
+    svg = """<svg viewBox="0 0 20 20">
+<path d="M 10 5 A 5 5 0 0 0 0 5" fill="none" stroke="#000000" stroke-width="0.508" />
+</svg>"""
+
+    item = analyze_svg(svg).draw_items[0]
+
+    assert item.command_family == "M/A"
+    assert item.bbox is not None
+    _assert_close_tuple(item.bbox, (0.0, 0.0, 10.0, 5.0))
+
+
+def test_analyzer_flattens_transformed_svg_arc_bbox():
+    absolute_svg = """<svg viewBox="0 0 20 20">
+<path d="M 10 5 A 5 5 0 0 0 0 5" fill="none" stroke="#000000" stroke-width="0.508" />
+</svg>"""
+    local_svg = """<svg viewBox="0 0 20 20">
+<g transform="translate(5 5)">
+  <path d="M 5 0 A 5 5 0 0 0 -5 0" fill="none" stroke="#000000" stroke-width="0.508" />
+</g>
+</svg>"""
+
+    absolute_item = analyze_svg(absolute_svg).draw_items[0]
+    local_item = analyze_svg(local_svg).draw_items[0]
+
+    assert absolute_item.bbox is not None
+    assert local_item.bbox is not None
+    _assert_close_tuple(local_item.bbox, absolute_item.bbox)
 
 
 def test_semantic_metrics_exclude_canvas_background_rect():

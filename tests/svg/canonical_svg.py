@@ -162,15 +162,114 @@ def _parse_points(raw: str | None) -> list[tuple[float, float]]:
     return list(zip(values[::2], values[1::2]))
 
 
+def _svg_angle(u: tuple[float, float], v: tuple[float, float]) -> float:
+    ux, uy = u
+    vx, vy = v
+    denom = math.hypot(ux, uy) * math.hypot(vx, vy)
+    if denom == 0.0:
+        return 0.0
+    value = max(-1.0, min(1.0, (ux * vx + uy * vy) / denom))
+    angle = math.acos(value)
+    if ux * vy - uy * vx < 0:
+        angle = -angle
+    return angle
+
+
+def _angle_in_sweep(angle: float, start: float, delta: float) -> bool:
+    period = 2.0 * math.pi
+    if delta >= 0:
+        offset = (angle - start) % period
+        return offset <= delta + 1e-12
+    offset = (start - angle) % period
+    return offset <= -delta + 1e-12
+
+
+def _svg_arc_points(
+    start: tuple[float, float],
+    *,
+    rx: float,
+    ry: float,
+    x_axis_rotation_deg: float,
+    large_arc: float,
+    sweep: float,
+    end: tuple[float, float],
+) -> list[tuple[float, float]]:
+    """Return representative points for one SVG elliptical arc command."""
+
+    x1, y1 = start
+    x2, y2 = end
+    rx = abs(float(rx))
+    ry = abs(float(ry))
+    if rx == 0.0 or ry == 0.0 or (x1 == x2 and y1 == y2):
+        return [end]
+
+    phi = math.radians(float(x_axis_rotation_deg) % 360.0)
+    cos_phi = math.cos(phi)
+    sin_phi = math.sin(phi)
+
+    dx = (x1 - x2) / 2.0
+    dy = (y1 - y2) / 2.0
+    x1p = cos_phi * dx + sin_phi * dy
+    y1p = -sin_phi * dx + cos_phi * dy
+
+    radius_check = (x1p * x1p) / (rx * rx) + (y1p * y1p) / (ry * ry)
+    if radius_check > 1.0:
+        scale = math.sqrt(radius_check)
+        rx *= scale
+        ry *= scale
+
+    numerator = rx * rx * ry * ry - rx * rx * y1p * y1p - ry * ry * x1p * x1p
+    denominator = rx * rx * y1p * y1p + ry * ry * x1p * x1p
+    if denominator == 0.0:
+        return [end]
+    factor = math.sqrt(max(0.0, numerator / denominator))
+    if bool(int(large_arc)) == bool(int(sweep)):
+        factor = -factor
+
+    cxp = factor * rx * y1p / ry
+    cyp = -factor * ry * x1p / rx
+    cx = cos_phi * cxp - sin_phi * cyp + (x1 + x2) / 2.0
+    cy = sin_phi * cxp + cos_phi * cyp + (y1 + y2) / 2.0
+
+    start_vector = ((x1p - cxp) / rx, (y1p - cyp) / ry)
+    end_vector = ((-x1p - cxp) / rx, (-y1p - cyp) / ry)
+    start_angle = _svg_angle((1.0, 0.0), start_vector)
+    delta_angle = _svg_angle(start_vector, end_vector)
+    if not int(sweep) and delta_angle > 0:
+        delta_angle -= 2.0 * math.pi
+    elif int(sweep) and delta_angle < 0:
+        delta_angle += 2.0 * math.pi
+
+    sample_angles = {start_angle, start_angle + delta_angle}
+    step_count = max(8, int(math.ceil(abs(delta_angle) / (math.pi / 32.0))))
+    for index in range(1, step_count):
+        sample_angles.add(start_angle + delta_angle * index / step_count)
+    for quadrant in range(4):
+        angle = quadrant * math.pi / 2.0
+        if _angle_in_sweep(angle, start_angle, delta_angle):
+            sample_angles.add(angle)
+
+    direction = 1 if delta_angle >= 0 else -1
+    points: list[tuple[float, float]] = []
+    for angle in sorted(
+        sample_angles,
+        key=lambda item: (item - start_angle) * direction,
+    ):
+        x = cx + rx * math.cos(angle) * cos_phi - ry * math.sin(angle) * sin_phi
+        y = cy + rx * math.cos(angle) * sin_phi + ry * math.sin(angle) * cos_phi
+        points.append((x, y))
+    return points
+
+
 def _path_command_family(path_data: str) -> str:
     commands = re.findall(r"[A-Za-z]", path_data)
     return "/".join(commands)
 
 
 def _simple_path_subpaths(path_data: str) -> list[list[tuple[float, float]]]:
-    """Parse simple M/L/H/V/Z paths into point rings."""
+    """Parse M/L/H/V/A/Z paths into representative point rings."""
 
-    if re.search(r"[AaCcQqSsTt]", path_data):
+    if re.search(r"[CcQqSsTt]", path_data):
         return []
 
     tokens = SVG_PATH_TOKEN_RE.findall(path_data.replace(",", " "))
@@ -248,6 +347,43 @@ def _simple_path_subpaths(path_data: str) -> list[list[tuple[float, float]]]:
                 y += current[1]
             current = (current[0], y)
             subpath.append(current)
+            continue
+
+        if cmd in "Aa":
+            rx = read_number()
+            ry = read_number()
+            x_axis_rotation = read_number()
+            large_arc = read_number()
+            sweep = read_number()
+            x = read_number()
+            y = read_number()
+            if any(
+                value is None
+                for value in (rx, ry, x_axis_rotation, large_arc, sweep, x, y)
+            ):
+                break
+            assert rx is not None
+            assert ry is not None
+            assert x_axis_rotation is not None
+            assert large_arc is not None
+            assert sweep is not None
+            assert x is not None
+            assert y is not None
+            if cmd == "a":
+                x += current[0]
+                y += current[1]
+            points = _svg_arc_points(
+                current,
+                rx=rx,
+                ry=ry,
+                x_axis_rotation_deg=x_axis_rotation,
+                large_arc=large_arc,
+                sweep=sweep,
+                end=(x, y),
+            )
+            if points:
+                subpath.extend(points[1:] if points[0] == current else points)
+                current = (x, y)
             continue
 
         break

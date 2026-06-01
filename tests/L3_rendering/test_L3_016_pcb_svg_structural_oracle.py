@@ -191,6 +191,12 @@ STRICT_CASES: tuple[StrictSvgCase, ...] = (
         kind_sequence=("path",),
     ),
     StrictSvgCase(
+        case_id="knockout_fp_text_silk",
+        board_relpath="case066__comp_smd_top_designator/component_designator_top.kicad_pcb",
+        layers=("F.SilkS",),
+        kind_sequence=_paths(7),
+    ),
+    StrictSvgCase(
         case_id="dim_center",
         board_relpath="case221__dim_center/dim_center.kicad_pcb",
         layers=("Cmts.User",),
