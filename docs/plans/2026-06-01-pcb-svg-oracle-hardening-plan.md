@@ -101,6 +101,12 @@ decisions KiCad makes, not only visual similarity.
   without the schematic minimum pen-width clamp and emitting `gr_rect` as a
   path in `profile="kicad_cli"`. Promoted via Edge.Cuts and slot Edge.Cuts
   into strict structural coverage.
+- 2026-06-01: Probed the next synthetic promotion set against fresh KiCad CLI
+  output. Promoted matching SMD/through-hole pad primitives, bottom-layer pad
+  output, a four-pad array, a straight track, and rectangular Edge.Cuts outline
+  into strict structural coverage. Left custom-pad geometry and arc path bbox
+  differences as explicit implementation targets instead of weakening the
+  strict lane.
 
 ## Goals
 

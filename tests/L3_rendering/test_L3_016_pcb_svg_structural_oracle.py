@@ -35,6 +35,24 @@ class StrictSvgCase:
 
 STRICT_CASES: tuple[StrictSvgCase, ...] = (
     StrictSvgCase(
+        case_id="track_top_1mil_f_cu",
+        board_relpath="case001__track_top_1mil/case001__track_top_1mil.kicad_pcb",
+        layers=("F.Cu",),
+        kind_sequence=("path",),
+    ),
+    StrictSvgCase(
+        case_id="pad_smd_rect_f_cu",
+        board_relpath="case011__pad_smd_rect/case011__pad_smd_rect.kicad_pcb",
+        layers=("F.Cu",),
+        kind_sequence=("path",),
+    ),
+    StrictSvgCase(
+        case_id="pad_smd_round_f_cu",
+        board_relpath="case012__pad_smd_round/case012__pad_smd_round.kicad_pcb",
+        layers=("F.Cu",),
+        kind_sequence=("circle",),
+    ),
+    StrictSvgCase(
         case_id="via_basic_f_cu",
         board_relpath="case019__via_basic/one_via.kicad_pcb",
         layers=("F.Cu",),
@@ -59,6 +77,30 @@ STRICT_CASES: tuple[StrictSvgCase, ...] = (
         kind_sequence=("path",),
     ),
     StrictSvgCase(
+        case_id="pad_th_round_f_cu",
+        board_relpath="case014__pad_th_round/case014__pad_th_round.kicad_pcb",
+        layers=("F.Cu",),
+        kind_sequence=("circle", "circle"),
+    ),
+    StrictSvgCase(
+        case_id="pad_th_rect_f_cu",
+        board_relpath="case015__pad_th_rect/case015__pad_th_rect.kicad_pcb",
+        layers=("F.Cu",),
+        kind_sequence=("path", "circle"),
+    ),
+    StrictSvgCase(
+        case_id="pad_smd_bottom_b_cu",
+        board_relpath="case016__pad_smd_bottom/case016__pad_smd_bottom.kicad_pcb",
+        layers=("B.Cu",),
+        kind_sequence=("path",),
+    ),
+    StrictSvgCase(
+        case_id="pad_smd_array_f_cu",
+        board_relpath="case017__pad_smd_array/case017__pad_smd_array.kicad_pcb",
+        layers=("F.Cu",),
+        kind_sequence=("path", "path", "path", "path"),
+    ),
+    StrictSvgCase(
         case_id="pad_th_oval_f_cu",
         board_relpath="case018__pad_th_oval/case018__pad_th_oval.kicad_pcb",
         layers=("F.Cu",),
@@ -69,6 +111,12 @@ STRICT_CASES: tuple[StrictSvgCase, ...] = (
         board_relpath="case084__pad_slot_hole/one_slot_drill.kicad_pcb",
         layers=("F.Cu",),
         kind_sequence=("path", "path"),
+    ),
+    StrictSvgCase(
+        case_id="outline_rect_edgecuts",
+        board_relpath="case037__outline_rect/board_outline.kicad_pcb",
+        layers=("Edge.Cuts",),
+        kind_sequence=("path",),
     ),
     StrictSvgCase(
         case_id="slot_edgecuts_drill_outline",
