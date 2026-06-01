@@ -544,16 +544,23 @@ def pad_to_ops(
         ]
     if shape == PadShape.CUSTOM:
         polygons: list[list[list[int]]] = []
+        polygon_widths_nm: list[int] = []
         for prim in pad.custom_primitives:
             if prim.primitive_type != "gr_poly" or not prim.points:
                 continue
             polygons.append([[mm_to_nm(px), mm_to_nm(py)] for px, py in prim.points])
+            polygon_widths_nm.append(mm_to_nm(float(prim.width or 0.0)))
+        anchor_shape = None
+        if pad.custom_options is not None:
+            anchor_shape = pad.custom_options.anchor
         return [
             KiCadPlotterOp.flash_pad_custom(
                 x=x, y=y,
                 size_x_nm=size_x_nm, size_y_nm=size_y_nm,
                 orient_deg=orient_deg,
                 polygons=polygons,
+                polygon_widths_nm=polygon_widths_nm,
+                anchor_shape=anchor_shape,
             )
         ]
     # Unknown shape — be forward-compatible.

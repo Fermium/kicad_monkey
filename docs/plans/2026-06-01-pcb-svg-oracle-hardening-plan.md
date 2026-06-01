@@ -107,6 +107,10 @@ decisions KiCad makes, not only visual similarity.
   into strict structural coverage. Left custom-pad geometry and arc path bbox
   differences as explicit implementation targets instead of weakening the
   strict lane.
+- 2026-06-01: Fixed custom-pad `profile="kicad_cli"` geometry by carrying
+  custom anchor shape and primitive stroke widths through the IR, then unioning
+  them into the single filled path KiCad emits. Promoted `case122` custom pad
+  F.Cu into strict structural coverage.
 
 ## Goals
 

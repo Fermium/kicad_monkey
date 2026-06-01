@@ -35,6 +35,7 @@ from kicad_monkey import (
     render_record,
     render_op,
 )
+from svg.canonical_svg import analyze_svg
 
 
 # ---------------------------------------------------------------------------
@@ -517,8 +518,8 @@ def test_render_op_flash_pad_custom_kicad_cli_uses_paths() -> None:
         size_y_nm=2_000_000,
         orient_deg=0.0,
         polygons=[
-            [[-1_000_000, -1_000_000], [1_000_000, -1_000_000], [0, 1_000_000]],
-            [[-500_000, -500_000], [500_000, -500_000], [0, 500_000]],
+            [[-1_500_000, -1_000_000], [-500_000, -1_000_000], [-1_000_000, 0]],
+            [[500_000, 0], [1_500_000, 0], [1_000_000, 1_000_000]],
         ],
     )
 
@@ -528,6 +529,29 @@ def test_render_op_flash_pad_custom_kicad_cli_uses_paths() -> None:
     assert "<polygon" not in svg
     assert svg.count('stroke="none"') == 2
     assert svg.count('fill-rule="evenodd"') == 2
+
+
+def test_render_op_flash_pad_custom_kicad_cli_unions_anchor_and_width() -> None:
+    op = KiCadPlotterOp.flash_pad_custom(
+        x=10_000_000,
+        y=10_000_000,
+        size_x_nm=2_000_000,
+        size_y_nm=1_000_000,
+        orient_deg=0.0,
+        polygons=[
+            [[0, 0], [2_000_000, 0], [2_000_000, 1_000_000], [0, 1_000_000]],
+        ],
+        polygon_widths_nm=[100_000],
+        anchor_shape="rect",
+    )
+
+    svg = render_op(op, ctx=kicad_cli_ctx())
+    snapshot = analyze_svg(f"<svg>{svg}</svg>")
+
+    assert svg.count("<path") == 1
+    assert "<polygon" not in svg
+    assert len(snapshot.draw_items) == 1
+    assert snapshot.draw_items[0].bbox == (9.0, 9.5, 12.05, 11.05)
 
 
 # ---------------------------------------------------------------------------

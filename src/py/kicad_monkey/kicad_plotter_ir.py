@@ -716,19 +716,23 @@ class KiCadPlotterOp:
         size_y_nm: int,
         orient_deg: float,
         polygons: list[list[list[int]]],
+        polygon_widths_nm: list[int] | None = None,
+        anchor_shape: str | None = None,
     ) -> KiCadPlotterOp:
         normalized = [[[int(p[0]), int(p[1])] for p in ring] for ring in polygons]
-        return cls(
-            kind=KiCadPlotterOpKind.FLASH_PAD_CUSTOM,
-            payload={
-                "x": int(x),
-                "y": int(y),
-                "size_x_nm": int(size_x_nm),
-                "size_y_nm": int(size_y_nm),
-                "orient_deg": float(orient_deg),
-                "polygons": normalized,
-            },
-        )
+        payload: dict[str, Any] = {
+            "x": int(x),
+            "y": int(y),
+            "size_x_nm": int(size_x_nm),
+            "size_y_nm": int(size_y_nm),
+            "orient_deg": float(orient_deg),
+            "polygons": normalized,
+        }
+        if polygon_widths_nm is not None:
+            payload["polygon_widths_nm"] = [int(width) for width in polygon_widths_nm]
+        if anchor_shape:
+            payload["anchor_shape"] = str(anchor_shape)
+        return cls(kind=KiCadPlotterOpKind.FLASH_PAD_CUSTOM, payload=payload)
 
     @classmethod
     def flash_pad_trapez(

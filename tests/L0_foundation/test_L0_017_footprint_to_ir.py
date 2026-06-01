@@ -44,7 +44,7 @@ from kicad_monkey.kicad_fp_poly import FpPoly
 from kicad_monkey.kicad_fp_rect import FpRect
 from kicad_monkey.kicad_fp_text import FpText
 from kicad_monkey.kicad_fp_text_box import FpTextBox
-from kicad_monkey.kicad_pad import Pad, PadCustomPrimitive
+from kicad_monkey.kicad_pad import Pad, PadCustomOptions, PadCustomPrimitive
 from kicad_monkey.kicad_primitives import Effects, Font, Stroke
 from kicad_monkey.kicad_property import Property
 
@@ -469,6 +469,25 @@ def test_pad_to_ops_custom_translates_gr_poly_primitives():
     assert op.payload["polygons"] == [
         [[0, 0], [1_000_000, 0], [1_000_000, 1_000_000]],
     ]
+    assert op.payload["polygon_widths_nm"] == [100_000]
+
+
+def test_pad_to_ops_custom_preserves_anchor_shape():
+    pad = _make_pad(
+        PadShape.CUSTOM,
+        size_x=2.0, size_y=1.0,
+        custom_options=PadCustomOptions(anchor="rect"),
+        custom_primitives=[
+            PadCustomPrimitive(
+                primitive_type="gr_poly",
+                points=[(0.0, 0.0), (1.0, 0.0), (0.0, 1.0)],
+            ),
+        ],
+    )
+    ops = pad_to_ops(pad)
+
+    assert len(ops) == 1
+    assert ops[0].payload["anchor_shape"] == "rect"
 
 
 def test_pad_to_ops_custom_drops_non_gr_poly_primitives():
