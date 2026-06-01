@@ -88,6 +88,11 @@ decisions KiCad makes, not only visual similarity.
   segments, covering oval pads, routed/stroked segments, and slot drill
   strokes while preserving default review `<polyline>` output. Promoted
   SMD oval F.Cu and slot-drill F.Cu into strict structural SVG coverage.
+- 2026-06-01: Full `test_L3_001_board_svg.py` exposed an NPTH mask aperture
+  nuance. KiCad emits a drill-plus-mask-clearance aperture for NPTH pads whose
+  pad size equals the drill, but not the extra drill-derived aperture when the
+  NPTH pad body already exceeds the drill. Added pad-size hints to the IR and
+  L0 coverage for both cases.
 
 ## Goals
 

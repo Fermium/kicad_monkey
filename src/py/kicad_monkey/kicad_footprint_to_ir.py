@@ -411,6 +411,9 @@ def _op_with_pad_mask_hints(
         return op
     payload = copy.deepcopy(op.payload)
     payload["mask_margin_nm"] = _resolved_pad_mask_margin_nm(pad, footprint)
+    if role == "npth_hole":
+        payload["pad_size_x_nm"] = mm_to_nm(float(getattr(pad, "size_x", 0.0)))
+        payload["pad_size_y_nm"] = mm_to_nm(float(getattr(pad, "size_y", 0.0)))
     return KiCadPlotterOp(kind=op.kind, payload=payload)
 
 

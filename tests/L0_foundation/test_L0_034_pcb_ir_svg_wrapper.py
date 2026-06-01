@@ -118,7 +118,7 @@ def test_render_pcb_ir_to_svg_empty_board_returns_empty_svg():
     assert 'viewBox="0 0 0 0"' in svg
 
 
-def test_npth_mask_layer_renders_hole_without_extra_aperture():
+def test_npth_mask_layer_renders_expanded_aperture_when_pad_matches_drill():
     pcb = KiCadPcb.from_string(
         """(kicad_pcb
 \t(version 20240108)
@@ -145,8 +145,35 @@ def test_npth_mask_layer_renders_hole_without_extra_aperture():
     mask_radii = sorted(round(radius, 4) for radius in _circle_radii(mask_svg))
     silk_radii = sorted(round(radius, 4) for radius in _circle_radii(silk_svg))
 
-    assert mask_radii == [1.25]
+    assert mask_radii == [1.25, 1.3516]
     assert silk_radii == [1.25]
+
+
+def test_npth_mask_layer_uses_pad_aperture_when_pad_exceeds_drill():
+    pcb = KiCadPcb.from_string(
+        """(kicad_pcb
+\t(version 20240108)
+\t(generator "pcbnew")
+\t(layers (0 "F.Cu" signal) (36 "F.Mask" user))
+\t(setup (pad_to_mask_clearance 0.05))
+\t(footprint "Test:NPTH"
+\t\t(layer "F.Cu")
+\t\t(at 0 0 0)
+\t\t(pad "" np_thru_hole circle
+\t\t\t(at 10 10)
+\t\t\t(size 2.0 2.0)
+\t\t\t(drill 1.2)
+\t\t\t(layers "*.Cu" "*.Mask")
+\t\t)
+\t)
+)
+"""
+    )
+
+    mask_svg = render_pcb_ir_to_svg(pcb, layers=["F.Mask"])
+    mask_radii = sorted(round(radius, 4) for radius in _circle_radii(mask_svg))
+
+    assert mask_radii == [0.6, 1.05]
 
 
 def test_embedded_footprint_pad_angle_is_relative_to_placement():
