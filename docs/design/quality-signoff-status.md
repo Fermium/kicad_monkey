@@ -1,7 +1,7 @@
 # Quality Signoff Status
 
 Status: public-release bootstrap audit
-Last updated: 2026-05-31
+Last updated: 2026-06-02
 
 ## Passing Gates
 
@@ -17,6 +17,8 @@ Last updated: 2026-05-31
   corpus mirror is ignored locally and extracted on demand by test helpers.
 - CI prepares the corpus archive, runs Rack L0 and L99, builds the package,
   runs `twine check`, and verifies installed-package imports.
+- The 2026-06-02 release adds focused design-review coverage for PCB SVG
+  parity, enriched SVG metadata, and repeated schematic sheet instances.
 
 ## Active Quality Ratchet
 

@@ -21,16 +21,17 @@
 `kicad_monkey` is a focused Python package for KiCad source-file parsing,
 round-trip modeling, close-to-format utilities, and IR-backed 2D rendering.
 
-Current scope:
+Use it when you need Python code to inspect or modify KiCad files directly:
 
-- KiCad S-expression parsing helpers
-- schematic, symbol-library, PCB, footprint, project, and design OOP facades
-- property cleanup and model mutation helpers
-- netlist and connectivity utilities
-- plotter-style IR and SVG rendering entrypoints
+- read `.kicad_pro`, `.kicad_sch`, `.kicad_pcb`, `.kicad_sym`, and
+  `.kicad_mod` files;
+- query schematic and PCB objects through typed model facades;
+- compile KiCad-native design netlists and design JSON;
+- render schematic, PCB, symbol, and footprint views through plotter IR and SVG;
+- make focused model edits, then write KiCad files back out.
 
-Larger workflow commands and heavier application orchestration should live in
-downstream packages such as `kicad-cruncher`.
+This package is the low-level parser/model/rendering library. Larger workflow
+commands and application orchestration should live in downstream packages.
 
 ## Install
 
@@ -46,6 +47,139 @@ For development:
 git clone https://github.com/wavenumber-eng/kicad_monkey.git
 cd kicad_monkey
 uv sync --extra test
+```
+
+## Quick Examples
+
+### Load A Design And Inspect Nets
+
+```python
+from kicad_monkey import KiCadDesign
+
+design = KiCadDesign.from_project_file("hardware/demo.kicad_pro")
+netlist = design.to_netlist()
+
+for net in netlist.nets:
+    terminals = ", ".join(
+        f"{terminal.designator}.{terminal.pin}"
+        for terminal in net.terminals
+    )
+    print(f"{net.name}: {terminals}")
+```
+
+Save the KiCad-native design JSON used by higher-level review tools:
+
+```python
+design.save_json("build/design.json")
+```
+
+### Render PCB SVG
+
+```python
+from pathlib import Path
+
+from kicad_monkey import KiCadDesign
+
+design = KiCadDesign.from_project_file("hardware/demo.kicad_pro")
+
+out_dir = Path("build/svg")
+out_dir.mkdir(parents=True, exist_ok=True)
+
+svg = design.to_pcb_svg(
+    layers=["Edge.Cuts", "F.Cu", "F.SilkS"],
+    profile="enriched",
+)
+(out_dir / "front-copper.svg").write_text(svg, encoding="utf-8")
+```
+
+Use `profile="oracle"` when comparing against KiCad CLI output. Use
+`profile="enriched"` when an app needs metadata on SVG elements.
+
+### Render Every Schematic Sheet Instance
+
+Hierarchical designs can instantiate one `.kicad_sch` file more than once.
+`KiCadSchematicInstance` represents each concrete sheet view.
+
+```python
+from pathlib import Path
+
+from kicad_monkey import KiCadDesign, render_ir_to_svg
+
+design = KiCadDesign.from_project_file("hardware/demo.kicad_pro")
+
+out_dir = Path("build/schematic-svg")
+out_dir.mkdir(parents=True, exist_ok=True)
+
+for sheet in design.schematic_instances():
+    doc = design.to_schematic_instance_ir(sheet)
+    svg = render_ir_to_svg(doc)
+    safe_name = sheet.sheet_name.replace("/", "_").replace("\\", "_")
+    (out_dir / f"{sheet.instance_index:02d}_{safe_name}.svg").write_text(
+        svg,
+        encoding="utf-8",
+    )
+```
+
+To find where a reused child schematic appears:
+
+```python
+for instance in design.schematic_instances_for("hardware/LED_Controller.kicad_sch"):
+    print(instance.sheet_name, instance.sheet_path, instance.sheet_instance_path)
+```
+
+### Query And Mutate Schematic Objects
+
+The `.objects` property is a live read-only query view over model-owned
+objects. Mutate the returned objects, then call `save()`.
+
+```python
+from kicad_monkey import KiCadSchematic
+
+schematic = KiCadSchematic.from_file("hardware/demo.kicad_sch")
+
+for symbol in schematic.objects.where("SchSymbol"):
+    if symbol.reference.startswith("R"):
+        symbol.set_property_value("Value", "10 kOhm")
+
+for label in schematic.objects.where("SchLabel"):
+    if label.effects is not None and label.effects.font is not None:
+        label.effects.font.size_x = 1.5
+        label.effects.font.size_y = 1.5
+
+schematic.save("hardware/demo.edited.kicad_sch")
+```
+
+### Query And Mutate PCB Objects
+
+```python
+from kicad_monkey import KiCadPcb
+
+board = KiCadPcb.from_file("hardware/demo.kicad_pcb")
+
+for footprint in board.objects.where("Footprint"):
+    reference = footprint.get_property_value("Reference")
+    if reference.startswith("U"):
+        footprint.set_property_value("Reviewed", "yes", create=True)
+
+for text in board.objects.where("GrText", layer="F.SilkS"):
+    text.effects.font.size_x = 1.0
+    text.effects.font.size_y = 1.0
+    text.text = text.text.strip()
+
+board.save("hardware/demo.edited.kicad_pcb")
+```
+
+Object queries also work with class objects when you prefer typed imports:
+
+```python
+from kicad_monkey import Footprint, KiCadPcb
+
+board = KiCadPcb.from_file("hardware/demo.kicad_pcb")
+connectors = [
+    footprint
+    for footprint in board.objects.where(Footprint)
+    if footprint.get_property_value("Reference").startswith("J")
+]
 ```
 
 ## Testing
@@ -69,8 +203,8 @@ external corpus is configured.
 
 The promoted package-root API is recorded in
 `kicad_monkey.kicad_api_contract`. The broad package `__all__` remains a
-provisional discovery surface while `kicad-cruncher` integration proves which
-symbols should graduate into the durable public contract.
+provisional discovery surface while downstream integrations prove which symbols
+should graduate into the durable public contract.
 
 The public OOP facade groups and supporting public classes are documented under
 [docs/design/api](docs/design/api). L99 fails when a promoted public class or
@@ -79,14 +213,15 @@ major interface is missing design documentation or Rack test ownership.
 Typical entrypoints:
 
 ```python
-from kicad_monkey import KiCadDesign, KiCadPcb, KiCadSchematic
+from kicad_monkey import KiCadDesign, KiCadFootprint, KiCadPcb, KiCadSchematic
+from kicad_monkey import KiCadSymbolLib
 
 schematic = KiCadSchematic.from_file("design.kicad_sch")
 board = KiCadPcb.from_file("board.kicad_pcb")
 design = KiCadDesign.from_project_file("project.kicad_pro")
+symbols = KiCadSymbolLib.from_file("library.kicad_sym")
+footprint = KiCadFootprint.from_file("package.kicad_mod")
 ```
-
-SVG generation goes through the IR-backed rendering path.
 
 ## Fixture Model
 
