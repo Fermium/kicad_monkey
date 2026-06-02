@@ -1123,6 +1123,8 @@ def svg_document(
     width_nm: int | None = None,
     height_nm: int | None = None,
     background_color: str | None = None,
+    root_extra_attrs: dict[str, object] | None = None,
+    metadata_elements: Iterable[str] | None = None,
 ) -> str:
     """
     Wrap ``body`` in an ``<svg>`` envelope sized from the context's
@@ -1140,6 +1142,21 @@ def svg_document(
     )
 
     body_text = body if isinstance(body, str) else "\n".join(s for s in body if s)
+    root_attrs = ""
+    if root_extra_attrs:
+        attrs: list[str] = []
+        for key, value in root_extra_attrs.items():
+            if value is None or str(value) == "":
+                continue
+            attr = str(key).strip().replace("_", "-")
+            if not attr:
+                continue
+            if not all(ch.isalnum() or ch in "-_:" for ch in attr):
+                continue
+            attrs.append(f'{attr}="{html.escape(str(value), quote=True)}"')
+        if attrs:
+            root_attrs = " " + " ".join(attrs)
+
     parts: list[str] = []
     if ctx.options.include_xml_declaration:
         parts.append('<?xml version="1.0" encoding="UTF-8"?>')
@@ -1148,8 +1165,11 @@ def svg_document(
         f'xmlns:xlink="http://www.w3.org/1999/xlink" '
         f'width="{fmt_user_number(width)}{suffix}" '
         f'height="{fmt_user_number(height)}{suffix}" '
-        f'viewBox="0 0 {fmt_user_number(width)} {fmt_user_number(height)}">'
+        f'viewBox="0 0 {fmt_user_number(width)} {fmt_user_number(height)}"'
+        f'{root_attrs}>'
     )
+    if metadata_elements is not None:
+        parts.extend(str(item) for item in metadata_elements if str(item))
     if bg is not None and width > 0 and height > 0:
         parts.append(
             f'  <rect x="0" y="0" width="{fmt_user_number(width)}" '

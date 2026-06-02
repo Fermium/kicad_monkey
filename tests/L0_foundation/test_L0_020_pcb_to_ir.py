@@ -1029,10 +1029,16 @@ def test_pcb_footprint_to_record_emits_pad_op():
               at_x=0.5, at_y=0.0, size_x=0.6, size_y=0.6)
     fp = Footprint(library_link="lib:R", pads=[pad])
     rec = pcb_footprint_to_record(fp)
-    assert len(rec.operations) == 1
-    assert rec.operations[0].kind == KiCadPlotterOpKind.FLASH_PAD_CIRCLE
+    assert [op.kind for op in rec.operations] == [
+        KiCadPlotterOpKind.START_BLOCK,
+        KiCadPlotterOpKind.FLASH_PAD_CIRCLE,
+        KiCadPlotterOpKind.END_BLOCK,
+    ]
+    assert rec.operations[0].payload["data_ref"] == "pad"
+    assert rec.operations[0].payload["extra_attrs"]["primitive"] == "pad"
+    assert rec.operations[0].payload["extra_attrs"]["pad_number"] == "1"
     # Pad coords are footprint-local (no placement applied).
-    assert rec.operations[0].payload["x"] == 500_000
+    assert rec.operations[1].payload["x"] == 500_000
 
 
 def test_pcb_footprint_to_record_tags_child_ops_with_layers():
@@ -1059,7 +1065,8 @@ def test_pcb_footprint_to_record_tags_child_ops_with_layers():
     rec = pcb_footprint_to_record(fp)
 
     assert rec.operations[0].payload["layer"] == "B.SilkS"
-    assert rec.operations[1].payload["layers"] == ["*.Cu", "*.Mask"]
+    assert rec.operations[1].kind == KiCadPlotterOpKind.START_BLOCK
+    assert rec.operations[2].payload["layers"] == ["*.Cu", "*.Mask"]
 
 
 def test_pcb_footprint_to_record_orders_reference_then_value_then_others():

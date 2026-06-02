@@ -373,6 +373,11 @@ def render_pcb_ir_to_svg(
     from .kicad_ir_to_svg import render_ir_to_svg
     from .kicad_lib_symbol_to_ir import mm_to_nm
     from .kicad_pcb_bounds import compute_pcb_svg_bounding_box, empty_pcb_svg
+    from .kicad_pcb_svg_enrichment import (
+        pcb_root_svg_attrs,
+        pcb_svg_enrichment_metadata_element,
+        pcb_svg_enrichment_payload,
+    )
     from .kicad_pcb_to_ir import pcb_to_ir
     from .kicad_sch_svg_renderer import (
         KiCadSvgRenderContext,
@@ -411,7 +416,8 @@ def render_pcb_ir_to_svg(
         options=opts,
     )
 
-    doc = pcb_to_ir(pcb)
+    source_path = getattr(pcb, "source_path", None)
+    doc = pcb_to_ir(pcb, source_path=str(source_path) if source_path else None)
     if layers is not None:
         records = list(doc.records)
         # Synthesize pad drill outlines once for a combined documentation-layer
@@ -440,7 +446,34 @@ def render_pcb_ir_to_svg(
             )
         filtered = _filter_records_by_layer(records, layers)
         doc = replace(doc, records=filtered)
-    return render_ir_to_svg(doc, ctx=ctx)
+
+    profile_value = (
+        resolved_profile.value
+        if isinstance(resolved_profile, KiCadSvgRenderProfile)
+        else str(resolved_profile)
+    )
+    root_attrs = None
+    metadata_elements = None
+    if profile_value != KiCadSvgRenderProfile.KICAD_CLI.value:
+        payload = pcb_svg_enrichment_payload(
+            pcb,
+            layers=layers,
+            bbox=bbox,
+            profile=profile_value,
+        )
+        root_attrs = pcb_root_svg_attrs(
+            pcb,
+            layers=layers,
+            profile=profile_value,
+        )
+        metadata_elements = [pcb_svg_enrichment_metadata_element(payload)]
+
+    return render_ir_to_svg(
+        doc,
+        ctx=ctx,
+        root_extra_attrs=root_attrs,
+        metadata_elements=metadata_elements,
+    )
 
 
 __all__ = ["render_pcb_ir_to_svg"]

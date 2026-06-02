@@ -4,6 +4,8 @@ Test L0_034: render_pcb_ir_to_svg viewBox / translation behavior.
 
 from __future__ import annotations
 
+import html
+import json
 import math
 import re
 
@@ -28,6 +30,10 @@ _CIRCLE_R_RE = re.compile(r'<circle\b[^>]*\br="([-\d.]+)"')
 _POLYGON_POINTS_RE = re.compile(r'<polygon\b[^>]*\bpoints="([^"]+)"')
 _TRANSFORM_RE = re.compile(
     r'transform="translate\(([-\d.]+)\s+([-\d.]+)\)\s+rotate\(([-\d.]+)\)"'
+)
+_PCB_ENRICHMENT_RE = re.compile(
+    r'<metadata id="pcb-enrichment-a0"[^>]*>(.*?)</metadata>',
+    re.DOTALL,
 )
 
 
@@ -64,6 +70,12 @@ def _first_transformed_polygon_bbox(svg: str) -> tuple[float, float, float, floa
     xs = [x for x, _y in transformed]
     ys = [y for _x, y in transformed]
     return (min(xs), min(ys), max(xs), max(ys))
+
+
+def _pcb_enrichment_payload(svg: str) -> dict:
+    match = _PCB_ENRICHMENT_RE.search(svg)
+    assert match is not None, f"PCB enrichment metadata not found in:\n{svg[:800]}"
+    return json.loads(html.unescape(match.group(1)))
 
 
 def test_render_pcb_ir_to_svg_viewbox_uses_centerline_bounds():
@@ -220,6 +232,7 @@ def test_render_pcb_ir_to_svg_default_profile_keeps_review_metadata():
     svg = render_pcb_ir_to_svg(pcb)
 
     assert 'data-ref="gr_line"' in svg
+    assert 'data-enrichment-schema="kicad_monkey.pcb.svg.enrichment.a0"' in svg
 
 
 def test_render_pcb_ir_to_svg_kicad_cli_profile_suppresses_metadata():
@@ -229,6 +242,8 @@ def test_render_pcb_ir_to_svg_kicad_cli_profile_suppresses_metadata():
 
     assert 'data-ref="' not in svg
     assert 'data-uuid="' not in svg
+    assert 'data-enrichment-schema=' not in svg
+    assert "pcb-enrichment-a0" not in svg
     assert 'id="' not in svg
     assert "<path" in svg
 
@@ -241,6 +256,8 @@ def test_render_pcb_ir_to_svg_kicad_cli_options_suppress_metadata():
 
     assert 'data-ref="' not in svg
     assert 'data-uuid="' not in svg
+    assert 'data-primitive="' not in svg
+    assert "pcb-enrichment-a0" not in svg
     assert 'id="' not in svg
 
 
@@ -251,6 +268,108 @@ def test_kicad_pcb_to_svg_forwards_profile_to_ir_renderer():
         pcb,
         profile="kicad_cli",
     )
+
+
+def test_render_pcb_ir_to_svg_review_enriches_pcb_relationships():
+    from kicad_monkey.kicad_project import KiCadProject
+
+    pcb = KiCadPcb.from_string(
+        """(kicad_pcb
+\t(version 20240108)
+\t(generator "pcbnew")
+\t(layers (0 "F.Cu" signal) (31 "B.Cu" signal) (36 "F.Mask" user) (44 "Edge.Cuts" user))
+\t(net 0 "")
+\t(net 1 "GND")
+\t(gr_line (start 0 0) (end 30 0) (stroke (width 0.15) (type solid)) (layer "Edge.Cuts"))
+\t(gr_line (start 30 0) (end 30 20) (stroke (width 0.15) (type solid)) (layer "Edge.Cuts"))
+\t(gr_line (start 30 20) (end 0 20) (stroke (width 0.15) (type solid)) (layer "Edge.Cuts"))
+\t(gr_line (start 0 20) (end 0 0) (stroke (width 0.15) (type solid)) (layer "Edge.Cuts"))
+\t(segment (start 5 10) (end 20 10) (width 0.25) (layer "F.Cu") (net 1) (uuid "seg-uuid"))
+\t(via (at 22 10) (size 0.8) (drill 0.4) (layers "F.Cu" "B.Cu") (net 1) (uuid "via-uuid"))
+\t(footprint "Test:R"
+\t\t(layer "F.Cu")
+\t\t(at 10 10 0)
+\t\t(uuid "fp-uuid")
+\t\t(property "Reference" "R1")
+\t\t(property "Value" "10k")
+\t\t(pad "1" thru_hole circle
+\t\t\t(at 0 0)
+\t\t\t(size 1.2 1.2)
+\t\t\t(drill 0.6)
+\t\t\t(layers "*.Cu" "*.Mask")
+\t\t\t(net 1 "GND")
+\t\t\t(uuid "pad-uuid")
+\t\t)
+\t)
+)
+"""
+    )
+    pcb.project = KiCadProject.from_json_dict(
+        {"net_settings": {"netclass_assignments": {"GND": ["Power"]}}}
+    )
+
+    svg = render_pcb_ir_to_svg(pcb, layers=["F.Cu"])
+
+    assert 'data-primitive="track"' in svg
+    assert 'data-element-key="seg-uuid"' in svg
+    assert 'data-net-index="1"' in svg
+    assert 'data-net="GND"' in svg
+    assert 'data-net-class="Power"' in svg
+    assert 'data-primitive="via"' in svg
+    assert 'data-primitive="via-hole"' in svg
+    assert 'data-primitive="footprint"' in svg
+    assert 'data-component="R1"' in svg
+    assert 'data-component-uid="fp-uuid"' in svg
+    assert 'data-footprint="Test:R"' in svg
+    assert 'data-primitive="pad"' in svg
+    assert 'data-primitive="pad-hole"' in svg
+    assert 'data-pad-number="1"' in svg
+    assert 'data-pad-designator="R1-1"' in svg
+    assert 'data-pad-type="thru_hole"' in svg
+    assert 'data-hole-plating="plated"' in svg
+
+
+def test_render_pcb_ir_to_svg_embeds_enrichment_payload():
+    pcb = KiCadPcb.from_string(
+        """(kicad_pcb
+\t(version 20240108)
+\t(generator "pcbnew")
+\t(layers (0 "F.Cu" signal) (44 "Edge.Cuts" user))
+\t(net 0 "")
+\t(net 1 "GND")
+\t(gr_line (start 0 0) (end 20 0) (stroke (width 0.15) (type solid)) (layer "Edge.Cuts"))
+\t(gr_line (start 20 0) (end 20 20) (stroke (width 0.15) (type solid)) (layer "Edge.Cuts"))
+\t(gr_line (start 20 20) (end 0 20) (stroke (width 0.15) (type solid)) (layer "Edge.Cuts"))
+\t(gr_line (start 0 20) (end 0 0) (stroke (width 0.15) (type solid)) (layer "Edge.Cuts"))
+\t(footprint "Test:R"
+\t\t(layer "F.Cu")
+\t\t(at 10 10 90)
+\t\t(uuid "fp-uuid")
+\t\t(property "Reference" "R1")
+\t\t(property "Value" "10k")
+\t)
+)
+"""
+    )
+
+    svg = render_pcb_ir_to_svg(pcb, layers=["F.Cu"])
+    payload = _pcb_enrichment_payload(svg)
+
+    assert payload["schema"] == "kicad_monkey.pcb.svg.enrichment.a0"
+    assert payload["view"] == {
+        "kind": "layer_set",
+        "included_layers": ["F.Cu"],
+        "profile": "review",
+        "includes_board_outline": False,
+    }
+    assert payload["layers"]["layer_ordinal_to_name"]["0"] == "F.Cu"
+    assert payload["layers"]["layer_name_to_role"]["F.Cu"] == "copper"
+    assert payload["lookup"]["net_index_to_name"]["1"] == "GND"
+    assert payload["lookup"]["component_index_to_designator"] == {"0": "R1"}
+    assert payload["lookup"]["component_index_to_uid"] == {"0": "fp-uuid"}
+    assert payload["components"][0]["designator"] == "R1"
+    assert payload["components"][0]["footprint"] == "Test:R"
+    assert payload["components"][0]["rotation_deg"] == 90.0
 
 
 # ---------------------------------------------------------------------------

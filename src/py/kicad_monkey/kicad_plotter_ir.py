@@ -874,6 +874,7 @@ class KiCadPlotterOp:
         data_ref: str = "",
         object_id: str = "",
         extra_attrs: dict[str, Any] | None = None,
+        layers: list[str] | tuple[str, ...] | None = None,
     ) -> KiCadPlotterOp:
         payload: dict[str, Any] = {"label": str(label)}
         if data_uuid:
@@ -882,6 +883,8 @@ class KiCadPlotterOp:
             payload["data_ref"] = str(data_ref)
         if object_id:
             payload["object_id"] = str(object_id)
+        if layers:
+            payload["layers"] = [str(layer) for layer in layers if str(layer)]
         if extra_attrs:
             payload["extra_attrs"] = {
                 str(key): str(value)

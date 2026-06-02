@@ -43,6 +43,7 @@ net later.
 from __future__ import annotations
 
 import copy
+from dataclasses import replace
 import math
 from typing import TYPE_CHECKING, Any, cast
 
@@ -72,6 +73,7 @@ from .kicad_plotter_ir import (
     KiCadPlotterRecord,
     KiCadVertAlign,
 )
+from .kicad_pcb_svg_enrichment import project_net_name_to_classes
 from .kicad_stroke_decompose import (
     decompose_arc,
     decompose_segment,
@@ -792,6 +794,178 @@ def _net_extras(net: Any) -> dict[str, Any]:
     if nname:
         extras["net_name"] = str(nname)
     return extras
+
+
+def _enum_text(value: object) -> str:
+    raw = getattr(value, "value", value)
+    return str(raw or "")
+
+
+def _net_classes_for_name(board: "KiCadPcb | None", net_name: str) -> list[str]:
+    if board is None or not net_name:
+        return []
+    return project_net_name_to_classes(board).get(net_name, [])
+
+
+def _with_net_class_extras(
+    extras: dict[str, Any],
+    board: "KiCadPcb | None",
+) -> dict[str, Any]:
+    out = dict(extras)
+    net_name = str(out.get("net_name", "") or "")
+    classes = _net_classes_for_name(board, net_name)
+    if classes:
+        out["net_class"] = classes[0]
+        out["net_classes"] = classes
+    return out
+
+
+def _records_with_net_class_extras(
+    records: list[KiCadPlotterRecord],
+    board: "KiCadPcb",
+) -> list[KiCadPlotterRecord]:
+    return [
+        replace(record, extras=_with_net_class_extras(record.extras or {}, board))
+        for record in records
+    ]
+
+
+def _pad_resolved_net(pad: Any, board: "KiCadPcb | None") -> Any:
+    net = getattr(pad, "net", None)
+    resolver = getattr(board, "resolve_net_ref", None)
+    if callable(resolver):
+        return resolver(net)
+    return net
+
+
+def _pad_block_label(
+    pad: Any,
+    footprint: "Footprint",
+    *,
+    index: int,
+    suffix: str = "",
+) -> str:
+    base = str(getattr(pad, "uuid", "") or "")
+    if not base:
+        owner = str(getattr(footprint, "uuid", "") or footprint.library_link or "footprint")
+        number = str(getattr(pad, "number", "") or index)
+        base = f"{owner}:pad:{index}:{number}"
+    return f"{base}:{suffix}" if suffix else base
+
+
+def _pad_block_extra_attrs(
+    pad: Any,
+    footprint: "Footprint",
+    board: "KiCadPcb | None",
+    *,
+    primitive: str,
+    pad_index: int,
+) -> dict[str, Any]:
+    get_property = getattr(footprint, "get_property_value", None)
+    component = get_property("Reference", "") if callable(get_property) else ""
+    pad_number = str(getattr(pad, "number", "") or "")
+    attrs: dict[str, Any] = {
+        "primitive": primitive,
+        "component": component,
+        "component_uid": getattr(footprint, "uuid", "") or "",
+        "component_uuid": getattr(footprint, "uuid", "") or "",
+        "footprint": footprint.library_link,
+        "pad_number": pad_number,
+        "pad_designator": f"{component}-{pad_number}" if component and pad_number else pad_number,
+        "pad_type": _enum_text(getattr(pad, "pad_type", "")),
+        "pad_shape": _enum_text(getattr(pad, "shape", "")),
+        "layer_names": ",".join(str(layer) for layer in getattr(pad, "layers", []) or []),
+    }
+
+    net = _pad_resolved_net(pad, board)
+    net_id = getattr(net, "ordinal", None)
+    net_name = str(getattr(net, "name", "") or "")
+    if net_id is not None:
+        attrs["net_index"] = net_id
+        attrs["net_id"] = net_id
+    if net_name:
+        attrs["net"] = net_name
+    classes = _net_classes_for_name(board, net_name)
+    if classes:
+        attrs["net_class"] = classes[0]
+        attrs["net_classes"] = ",".join(classes)
+
+    if primitive == "pad-hole":
+        pad_type = _enum_text(getattr(pad, "pad_type", ""))
+        attrs.update(
+            {
+                "hole_owner": _pad_block_label(pad, footprint, index=pad_index),
+                "hole_kind": pad_type or "pad",
+                "hole_plating": "unplated" if pad_type == "np_thru_hole" else "plated",
+                "hole_render": "drill",
+            }
+        )
+    return attrs
+
+
+def _pad_block_ops(
+    pad: Any,
+    footprint: "Footprint",
+    board: "KiCadPcb | None",
+    *,
+    pad_index: int,
+    pad_orient_offset: float,
+) -> list[KiCadPlotterOp]:
+    layers = [str(layer) for layer in getattr(pad, "layers", []) or []]
+
+    def prepare(op: KiCadPlotterOp) -> KiCadPlotterOp:
+        return _op_with_pad_mask_hints(
+            _op_with_pcb_layers(op, layers),
+            pad,
+            footprint,
+            board,
+        )
+
+    pad_ops = [
+        prepare(op)
+        for op in pad_to_ops(pad, orient_deg_offset=pad_orient_offset)
+    ]
+    drill_ops = [
+        prepare(op)
+        for op in pad_drill_to_ops(pad, orient_deg_offset=pad_orient_offset)
+    ]
+
+    ops: list[KiCadPlotterOp] = []
+    if pad_ops:
+        label = _pad_block_label(pad, footprint, index=pad_index)
+        ops.append(
+            KiCadPlotterOp.start_block(
+                label=label,
+                data_uuid=label,
+                data_ref="pad",
+                object_id=str(getattr(pad, "number", "") or "pad"),
+                extra_attrs=_pad_block_extra_attrs(
+                    pad, footprint, board, primitive="pad", pad_index=pad_index
+                ),
+                layers=layers,
+            )
+        )
+        ops.extend(pad_ops)
+        ops.append(KiCadPlotterOp.end_block())
+
+    if drill_ops:
+        label = _pad_block_label(pad, footprint, index=pad_index, suffix="hole")
+        ops.append(
+            KiCadPlotterOp.start_block(
+                label=label,
+                data_uuid=label,
+                data_ref="pad_hole",
+                object_id=str(getattr(pad, "number", "") or "pad"),
+                extra_attrs=_pad_block_extra_attrs(
+                    pad, footprint, board, primitive="pad-hole", pad_index=pad_index
+                ),
+                layers=layers,
+            )
+        )
+        ops.extend(drill_ops)
+        ops.append(KiCadPlotterOp.end_block())
+
+    return ops
 
 
 def gr_line_to_record(line: "GrLine") -> KiCadPlotterRecord:
@@ -1959,23 +2133,23 @@ def pcb_footprint_to_record(
         ops.append(_op_with_pcb_layer(fp_rect_to_op(rect), rect.layer))
     for poly in footprint.fp_polys:
         ops.append(_op_with_pcb_layer(fp_poly_to_op(poly), poly.layer))
-    for pad in footprint.pads:
+    for pad_index, pad in enumerate(footprint.pads):
         pad_orient_offset = -float(getattr(footprint, "at_angle", 0.0) or 0.0)
         ops.extend(
-            _op_with_pad_mask_hints(
-                _op_with_pcb_layers(op, list(pad.layers)),
+            _pad_block_ops(
                 pad,
                 footprint,
                 board,
+                pad_index=pad_index,
+                pad_orient_offset=pad_orient_offset,
             )
-            for op in [
-                *pad_to_ops(pad, orient_deg_offset=pad_orient_offset),
-                *pad_drill_to_ops(pad, orient_deg_offset=pad_orient_offset),
-            ]
         )
 
+    get_property = getattr(footprint, "get_property_value", None)
     extras: dict[str, Any] = {
         "library_link": footprint.library_link,
+        "reference": get_property("Reference", "") if callable(get_property) else "",
+        "value": get_property("Value", "") if callable(get_property) else "",
         "layer": footprint.layer,
         "locked": bool(footprint.locked),
         "descr": footprint.descr,
@@ -2064,7 +2238,7 @@ def pcb_to_ir(
         records.append(pcb_footprint_to_record(footprint, board=pcb))
 
     return KiCadPlotterDocument(
-        records=records,
+        records=_records_with_net_class_extras(records, pcb),
         source_path=source_path,
         source_kind="PCB",
         document_id=document_id,

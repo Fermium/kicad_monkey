@@ -61,6 +61,11 @@ from .kicad_plotter_ir import (
     KiCadPlotterOpKind,
     KiCadPlotterRecord,
 )
+from .kicad_pcb_svg_enrichment import (
+    pcb_record_has_svg_data_attrs,
+    pcb_record_svg_data_attrs,
+    svg_attrs_to_string,
+)
 from .kicad_sch_svg_renderer import (
     KiCadSvgRenderContext,
     KiCadSvgRenderOptions,
@@ -1424,6 +1429,10 @@ def _variant_overlay_attrs(
     return None
 
 
+def _join_svg_attr_strings(*parts: str | None) -> str | None:
+    return " ".join(part for part in parts if part) or None
+
+
 def _record_placement_transform(
     record: KiCadPlotterRecord,
     *,
@@ -1840,16 +1849,63 @@ def _is_drill_overlay_op(op: KiCadPlotterOp) -> bool:
     return str((op.payload or {}).get("role", "")) in _DRILL_ROLES
 
 
+def _op_kind_value(op: KiCadPlotterOp) -> str:
+    return op.kind.value if isinstance(op.kind, KiCadPlotterOpKind) else str(op.kind)
+
+
+def _is_block_start_op(op: KiCadPlotterOp) -> bool:
+    return _op_kind_value(op) == KiCadPlotterOpKind.START_BLOCK.value
+
+
+def _is_block_end_op(op: KiCadPlotterOp) -> bool:
+    return _op_kind_value(op) == KiCadPlotterOpKind.END_BLOCK.value
+
+
 def _split_drill_overlay_ops(
     operations: Iterable[KiCadPlotterOp],
 ) -> tuple[list[KiCadPlotterOp], list[KiCadPlotterOp]]:
     normal: list[KiCadPlotterOp] = []
     drill_overlay: list[KiCadPlotterOp] = []
-    for op in operations:
+    ops = list(operations)
+    index = 0
+    while index < len(ops):
+        op = ops[index]
+        if _is_block_start_op(op):
+            block = [op]
+            depth = 1
+            cursor = index + 1
+            while cursor < len(ops):
+                child = ops[cursor]
+                block.append(child)
+                if _is_block_start_op(child):
+                    depth += 1
+                elif _is_block_end_op(child):
+                    depth -= 1
+                    if depth == 0:
+                        break
+                cursor += 1
+
+            if depth == 0:
+                draw_ops = [
+                    child for child in block
+                    if not (_is_block_start_op(child) or _is_block_end_op(child))
+                ]
+                has_drill = any(_is_drill_overlay_op(child) for child in draw_ops)
+                has_non_drill = any(
+                    not _is_drill_overlay_op(child) for child in draw_ops
+                )
+                if has_drill and not has_non_drill:
+                    drill_overlay.extend(block)
+                else:
+                    normal.extend(block)
+                index = cursor + 1
+                continue
+
         if _is_drill_overlay_op(op):
             drill_overlay.append(op)
         else:
             normal.append(op)
+        index += 1
     return normal, drill_overlay
 
 
@@ -1863,14 +1919,25 @@ def _render_record_operations(
     data_ref: str | None = None,
 ) -> str:
     op_ctx = _record_operation_context(record, ctx=ctx)
+    operations = list(operations)
     body = _render_ops_with_blocks(operations, ctx=op_ctx)
     if not include_group:
         return body
-    extra_attrs = _variant_overlay_attrs(record, options=ctx.options)
     transform = _record_placement_transform(record, ctx=ctx)
     label = f"{record.uuid}{label_suffix}" if record.uuid else None
     emit_metadata = _emit_metadata(ctx.options)
     emit_ids = _emit_ids(ctx.options)
+    record_attrs = (
+        svg_attrs_to_string(
+            pcb_record_svg_data_attrs(record, operations, data_ref=data_ref)
+        )
+        if emit_metadata and pcb_record_has_svg_data_attrs(record)
+        else None
+    )
+    extra_attrs = _join_svg_attr_strings(
+        _variant_overlay_attrs(record, options=ctx.options),
+        record_attrs,
+    )
     data_uuid = label if emit_metadata else None
     data_ref_value = (data_ref if data_ref is not None else record.kind) if emit_metadata else None
     label_value = label if emit_ids else None
@@ -2027,6 +2094,8 @@ def render_ir_to_svg(
     *,
     options: KiCadSvgRenderOptions | None = None,
     ctx: KiCadSvgRenderContext | None = None,
+    root_extra_attrs: dict[str, object] | None = None,
+    metadata_elements: Iterable[str] | None = None,
 ) -> str:
     """
     Render a :class:`KiCadPlotterDocument` as a complete SVG document.
@@ -2076,7 +2145,12 @@ def render_ir_to_svg(
             )
     body_parts.extend(drill_overlay_parts)
     body = "\n".join(part for part in body_parts if part)
-    return svg_document(body, ctx=ctx)
+    return svg_document(
+        body,
+        ctx=ctx,
+        root_extra_attrs=root_extra_attrs,
+        metadata_elements=metadata_elements,
+    )
 
 
 def render_records(
