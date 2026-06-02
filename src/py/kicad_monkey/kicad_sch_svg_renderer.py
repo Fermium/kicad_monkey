@@ -656,8 +656,12 @@ def svg_arc(
     )
 
 
-def _points_attr(points: Iterable[tuple[int, int]] | Iterable[Iterable[int]],
-                 *, ctx: KiCadSvgRenderContext) -> str:
+def _points_attr(
+    points: Iterable[tuple[int | float, int | float]]
+    | Iterable[Iterable[int | float]],
+    *,
+    ctx: KiCadSvgRenderContext,
+) -> str:
     return " ".join(
         f"{fmt_user_number(ctx.to_user_x(point[0]))},{fmt_user_number(ctx.to_user_y(point[1]))}"
         for p in points
@@ -666,7 +670,8 @@ def _points_attr(points: Iterable[tuple[int, int]] | Iterable[Iterable[int]],
 
 
 def svg_polygon(
-    points: Iterable[tuple[int, int]] | Iterable[Iterable[int]],
+    points: Iterable[tuple[int | float, int | float]]
+    | Iterable[Iterable[int | float]],
     *,
     ctx: KiCadSvgRenderContext,
     fill: KiCadFillType | str | None = KiCadFillType.FILLED_SHAPE,
@@ -685,7 +690,8 @@ def svg_polygon(
 
 
 def svg_polyline(
-    points: Iterable[tuple[int, int]] | Iterable[Iterable[int]],
+    points: Iterable[tuple[int | float, int | float]]
+    | Iterable[Iterable[int | float]],
     *,
     ctx: KiCadSvgRenderContext,
     stroke_color: str | None = None,

@@ -12,6 +12,8 @@ emit.
 
 from __future__ import annotations
 
+import re
+
 import pytest
 
 from kicad_monkey import (
@@ -26,6 +28,10 @@ from kicad_monkey import (
     KiCadNetlist,
     KiCadNetlistComponent,
     KiCadNetlistTerminal,
+    KiCadPlotterDocument,
+    KiCadPlotterOp,
+    KiCadPlotterRecord,
+    render_ir_to_svg,
 )
 from kicad_monkey.kicad_design_json import kicad_netlist_to_json
 from kicad_monkey.kicad_netlist_model import KiCadNetClass
@@ -47,6 +53,10 @@ _MIN_SCH_TEXT = """(kicad_sch (version 20250114) (generator "eeschema")
 
 def _write_min_sch(path):
     path.write_text(_MIN_SCH_TEXT, encoding="utf-8")
+
+
+def _svg_ids(svg: str) -> set[str]:
+    return set(re.findall(r'\bid="([^"]+)"', svg))
 
 
 def _make_synthetic_netlist() -> KiCadNetlist:
@@ -327,6 +337,122 @@ def test_kicad_netlist_json_pin_endpoints_keep_source_pin_identity():
     assert endpoint["object_id"] == "pin-uuid"
     assert endpoint["name"] == "GPIO"
     assert endpoint["pin_type"] == "BIDIRECTIONAL"
+
+
+def test_schematic_json_svg_ids_resolve_to_rendered_svg_groups(tmp_path):
+    netlist = KiCadNetlist(
+        components=[
+            KiCadNetlistComponent(reference="U1", instance_uuid="symbol-uuid"),
+        ],
+        nets=[
+            KiCadNet(
+                name="SIG",
+                graphical={
+                    "wires": ["wire-uuid"],
+                    "labels": ["label-uuid"],
+                },
+                endpoints=[
+                    KiCadNetEndpoint(
+                        endpoint_id="label:label-uuid",
+                        role="label",
+                        element_id="label-uuid",
+                        object_id="label-uuid",
+                        name="SIG",
+                        source_sheet="/",
+                    )
+                ],
+                terminals=[
+                    KiCadNetlistTerminal(
+                        designator="U1",
+                        pin="1",
+                        pin_name="IN",
+                        pin_type="input",
+                        sheet_path="/",
+                        source_pin_id="pin-uuid",
+                        svg_id="pin-uuid",
+                    )
+                ],
+            )
+        ],
+    )
+    sch = tmp_path / "demo.kicad_sch"
+    _write_min_sch(sch)
+    design = KiCadDesign.from_schematic_file(sch)
+    design._netlist = netlist
+    payload = design.to_json(include_indexes=True)
+    doc = KiCadPlotterDocument(
+        source_kind="SCH",
+        canvas={"width_nm": 100_000_000, "height_nm": 100_000_000},
+        records=[
+            KiCadPlotterRecord(
+                uuid="symbol-uuid",
+                kind="symbol_instance",
+                object_id="Device:U",
+                operations=[
+                    KiCadPlotterOp.start_block(
+                        label="pin-uuid",
+                        data_uuid="pin-uuid",
+                        data_ref="symbol_pin",
+                        object_id="pin-uuid",
+                    ),
+                    KiCadPlotterOp.circle(
+                        cx=10_000_000,
+                        cy=10_000_000,
+                        diameter_nm=1_000_000,
+                    ),
+                    KiCadPlotterOp.end_block(),
+                ],
+            ),
+            KiCadPlotterRecord(
+                uuid="wire-uuid",
+                kind="wire",
+                object_id="wire-uuid",
+                operations=[
+                    KiCadPlotterOp.thick_segment(
+                        start_x=0,
+                        start_y=10_000_000,
+                        end_x=20_000_000,
+                        end_y=10_000_000,
+                        width_nm=100_000,
+                    )
+                ],
+            ),
+            KiCadPlotterRecord(
+                uuid="label-uuid",
+                kind="label",
+                object_id="label-uuid",
+                operations=[
+                    KiCadPlotterOp.text(
+                        x=20_000_000,
+                        y=10_000_000,
+                        text="SIG",
+                        size_x_nm=1_270_000,
+                        size_y_nm=1_270_000,
+                    )
+                ],
+            ),
+        ],
+    )
+    ids = _svg_ids(render_ir_to_svg(doc))
+
+    component_id = payload["components"][0]["svg_id"]
+    assert component_id == "symbol-uuid"
+    assert component_id in ids
+
+    net = payload["nets"][0]
+    assert net["graphical"]["wires"] == ["wire-uuid"]
+    assert net["graphical"]["labels"] == ["label-uuid"]
+    assert net["graphical"]["pins"] == [
+        {"designator": "U1", "pin": "1", "svg_id": "pin-uuid"}
+    ]
+
+    linked_ids = {
+        *net["graphical"]["wires"],
+        *net["graphical"]["labels"],
+        *(pin["svg_id"] for pin in net["graphical"]["pins"]),
+        *(endpoint["element_id"] for endpoint in net["endpoints"]),
+    }
+    assert linked_ids <= ids
 
 
 # ---------------------------------------------------------------------------

@@ -78,3 +78,13 @@ The first PCB pass should prefer stable semantic attributes over promising
 globally stable DOM ids. Like Altium Monkey, SVG `id` values are render-artifact
 lookup keys; downstream tools should use documented `data-*` fields and the
 metadata payload for semantic identity.
+
+## Progress Log
+
+- 2026-06-02: Landed PCB review SVG enrichment in `a3bf767`. Added
+  `kicad_monkey.pcb.svg.enrichment.a0`, root SVG attrs, embedded payload,
+  record-level track/via/zone/footprint attrs, pad/pad-hole block attrs, and
+  focused L0 tests. `profile="kicad_cli"` remains enrichment-free.
+- 2026-06-02: Added schematic sidecar linkage coverage proving design JSON
+  `components[].svg_id`, `nets[].graphical`, pin refs, and endpoint
+  `element_id` values resolve to rendered SVG ids.

@@ -1112,7 +1112,12 @@ def _render_flash_pad_custom_op(p: dict, *, ctx: KiCadSvgRenderContext) -> str:
                 buffered = geom.buffer(float(margin), quad_segs=1, join_style="round")
             except Exception:
                 continue
-            geoms = buffered.geoms if isinstance(buffered, MultiPolygon) else [buffered]
+            if isinstance(buffered, MultiPolygon):
+                geoms = buffered.geoms
+            elif isinstance(buffered, Polygon):
+                geoms = [buffered]
+            else:
+                geoms = []
             for item in geoms:
                 if item.is_empty:
                     continue
@@ -1190,7 +1195,12 @@ def _render_flash_pad_custom_op(p: dict, *, ctx: KiCadSvgRenderContext) -> str:
             return _custom_polygons(payload, expand_for_mask=expand_for_mask)
 
         out: list[list[tuple[float, float]]] = []
-        geoms_iter = geom.geoms if isinstance(geom, MultiPolygon) else [geom]
+        if isinstance(geom, MultiPolygon):
+            geoms_iter = geom.geoms
+        elif isinstance(geom, Polygon):
+            geoms_iter = [geom]
+        else:
+            geoms_iter = []
         for item in geoms_iter:
             if item.is_empty:
                 continue
