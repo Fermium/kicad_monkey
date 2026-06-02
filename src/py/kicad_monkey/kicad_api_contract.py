@@ -94,6 +94,11 @@ PUBLIC_API_EXPORTS: tuple[PublicApiExport, ...] = (
     PublicApiExport("KiCadProjectSidecar", PublicApiStratum.PROJECT),
     PublicApiExport("ProjectVariant", PublicApiStratum.PROJECT),
     PublicApiExport("KiCadDesign", PublicApiStratum.PROJECT, requires_marker=True),
+    PublicApiExport(
+        "KiCadSchematicInstance",
+        PublicApiStratum.PROJECT,
+        requires_marker=True,
+    ),
     PublicApiExport("find_adjacent_kicad_project_path", PublicApiStratum.PROJECT),
     # IR and SVG rendering entry points.
     PublicApiExport("KICAD_PLOTTER_IR_SCHEMA", PublicApiStratum.RENDERING),

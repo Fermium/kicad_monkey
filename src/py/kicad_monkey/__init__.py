@@ -512,6 +512,7 @@ __all__ = [
     "load_default_drawing_sheet",
     # Design aggregator (lazy loaded)
     "KiCadDesign",
+    "KiCadSchematicInstance",
     # Footprint → IR converter (lazy loaded)
     "footprint_to_ir",
     "footprint_to_record",
@@ -1481,9 +1482,9 @@ def __getattr__(name: str) -> Any:
         from . import kicad_op_equivalence as _opeq
         return getattr(_opeq, name)
     # Design aggregator
-    if name == "KiCadDesign":
-        from .kicad_design import KiCadDesign
-        return KiCadDesign
+    if name in ("KiCadDesign", "KiCadSchematicInstance"):
+        from . import kicad_design as _design
+        return getattr(_design, name)
     # Variant overlay
     if name in (
         "KiCadVariantOverlayPolicy",

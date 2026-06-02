@@ -44,6 +44,10 @@
     {
       "name": "KiCadDesign",
       "group": "project"
+    },
+    {
+      "name": "KiCadSchematicInstance",
+      "group": "project"
     }
   ]
 }

@@ -20,10 +20,10 @@ project text variables.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, Iterator, Optional
+from typing import TYPE_CHECKING, Iterable, Iterator, Optional
 
 from ._api_markers import public_api
 from .kicad_project import (
@@ -35,7 +35,132 @@ if TYPE_CHECKING:
     from .kicad_netlist_model import KiCadNet, KiCadNetlist, KiCadNetlistComponent
     from .kicad_pcb import KiCadPcb
     from .kicad_plotter_ir import KiCadPlotterDocument
+    from .kicad_sch_sheet import SchSheet
     from .kicad_schematic import KiCadSchematic
+
+
+def _path_key(path: Path | str) -> str:
+    path_obj = Path(path)
+    try:
+        return str(path_obj.resolve())
+    except (OSError, ValueError):
+        return str(path_obj)
+
+
+def _schematic_source_path(schematic: "KiCadSchematic") -> Path | None:
+    source = getattr(schematic, "source_path", None)
+    if source is None:
+        return None
+    if isinstance(source, Path):
+        return source
+    return Path(str(source))
+
+
+def _normalize_sheet_path(path: str | None) -> str | None:
+    if path is None:
+        return None
+    text = str(path).strip()
+    if not text:
+        return "/"
+    text = "/" + text.strip("/")
+    return "/" if text == "/" else f"{text}/"
+
+
+def _normalize_sheet_instance_path(path: str | None) -> str | None:
+    if path is None:
+        return None
+    text = str(path).strip()
+    if not text:
+        return None
+    text = "/" + text.strip("/")
+    return "/" if text == "/" else text.rstrip("/")
+
+
+def _join_sheet_path(parent: str, child: str) -> str:
+    parent = _normalize_sheet_path(parent) or "/"
+    child = str(child or "").strip("/")
+    return parent if not child else f"{parent}{child}/"
+
+
+def _sheet_instance_path(parent: str | None, sheet_uuid: str) -> str | None:
+    if not parent or not sheet_uuid:
+        return None
+    return _join_sheet_path(parent, sheet_uuid).rstrip("/")
+
+
+def _page_number_from_instances(
+    instances: Iterable[object] | None,
+    target_path: str | None,
+) -> int | None:
+    normalized_target = _normalize_sheet_instance_path(target_path)
+    fallback: int | None = None
+    for inst in instances or ():
+        page = str(getattr(inst, "page", "") or "")
+        if not page.isdigit():
+            continue
+        page_number = int(page)
+        if fallback is None:
+            fallback = page_number
+        inst_path = _normalize_sheet_instance_path(
+            str(getattr(inst, "path", "") or "")
+        )
+        if normalized_target and inst_path == normalized_target:
+            return page_number
+    return fallback
+
+
+@public_api
+@dataclass(frozen=True)
+class KiCadSchematicInstance:
+    """One concrete placement of a schematic in a KiCad hierarchy.
+
+    A single `.kicad_sch` file can appear more than once through repeated
+    hierarchical sheets. This record keeps the source schematic together with
+    the human sheet path, the KiCad UUID instance path, the parent sheet link,
+    and the sheet numbering needed for rendering.
+    """
+
+    instance_index: int
+    sheet_number: int
+    sheet_count: int
+    schematic: "KiCadSchematic"
+    source_path: Path | None
+    sheet_name: str
+    sheet_path: str
+    sheet_path_uuids: str
+    sheet_instance_path: str | None = None
+    sheet_symbol: Optional["SchSheet"] = None
+    sheet_symbol_uid: str = ""
+    sheet_file: str = ""
+    parent_sheet_path: str | None = None
+    parent_sheet_path_uuids: str | None = None
+    parent_sheet_instance_path: str | None = None
+    is_top_level: bool = False
+
+    @property
+    def source_key(self) -> str:
+        """Stable source-file key, falling back to object identity."""
+        if self.source_path is None:
+            return f"schematic-object:{id(self.schematic)}"
+        return _path_key(self.source_path)
+
+    def ir_kwargs(self, *, document_id: str | None = None) -> dict[str, object]:
+        """Return keyword arguments for :meth:`KiCadDesign.to_schematic_ir`."""
+        resolved_document_id = document_id
+        if resolved_document_id is None:
+            resolved_document_id = (
+                str(getattr(self.schematic, "uuid", "") or "")
+                or (self.source_path.stem if self.source_path else "")
+                or f"sheet_{self.instance_index}"
+            )
+        return {
+            "sheet_index": self.sheet_number,
+            "sheet_count": self.sheet_count,
+            "sheet_path": self.sheet_path,
+            "sheet_instance_path": self.sheet_instance_path,
+            "sheet_name": self.sheet_name,
+            "document_id": resolved_document_id,
+        }
 
 
 @public_api
@@ -179,6 +304,205 @@ class KiCadDesign:
         return iter(self.schematics)
 
     @public_api
+    def iter_schematic_instances(self) -> Iterator[KiCadSchematicInstance]:
+        """Iterate concrete schematic placements in hierarchy order.
+
+        Unlike :meth:`iter_schematics`, this expands repeated hierarchical
+        sheet placements. A reused child sheet therefore yields one
+        :class:`KiCadSchematicInstance` per occurrence.
+        """
+        yield from self.schematic_instances()
+
+    @public_api
+    def schematic_instances(self) -> list[KiCadSchematicInstance]:
+        """Return concrete schematic placements in hierarchy order."""
+        top = self.top_schematic
+        if top is None:
+            return []
+
+        instances: list[KiCadSchematicInstance] = []
+        top_source = _schematic_source_path(top)
+        top_name = top_source.stem if top_source is not None else "root"
+        top_instance_path = (
+            f"/{top.uuid}" if str(getattr(top, "uuid", "") or "") else None
+        )
+        top_sheet_number = (
+            _page_number_from_instances(
+                getattr(top, "sheet_instances", ()),
+                top_instance_path,
+            )
+            or 1
+        )
+        instances.append(
+            KiCadSchematicInstance(
+                instance_index=1,
+                sheet_number=top_sheet_number,
+                sheet_count=0,
+                schematic=top,
+                source_path=top_source,
+                sheet_name=top_name,
+                sheet_path="/",
+                sheet_path_uuids="/",
+                sheet_instance_path=top_instance_path,
+                sheet_symbol=None,
+                sheet_symbol_uid="",
+                sheet_file="",
+                parent_sheet_path=None,
+                parent_sheet_path_uuids=None,
+                parent_sheet_instance_path=None,
+                is_top_level=True,
+            )
+        )
+
+        def walk(
+            parent: "KiCadSchematic",
+            *,
+            parent_sheet_path: str,
+            parent_sheet_path_uuids: str,
+            parent_instance_path: str | None,
+        ) -> None:
+            for sheet in getattr(parent, "sheets", ()) or ():
+                child = getattr(parent, "sub_schematics", {}).get(sheet.sheet_file)
+                if child is None:
+                    continue
+
+                sheet_name = sheet.sheet_name or Path(sheet.sheet_file).stem
+                child_sheet_path = _join_sheet_path(parent_sheet_path, sheet_name)
+                child_uuid_path = _join_sheet_path(
+                    parent_sheet_path_uuids,
+                    sheet.uuid or sheet.sheet_file,
+                )
+                child_instance_path = _sheet_instance_path(
+                    parent_instance_path,
+                    getattr(sheet, "uuid", "") or "",
+                )
+                instances.append(
+                    KiCadSchematicInstance(
+                        instance_index=len(instances) + 1,
+                        sheet_number=_page_number_from_instances(
+                            getattr(sheet, "instances", ()),
+                            child_instance_path,
+                        )
+                        or len(instances)
+                        + 1,
+                        sheet_count=0,
+                        schematic=child,
+                        source_path=_schematic_source_path(child),
+                        sheet_name=sheet_name,
+                        sheet_path=child_sheet_path,
+                        sheet_path_uuids=child_uuid_path,
+                        sheet_instance_path=child_instance_path,
+                        sheet_symbol=sheet,
+                        sheet_symbol_uid=sheet.uuid or "",
+                        sheet_file=sheet.sheet_file,
+                        parent_sheet_path=parent_sheet_path,
+                        parent_sheet_path_uuids=parent_sheet_path_uuids,
+                        parent_sheet_instance_path=parent_instance_path,
+                        is_top_level=False,
+                    )
+                )
+                walk(
+                    child,
+                    parent_sheet_path=child_sheet_path,
+                    parent_sheet_path_uuids=child_uuid_path,
+                    parent_instance_path=child_instance_path,
+                )
+
+        walk(
+            top,
+            parent_sheet_path="/",
+            parent_sheet_path_uuids="/",
+            parent_instance_path=top_instance_path,
+        )
+
+        sheet_count = len(instances)
+        return [
+            replace(instance, sheet_count=sheet_count)
+            for instance in instances
+        ]
+
+    @public_api
+    def find_schematic_instances(
+        self,
+        *,
+        schematic: Optional["KiCadSchematic"] = None,
+        source_path: Path | str | None = None,
+        sheet_path: str | None = None,
+        sheet_instance_path: str | None = None,
+        sheet_name: str | None = None,
+    ) -> list[KiCadSchematicInstance]:
+        """Find hierarchy instances by schematic object, source path, or sheet path."""
+        source_key = _path_key(source_path) if source_path is not None else None
+        normalized_sheet_path = _normalize_sheet_path(sheet_path)
+        normalized_instance_path = _normalize_sheet_instance_path(sheet_instance_path)
+        matches: list[KiCadSchematicInstance] = []
+        for instance in self.iter_schematic_instances():
+            if schematic is not None and instance.schematic is not schematic:
+                continue
+            if source_key is not None and instance.source_key != source_key:
+                continue
+            if (
+                normalized_sheet_path is not None
+                and _normalize_sheet_path(instance.sheet_path) != normalized_sheet_path
+            ):
+                continue
+            if (
+                normalized_instance_path is not None
+                and _normalize_sheet_instance_path(instance.sheet_instance_path)
+                != normalized_instance_path
+            ):
+                continue
+            if sheet_name is not None and instance.sheet_name != sheet_name:
+                continue
+            matches.append(instance)
+        return matches
+
+    @public_api
+    def schematic_instances_for(
+        self,
+        schematic_or_path: "KiCadSchematic | Path | str",
+    ) -> list[KiCadSchematicInstance]:
+        """Return every hierarchy use of a schematic object or source file."""
+        if isinstance(schematic_or_path, (str, Path)):
+            return self.find_schematic_instances(source_path=schematic_or_path)
+        return self.find_schematic_instances(schematic=schematic_or_path)
+
+    @public_api
+    def child_schematic_instances(
+        self,
+        instance_or_sheet_path: KiCadSchematicInstance | str,
+    ) -> list[KiCadSchematicInstance]:
+        """Return immediate child schematic instances for a hierarchy instance."""
+        instances = self.schematic_instances()
+        parent = self._schematic_instance_from_reference(instance_or_sheet_path, instances)
+        parent_sheet_path = (
+            parent.sheet_path
+            if parent is not None
+            else _normalize_sheet_path(str(instance_or_sheet_path))
+        )
+        return [
+            instance
+            for instance in instances
+            if _normalize_sheet_path(instance.parent_sheet_path) == parent_sheet_path
+        ]
+
+    @public_api
+    def parent_schematic_instance(
+        self,
+        instance_or_sheet_path: KiCadSchematicInstance | str,
+    ) -> KiCadSchematicInstance | None:
+        """Return the parent hierarchy instance for a schematic instance."""
+        instances = self.schematic_instances()
+        child = self._schematic_instance_from_reference(instance_or_sheet_path, instances)
+        if child is None or child.parent_sheet_path is None:
+            return None
+        parent_path = _normalize_sheet_path(child.parent_sheet_path)
+        for instance in instances:
+            if _normalize_sheet_path(instance.sheet_path) == parent_path:
+                return instance
+        return None
+
+    @public_api
     def add_schematic(self, schematic: "KiCadSchematic") -> "KiCadSchematic":
         """Append a schematic to this design."""
         self.schematics.append(schematic)
@@ -266,6 +590,28 @@ class KiCadDesign:
             sheet_instance_path=sheet_instance_path,
             sheet_name=sheet_name,
             project_vars=merged,
+        )
+
+    @public_api
+    def to_schematic_instance_ir(
+        self,
+        instance: KiCadSchematicInstance,
+        *,
+        document_id: str | None = None,
+        extra_vars: Optional[dict] = None,
+    ) -> "KiCadPlotterDocument":
+        """Convert one concrete schematic hierarchy instance to plotter IR."""
+        return self.to_schematic_ir(
+            schematic=instance.schematic,
+            sheet_index=instance.sheet_number,
+            sheet_count=instance.sheet_count,
+            sheet_path=instance.sheet_path,
+            sheet_instance_path=instance.sheet_instance_path,
+            sheet_name=instance.sheet_name,
+            document_id=document_id
+            if document_id is not None
+            else str(instance.ir_kwargs()["document_id"]),
+            extra_vars=extra_vars,
         )
 
     @public_api
@@ -399,6 +745,26 @@ class KiCadDesign:
     # Internal
     # ------------------------------------------------------------------
 
+    def _schematic_instance_from_reference(
+        self,
+        instance_or_path: KiCadSchematicInstance | str,
+        instances: list[KiCadSchematicInstance],
+    ) -> KiCadSchematicInstance | None:
+        if isinstance(instance_or_path, KiCadSchematicInstance):
+            return instance_or_path
+        normalized_sheet_path = _normalize_sheet_path(str(instance_or_path))
+        normalized_instance_path = _normalize_sheet_instance_path(str(instance_or_path))
+        for instance in instances:
+            if _normalize_sheet_path(instance.sheet_path) == normalized_sheet_path:
+                return instance
+            if (
+                normalized_instance_path is not None
+                and _normalize_sheet_instance_path(instance.sheet_instance_path)
+                == normalized_instance_path
+            ):
+                return instance
+        return None
+
     def _compile_netlist(self) -> "KiCadNetlist":
         from .kicad_netlist_design import compile_design_netlist
         from .kicad_netlist_project import apply_project_net_classes
@@ -434,4 +800,4 @@ class KiCadDesign:
         return netlist
 
 
-__all__ = ["KiCadDesign"]
+__all__ = ["KiCadDesign", "KiCadSchematicInstance"]

@@ -52,7 +52,9 @@
     <p>
       Aggregate project, schematic, and board objects; dispatch from common file
       suffixes; expose document queries; and provide design-level IR and JSON
-      entrypoints.
+      entrypoints. The design facade also expands hierarchical sheet
+      instantiations so repeated schematic files can be rendered, indexed, and
+      reviewed as distinct concrete sheet views.
     </p>
     <h3>Schematic SVG Linkage</h3>
     <p>
@@ -78,13 +80,55 @@ if (net) {
     <h3>Test Requirements</h3>
     <p>
       Tests must cover file dispatch, aggregate object queries, schematic
-      mutators, design JSON output, schematic SVG view-local net linkage, and
-      PCB IR delegation.
+      mutators, hierarchy instance navigation, design JSON output, schematic
+      SVG view-local net linkage, and PCB IR delegation.
     </p>
     <h3>Working Definition</h3>
     <p>
       A design facade is public when CLI and application tools can work from one
       loaded design object rather than coordinating independent file models.
+    </p>
+  </section>
+
+  <section
+    data-interface="KiCadSchematicInstance"
+    data-rack-stratum="L0_foundation"
+    data-test-file="tests/L0_foundation/test_L0_037_project_design_api_cleanup.py"
+    data-test-target="test_design_schematic_instance_navigation"
+  >
+    <h2>KiCadSchematicInstance</h2>
+    <h3>Rationale</h3>
+    <p>
+      Application tools need to distinguish a schematic source file from each
+      concrete place that file appears in a hierarchical design.
+    </p>
+    <h3>Purpose</h3>
+    <p>
+      Represent one rendered sheet view with its source schematic, human sheet
+      path, KiCad UUID instance path, parent sheet link, sheet numbering, and
+      IR render arguments.
+    </p>
+    <h3>Usage Model</h3>
+    <p>
+      Use <code>KiCadDesign.iter_schematic_instances()</code> to enumerate all
+      concrete sheet views. Use
+      <code>KiCadDesign.schematic_instances_for(source)</code> to answer where
+      a schematic file or object is used, and use
+      <code>child_schematic_instances()</code> /
+      <code>parent_schematic_instance()</code> to navigate between a sheet view
+      and its immediate neighbors.
+    </p>
+    <h3>Test Requirements</h3>
+    <p>
+      Tests must cover repeated use of one child schematic file, source-object
+      and source-path lookup, parent/child navigation, UUID instance paths, and
+      schematic IR argument generation.
+    </p>
+    <h3>Working Definition</h3>
+    <p>
+      A schematic instance record is public when higher-level tools can render
+      and inspect each sheet view without reconstructing KiCad hierarchy paths
+      themselves.
     </p>
   </section>
 </body>

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import html
 import json
 import re
@@ -31,88 +30,7 @@ def _slug(value: str) -> str:
     return re.sub(r"[^A-Za-z0-9_.-]+", "_", value).strip("_")
 
 
-@dataclass(frozen=True)
-class _SchematicInstance:
-    schematic: Any
-    sheet_name: str
-    sheet_path: str
-    sheet_instance_path: str | None
-    sheet_number: int
-
-
-def _join_sheet_path(parent: str, child: str) -> str:
-    parent = parent if parent.endswith("/") else parent + "/"
-    return f"{parent}{child.strip('/')}/"
-
-
-def _sheet_instance_path(parent: str | None, sheet_uuid: str) -> str | None:
-    if not parent or not sheet_uuid:
-        return None
-    return _join_sheet_path(parent, sheet_uuid).rstrip("/")
-
-
-def _sheet_page_number(sheet, parent_instance_path: str | None = None) -> int | None:
-    target_path = str(parent_instance_path or "").rstrip("/")
-    fallback: int | None = None
-    for inst in getattr(sheet, "instances", ()) or ():
-        page = str(getattr(inst, "page", "") or "")
-        if not page.isdigit():
-            continue
-        page_number = int(page)
-        if fallback is None:
-            fallback = page_number
-        inst_path = str(getattr(inst, "path", "") or "").rstrip("/")
-        if target_path and inst_path == target_path:
-            return page_number
-    return fallback
-
-
-def _walk_design_schematic_instances(design) -> list[_SchematicInstance]:
-    top = design.top_schematic
-    if top is None:
-        return []
-
-    top_source = Path(top.source_path) if top.source_path else Path("root.kicad_sch")
-    top_instance_path = f"/{top.uuid}" if getattr(top, "uuid", "") else None
-    entries = [
-        _SchematicInstance(
-            schematic=top,
-            sheet_name=top_source.stem,
-            sheet_path="/",
-            sheet_instance_path=top_instance_path,
-            sheet_number=1,
-        )
-    ]
-
-    def walk(parent, parent_sheet_path: str, parent_instance_path: str | None) -> None:
-        for sheet in getattr(parent, "sheets", ()) or ():
-            child = getattr(parent, "sub_schematics", {}).get(sheet.sheet_file)
-            if child is None:
-                continue
-            sheet_name = sheet.sheet_name or Path(sheet.sheet_file).stem
-            child_sheet_path = _join_sheet_path(parent_sheet_path, sheet_name)
-            child_instance_path = _sheet_instance_path(
-                parent_instance_path,
-                getattr(sheet, "uuid", "") or "",
-            )
-            entries.append(
-                _SchematicInstance(
-                    schematic=child,
-                    sheet_name=sheet_name,
-                    sheet_path=child_sheet_path,
-                    sheet_instance_path=child_instance_path,
-                    sheet_number=_sheet_page_number(sheet, parent_instance_path)
-                    or len(entries)
-                    + 1,
-                )
-            )
-            walk(child, child_sheet_path, child_instance_path)
-
-    walk(top, "/", top_instance_path)
-    return entries
-
-
-def _schematic_source_counts(entries: list[_SchematicInstance]) -> dict[str, int]:
+def _schematic_source_counts(entries: list[Any]) -> dict[str, int]:
     counts: dict[str, int] = {}
     for entry in entries:
         schematic = entry.schematic
@@ -122,7 +40,7 @@ def _schematic_source_counts(entries: list[_SchematicInstance]) -> dict[str, int
     return counts
 
 
-def _schematic_output_name(entry: _SchematicInstance, source_path: Path, counts: dict[str, int]) -> str:
+def _schematic_output_name(entry: Any, source_path: Path, counts: dict[str, int]) -> str:
     key = str(source_path.resolve()) if source_path else str(id(entry.schematic))
     if counts.get(key, 0) > 1 and entry.sheet_name:
         return entry.sheet_name
@@ -311,6 +229,49 @@ def _recorder_drift_cases() -> list[dict]:
 
 RECORDER_DRIFT_CASES = _recorder_drift_cases()
 
+
+def test_taillight_repeated_child_schematic_instances_from_manifest():
+    from kicad_monkey import KiCadDesign
+
+    _require_manifest()
+    case = get_kicad_corpus_case("real_world/taillight")
+    assert case is not None
+    project_path = resolve_kicad_manifest_path(case, "project_file")
+    assert project_path is not None
+
+    design = KiCadDesign.from_project_file(project_path)
+    instances = design.schematic_instances()
+    child_instances = design.child_schematic_instances(instances[0])
+
+    assert len(instances) == 6
+    assert len(child_instances) == 5
+    assert {instance.sheet_name for instance in child_instances} == {
+        "LED_Controller2",
+        "LED_Controller3",
+        "LED_Controller4",
+        "LED_Controller5",
+        "LED_Controller6",
+    }
+    assert {
+        Path(instance.source_path).name
+        for instance in child_instances
+        if instance.source_path is not None
+    } == {"LED_Controller.kicad_sch"}
+    assert len({instance.sheet_instance_path for instance in child_instances}) == 5
+    assert len({instance.sheet_path_uuids for instance in child_instances}) == 5
+    assert all(design.parent_schematic_instance(instance) == instances[0] for instance in child_instances)
+
+    led_source = child_instances[0].source_path
+    assert led_source is not None
+    assert [
+        instance.sheet_path
+        for instance in design.schematic_instances_for(led_source)
+    ] == [
+        instance.sheet_path
+        for instance in child_instances
+    ]
+
+
 RECORDER_STATE_KINDS = {
     "SetColor",
     "SetCurrentLineWidth",
@@ -422,7 +383,7 @@ def test_promoted_real_world_all_sheets_render_to_ir_and_svg_from_manifest(case)
     _clear_output_files(svg_out, ".svg")
 
     design = KiCadDesign.from_project_file(project_path)
-    entries = _walk_design_schematic_instances(design)
+    entries = design.schematic_instances()
     assert entries
     source_counts = _schematic_source_counts(entries)
     design_payload = design.to_json(include_indexes=True)
