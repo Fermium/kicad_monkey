@@ -1007,7 +1007,7 @@ def _pcb_review_layer_names(pcb) -> list[str]:
 
     for layer in getattr(pcb, "layers", ()):
         canonical_name = getattr(layer, "canonical_name", "")
-        add(LAYER_REVIEW_ALIASES.get(canonical_name, canonical_name))
+        add(canonical_name)
 
     return layers
 
