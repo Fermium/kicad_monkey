@@ -201,13 +201,14 @@ external corpus is configured.
 
 ## API Shape
 
-The promoted package-root API is recorded in
-`kicad_monkey.kicad_api_contract`. The broad package `__all__` remains a
-provisional discovery surface while downstream integrations prove which symbols
-should graduate into the durable public contract.
+Stable package-root exports are recorded in
+`kicad_monkey.kicad_api_contract`. Those names are the public API that
+downstream code should rely on. The broader package `__all__` remains a
+discovery surface while downstream integrations prove which additional symbols
+should become stable public exports.
 
 The public OOP facade groups and supporting public classes are documented under
-[docs/design/api](docs/design/api). L99 fails when a promoted public class or
+[docs/design/api](docs/design/api). L99 fails when a stable public class or
 major interface is missing design documentation or Rack test ownership.
 
 Typical entrypoints:
