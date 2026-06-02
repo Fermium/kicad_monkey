@@ -380,6 +380,74 @@ def test_render_record_materializes_nested_block_group(ctx: KiCadSvgRenderContex
     assert out.index('id="pin-uuid"') < out.index("<circle")
 
 
+def test_render_record_adds_schematic_enrichment_attrs(
+    ctx: KiCadSvgRenderContext,
+) -> None:
+    op = KiCadPlotterOp.circle(cx=0, cy=0, diameter_nm=2_000_000)
+    rec = KiCadPlotterRecord(
+        uuid="symbol-uuid",
+        kind="symbol_instance",
+        object_id="Device:R",
+        operations=[op],
+        extras={
+            "reference": "R1",
+            "lib_id": "Device:R",
+            "lib_name": "Device",
+            "unit": 1,
+            "convert": 1,
+            "in_bom": True,
+            "on_board": True,
+            "dnp": False,
+            "exclude_from_sim": False,
+            "in_pos_files": True,
+        },
+    )
+
+    out = render_record(rec, ctx=ctx)
+
+    assert 'data-primitive="symbol"' in out
+    assert 'data-source-kind="schematic"' in out
+    assert 'data-component="R1"' in out
+    assert 'data-component-uuid="symbol-uuid"' in out
+    assert 'data-symbol-library-ref="Device:R"' in out
+    assert 'data-symbol-role="component"' in out
+
+
+def test_render_record_marks_power_symbol_role(ctx: KiCadSvgRenderContext) -> None:
+    rec = KiCadPlotterRecord(
+        uuid="power-symbol-uuid",
+        kind="symbol_instance",
+        object_id="power:+5V",
+        operations=[KiCadPlotterOp.circle(cx=0, cy=0, diameter_nm=2_000_000)],
+        extras={"reference": "#PWR01", "lib_id": "power:+5V"},
+    )
+
+    out = render_record(rec, ctx=ctx)
+
+    assert 'data-primitive="power-symbol"' in out
+    assert 'data-symbol-role="power"' in out
+
+
+def test_render_record_oracle_profile_suppresses_schematic_enrichment() -> None:
+    ctx = KiCadSvgRenderContext(
+        sheet_width_nm=297_000_000,
+        sheet_height_nm=210_000_000,
+        options=KiCadSvgRenderOptions.kicad_native(),
+    )
+    rec = KiCadPlotterRecord(
+        uuid="wire-uuid",
+        kind="wire",
+        object_id="wire-uuid",
+        operations=[KiCadPlotterOp.circle(cx=0, cy=0, diameter_nm=2_000_000)],
+    )
+
+    out = render_record(rec, ctx=ctx)
+
+    assert 'data-primitive=' not in out
+    assert 'data-source-kind=' not in out
+    assert 'data-ref=' not in out
+
+
 def test_render_record_no_group_returns_body_only(ctx: KiCadSvgRenderContext) -> None:
     op = KiCadPlotterOp.circle(cx=0, cy=0, diameter_nm=2_000_000)
     rec = KiCadPlotterRecord(uuid="ABC", kind="wire", object_id="w1", operations=[op])

@@ -243,7 +243,7 @@ def test_sheet_pin_to_hier_label_net_keeps_semantic_endpoints():
 
     by_role = {endpoint.role: endpoint for endpoint in sig.endpoints}
     assert by_role["sheet_entry"].endpoint_id == "sheet_entry:sheet-pin-uuid"
-    assert by_role["sheet_entry"].element_id == "sheet-uuid"
+    assert by_role["sheet_entry"].element_id == "sheet-pin-uuid"
     assert by_role["sheet_entry"].object_id == "sheet-pin-uuid"
     assert by_role["sheet_entry"].source_sheet == "/"
     assert by_role["sheet_entry"].connection_point == (400000, 100000)

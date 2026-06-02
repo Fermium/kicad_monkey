@@ -54,7 +54,7 @@ from .kicad_schematic_connectivity import (
     iter_symbol_pins,
     snap_mm_to_iu,
 )
-from .kicad_schematic_ids import schematic_pin_group_id
+from .kicad_schematic_ids import schematic_pin_group_id, schematic_sheet_pin_group_id
 
 if TYPE_CHECKING:  # pragma: no cover - typing only
     from .kicad_lib_symbol import LibSymbol
@@ -245,9 +245,9 @@ class _LabelDriver:
     shape: str = ""
     # Source/render identity for schematic-viz net highlighting. Most
     # label-like objects render as their own SVG group keyed by UUID.
-    # Sheet pins currently render inside the parent sheet group, so
-    # ``svg_uuid`` is the sheet UUID while ``source_uuid`` remains the
-    # pin UUID.
+    # Sheet pins render as nested groups under the parent sheet, so
+    # ``svg_uuid`` is that sheet-pin group while ``source_uuid`` remains
+    # the pin UUID.
     source_uuid: str = ""
     svg_uuid: str = ""
     # Schematic discovery order. This keeps duplicate weak sheet-pin
@@ -1066,6 +1066,11 @@ def _collect_label_drivers(
         for pin in getattr(sheet, "pins", ()):
             coord = cgraph.add_node(pin.at_x, pin.at_y)
             shape = getattr(getattr(pin, "shape", None), "value", "") or ""
+            sheet_pin_svg_uuid = schematic_sheet_pin_group_id(
+                sheet_uuid=getattr(sheet, "uuid", "") or "",
+                pin_name=getattr(pin, "name", "") or "",
+                source_pin_uuid=getattr(pin, "uuid", "") or "",
+            ) or getattr(sheet, "uuid", "") or ""
             out.append(_LabelDriver(
                 text=pin.name,
                 coord=coord,
@@ -1073,7 +1078,7 @@ def _collect_label_drivers(
                 kind=KiCadDriverKind.SHEET_PIN,
                 shape=str(shape),
                 source_uuid=getattr(pin, "uuid", "") or "",
-                svg_uuid=getattr(sheet, "uuid", "") or "",
+                svg_uuid=sheet_pin_svg_uuid,
                 source_order=_next_source_order(),
             ))
 

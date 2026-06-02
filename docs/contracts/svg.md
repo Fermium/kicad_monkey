@@ -120,5 +120,23 @@ relationship sidecar is the KiCad design/netlist JSON payload:
 - `nets[].graphical.pins[]` maps designator/pin pairs to SVG ids
 - `nets[].endpoints[]` provides semantic trace endpoints
 
+In `profile="enriched"` schematic output, records are wrapped in source-owned
+`<g>` elements. These groups carry `data-ref` for the KiCad record kind and
+`data-primitive` for the normalized review object:
+
+- placed component symbols use `data-primitive="symbol"`
+- power symbols use `data-primitive="power-symbol"`
+- hierarchical sheet symbols use `data-primitive="sheet-symbol"`
+- hierarchical labels use `data-primitive="port"`
+- sheet pins use nested `data-ref="sheet_pin"` groups with
+  `data-primitive="sheet-entry"`
+- placed symbol pins use nested `data-ref="symbol_pin"` groups with
+  `data-primitive="pin"`
+
+`profile="oracle"` suppresses these metadata hooks for KiCad CLI parity.
+Schematic color and font overrides are supplied through
+`KiCadSvgRenderOptions.color_overrides`, `font_face_override`, and the
+`schematic_svg_options_from_preferences(...)` KiCad-theme helper.
+
 Downstream tools should not infer schematic connectivity from rendered text or
 group nesting alone.

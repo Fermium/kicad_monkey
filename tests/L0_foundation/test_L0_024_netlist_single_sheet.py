@@ -31,8 +31,6 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-import pytest
-
 from kicad_monkey import (
     KiCadDriverKind,
     KiCadDriverPriority,
@@ -356,6 +354,36 @@ def test_compile_duplicate_sheet_pin_names_get_kicad_suffixes():
     }
     assert by_name["/OUT"] == [("R1", "1")]
     assert by_name["/OUT_1"] == [("R2", "1")]
+
+
+def test_compile_sheet_entry_graphical_uses_sheet_pin_svg_group_id():
+    sch = _empty_sch()
+    libR = _libsym("Device:R", _pin(0.0, 0.0, number="1"))
+    sch.lib_symbols.append(libR)
+    sch.symbols.append(_placed("Device:R", reference="R1", at_x=10.0, at_y=10.0))
+    sch.sheets.append(
+        _sheet(
+            "sheet-uuid",
+            "child",
+            "child.kicad_sch",
+            SchSheetPin(
+                name="OUT",
+                shape=LabelShape.OUTPUT,
+                at_x=10.0,
+                at_y=10.0,
+                uuid="sheet-pin-uuid",
+            ),
+        )
+    )
+
+    nl = compile_sheet_netlist(sch, sheet_path="/")
+
+    assert len(nl.nets) == 1
+    net = nl.nets[0]
+    assert net.graphical["sheet_entries"] == ["sheet-pin-uuid"]
+    endpoint = next(item for item in net.endpoints if item.role == "sheet_entry")
+    assert endpoint.element_id == "sheet-pin-uuid"
+    assert endpoint.object_id == "sheet-pin-uuid"
 
 
 def test_compile_terminal_uses_visible_pin_svg_group_id():

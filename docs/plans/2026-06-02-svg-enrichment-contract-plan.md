@@ -102,3 +102,8 @@ metadata payload for semantic identity.
   separate `data-via-type`, IPC-4761-style via fabrication attributes, and
   `board.stackup` in the enrichment payload/schema. Added focused L0 coverage
   plus a Speedy real-world guard for filled/capped 0.15 mm vias.
+- 2026-06-02: Added schematic enrichment metadata helpers. Enriched schematic
+  record groups now expose normalized `data-primitive` values, symbol/power/
+  sheet metadata, and source-kind attrs. Hierarchical sheet pins now render as
+  nested `sheet_pin` groups and design/netlist JSON `sheet_entries` points to
+  those pin groups instead of the parent sheet group.

@@ -66,6 +66,10 @@ from .kicad_pcb_svg_enrichment import (
     pcb_record_svg_data_attrs,
     svg_attrs_to_string,
 )
+from .kicad_schematic_svg_enrichment import (
+    schematic_record_has_svg_data_attrs,
+    schematic_record_svg_data_attrs,
+)
 from .kicad_sch_svg_renderer import (
     KiCadSvgRenderContext,
     KiCadSvgRenderOptions,
@@ -1964,13 +1968,16 @@ def _render_record_operations(
     label = f"{record.uuid}{label_suffix}" if record.uuid else None
     emit_metadata = _emit_metadata(ctx.options)
     emit_ids = _emit_ids(ctx.options)
-    record_attrs = (
-        svg_attrs_to_string(
-            pcb_record_svg_data_attrs(record, operations, data_ref=data_ref)
-        )
-        if emit_metadata and pcb_record_has_svg_data_attrs(record)
-        else None
-    )
+    record_attrs = None
+    if emit_metadata:
+        if pcb_record_has_svg_data_attrs(record):
+            record_attrs = svg_attrs_to_string(
+                pcb_record_svg_data_attrs(record, operations, data_ref=data_ref)
+            )
+        elif schematic_record_has_svg_data_attrs(record):
+            record_attrs = svg_attrs_to_string(
+                schematic_record_svg_data_attrs(record, operations)
+            )
     extra_attrs = _join_svg_attr_strings(
         _variant_overlay_attrs(record, options=ctx.options),
         record_attrs,

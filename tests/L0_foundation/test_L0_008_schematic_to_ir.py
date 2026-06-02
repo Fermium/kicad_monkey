@@ -1364,6 +1364,8 @@ def test_symbol_instance_record_wraps_visible_pin_ops_in_group():
     assert start.payload["data_uuid"] == "pin-uuid"
     assert start.payload["data_ref"] == "symbol_pin"
     assert start.payload["object_id"] == "pin-uuid"
+    assert start.payload["extra_attrs"]["primitive"] == "pin"
+    assert start.payload["extra_attrs"]["object-type"] == "pin"
     assert start.payload["extra_attrs"]["pin"] == "1"
     assert start.payload["extra_attrs"]["symbol-uuid"] == "symbol-uuid"
     assert start.payload["extra_attrs"]["lib-pin-uuid"] == "lib-pin-uuid"
@@ -2101,6 +2103,56 @@ def test_sheet_record_carries_outline_rect_and_geometry_extras():
     assert rec.extras["at_y_nm"] == mm_to_nm(200.0)
     assert rec.extras["size_x_nm"] == mm_to_nm(80.0)
     assert rec.extras["size_y_nm"] == mm_to_nm(60.0)
+
+
+def test_sheet_record_wraps_sheet_pin_ops_in_group():
+    sch = _empty_schematic()
+    sh = SchSheet(
+        at_x=100.0,
+        at_y=200.0,
+        size_x=80.0,
+        size_y=60.0,
+        uuid="sheet-uuid",
+    )
+    sh.properties = [
+        SchSheetProperty(key="Sheetname", value="Child"),
+        SchSheetProperty(key="Sheetfile", value="child.kicad_sch"),
+    ]
+    sh.pins = [
+        SchSheetPin(
+            name="OUT",
+            shape=LabelShape.OUTPUT,
+            at_x=100.0,
+            at_y=210.0,
+            uuid="sheet-pin-uuid",
+        )
+    ]
+    sch.sheets = [sh]
+
+    doc = schematic_to_ir(sch)
+    rec = doc.records[-1]
+    kinds = [op.kind for op in rec.operations]
+    start_index = kinds.index(KiCadPlotterOpKind.START_BLOCK)
+    end_index = kinds.index(KiCadPlotterOpKind.END_BLOCK)
+    pin_ops = rec.operations[start_index + 1:end_index]
+
+    start = rec.operations[start_index]
+    assert start.payload["label"] == "sheet-pin-uuid"
+    assert start.payload["data_uuid"] == "sheet-pin-uuid"
+    assert start.payload["data_ref"] == "sheet_pin"
+    assert start.payload["object_id"] == "sheet-pin-uuid"
+    assert start.payload["extra_attrs"] == {
+        "primitive": "sheet-entry",
+        "object-type": "sheet-pin",
+        "sheet-uuid": "sheet-uuid",
+        "sheet-name": "Child",
+        "sheet-file": "child.kicad_sch",
+        "pin": "OUT",
+        "pin-name": "OUT",
+        "shape": "output",
+    }
+    assert any(op.kind == KiCadPlotterOpKind.TEXT for op in pin_ops)
+    assert any(op.kind == KiCadPlotterOpKind.PLOT_POLY for op in pin_ops)
 
 
 def test_skips_empty_wire_records():

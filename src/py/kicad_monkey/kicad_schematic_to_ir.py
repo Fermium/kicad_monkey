@@ -104,7 +104,7 @@ from .kicad_schematic_style import (
     symbol_property_layer_color,
 )
 from .kicad_base import find_all_elements, find_element, unquote_string
-from .kicad_schematic_ids import schematic_pin_group_id
+from .kicad_schematic_ids import schematic_pin_group_id, schematic_sheet_pin_group_id
 
 if TYPE_CHECKING:
     from .kicad_lib_symbol import LibSymbol
@@ -3564,6 +3564,8 @@ def _compose_symbol_body_and_pin_ops(
             group_id if seen_count == 0 else f"{group_id}__{seen_count + 1}"
         )
         extra_attrs = {
+            "primitive": "pin",
+            "object-type": "pin",
             "pin": pin_number,
             "symbol-uuid": getattr(sym, "uuid", "") or "",
             "designator": getattr(sym, "reference", "") or "",
@@ -3887,6 +3889,7 @@ def _symbol_instance_record(
     extras = {
         "lib_id": sym.lib_id,
         "lib_name": sym.lib_name,
+        "reference": _symbol_instance_reference(sym, sheet_instance_path),
         "at_x_nm": mm_to_nm(sym.at_x),
         "at_y_nm": mm_to_nm(sym.at_y),
         "at_angle_deg": float(sym.at_angle),
@@ -4450,19 +4453,49 @@ def _sheet_record(
         # the background and foreground passes.
         operations.append(outline_op)
     for sp in sheet.pins:
-        operations.append(
+        pin_ops: List[KiCadPlotterOp] = [
             sheet_pin_to_op(
                 sp,
                 default_line_width_nm=default_line_width_nm,
                 text_offset_ratio=text_offset_ratio,
             )
-        )
+        ]
         deco = sheet_pin_decoration_to_op(
             sp,
             default_line_width_nm=default_line_width_nm,
         )
         if deco is not None:
-            operations.append(deco)
+            pin_ops.append(deco)
+        group_id = schematic_sheet_pin_group_id(
+            sheet_uuid=getattr(sheet, "uuid", "") or "",
+            pin_name=getattr(sp, "name", "") or "",
+            source_pin_uuid=getattr(sp, "uuid", "") or "",
+        )
+        if group_id:
+            shape_obj = getattr(sp, "shape", None)
+            shape = getattr(shape_obj, "value", shape_obj)
+            operations.append(
+                KiCadPlotterOp.start_block(
+                    label=group_id,
+                    data_uuid=group_id,
+                    data_ref="sheet_pin",
+                    object_id=getattr(sp, "uuid", "") or group_id,
+                    extra_attrs={
+                        "primitive": "sheet-entry",
+                        "object-type": "sheet-pin",
+                        "sheet-uuid": getattr(sheet, "uuid", "") or "",
+                        "sheet-name": getattr(sheet, "sheet_name", "") or "",
+                        "sheet-file": getattr(sheet, "sheet_file", "") or "",
+                        "pin": getattr(sp, "name", "") or "",
+                        "pin-name": getattr(sp, "name", "") or "",
+                        "shape": shape,
+                    },
+                )
+            )
+            operations.extend(pin_ops)
+            operations.append(KiCadPlotterOp.end_block())
+        else:
+            operations.extend(pin_ops)
     for prop in sheet.properties:
         op = sheet_property_to_op(prop)
         if op is not None:
