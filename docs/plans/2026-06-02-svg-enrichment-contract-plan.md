@@ -53,9 +53,12 @@ PCB document payload:
 Schematic review SVG and design JSON:
 
 - schematic SVG keeps source-owned ids as the DOM lookup surface
-- design/netlist JSON remains the semantic sidecar
+- enriched schematic SVG embeds the design/netlist JSON payload in a
+  document-level metadata element
 - components expose `svg_id`
 - nets expose `graphical` SVG ids and semantic `endpoints`
+- repeated hierarchical sheet instances use the sheet instance name in visual
+  review filenames, not the shared schematic file stem
 - contract docs state that downstream tools should not infer connectivity from
   rendered text or group nesting
 
@@ -107,3 +110,7 @@ metadata payload for semantic identity.
   sheet metadata, and source-kind attrs. Hierarchical sheet pins now render as
   nested `sheet_pin` groups and design/netlist JSON `sheet_entries` points to
   those pin groups instead of the parent sheet group.
+- 2026-06-02: Added schematic document-level enrichment metadata plan follow-up:
+  each real-world review SVG embeds `kicad_monkey.design.a1` under
+  `schematic-enrichment-a0`, and repeated sheet instances use instance names
+  such as `TPS62A02_BUCK_1V0` in generated filenames.

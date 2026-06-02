@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+import html
 import json
 import re
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -28,13 +31,120 @@ def _slug(value: str) -> str:
     return re.sub(r"[^A-Za-z0-9_.-]+", "_", value).strip("_")
 
 
-def _walk_design_schematics(design) -> list:
+@dataclass(frozen=True)
+class _SchematicInstance:
+    schematic: Any
+    sheet_name: str
+    sheet_path: str
+    sheet_instance_path: str | None
+    sheet_number: int
+
+
+def _join_sheet_path(parent: str, child: str) -> str:
+    parent = parent if parent.endswith("/") else parent + "/"
+    return f"{parent}{child.strip('/')}/"
+
+
+def _sheet_instance_path(parent: str | None, sheet_uuid: str) -> str | None:
+    if not parent or not sheet_uuid:
+        return None
+    return _join_sheet_path(parent, sheet_uuid).rstrip("/")
+
+
+def _sheet_page_number(sheet, parent_instance_path: str | None = None) -> int | None:
+    target_path = str(parent_instance_path or "").rstrip("/")
+    fallback: int | None = None
+    for inst in getattr(sheet, "instances", ()) or ():
+        page = str(getattr(inst, "page", "") or "")
+        if not page.isdigit():
+            continue
+        page_number = int(page)
+        if fallback is None:
+            fallback = page_number
+        inst_path = str(getattr(inst, "path", "") or "").rstrip("/")
+        if target_path and inst_path == target_path:
+            return page_number
+    return fallback
+
+
+def _walk_design_schematic_instances(design) -> list[_SchematicInstance]:
     top = design.top_schematic
     if top is None:
         return []
-    schematics = [top]
-    schematics.extend(child for _sheet, child in top.walk_sheets())
-    return schematics
+
+    top_source = Path(top.source_path) if top.source_path else Path("root.kicad_sch")
+    top_instance_path = f"/{top.uuid}" if getattr(top, "uuid", "") else None
+    entries = [
+        _SchematicInstance(
+            schematic=top,
+            sheet_name=top_source.stem,
+            sheet_path="/",
+            sheet_instance_path=top_instance_path,
+            sheet_number=1,
+        )
+    ]
+
+    def walk(parent, parent_sheet_path: str, parent_instance_path: str | None) -> None:
+        for sheet in getattr(parent, "sheets", ()) or ():
+            child = getattr(parent, "sub_schematics", {}).get(sheet.sheet_file)
+            if child is None:
+                continue
+            sheet_name = sheet.sheet_name or Path(sheet.sheet_file).stem
+            child_sheet_path = _join_sheet_path(parent_sheet_path, sheet_name)
+            child_instance_path = _sheet_instance_path(
+                parent_instance_path,
+                getattr(sheet, "uuid", "") or "",
+            )
+            entries.append(
+                _SchematicInstance(
+                    schematic=child,
+                    sheet_name=sheet_name,
+                    sheet_path=child_sheet_path,
+                    sheet_instance_path=child_instance_path,
+                    sheet_number=_sheet_page_number(sheet, parent_instance_path)
+                    or len(entries)
+                    + 1,
+                )
+            )
+            walk(child, child_sheet_path, child_instance_path)
+
+    walk(top, "/", top_instance_path)
+    return entries
+
+
+def _schematic_source_counts(entries: list[_SchematicInstance]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for entry in entries:
+        schematic = entry.schematic
+        source = getattr(schematic, "source_path", None)
+        key = str(Path(source).resolve() if source else id(schematic))
+        counts[key] = counts.get(key, 0) + 1
+    return counts
+
+
+def _schematic_output_name(entry: _SchematicInstance, source_path: Path, counts: dict[str, int]) -> str:
+    key = str(source_path.resolve()) if source_path else str(id(entry.schematic))
+    if counts.get(key, 0) > 1 and entry.sheet_name:
+        return entry.sheet_name
+    return source_path.stem
+
+
+def _clear_output_files(path: Path, suffix: str) -> None:
+    path.mkdir(parents=True, exist_ok=True)
+    for output_file in path.glob(f"*{suffix}"):
+        output_file.unlink()
+
+
+_SCHEMATIC_ENRICHMENT_RE = re.compile(
+    r'<metadata id="schematic-enrichment-a0"[^>]*>(.*?)</metadata>',
+    re.DOTALL,
+)
+
+
+def _schematic_enrichment_payload(svg: str) -> dict:
+    match = _SCHEMATIC_ENRICHMENT_RE.search(svg)
+    assert match is not None, f"Schematic enrichment metadata not found in:\n{svg[:800]}"
+    return json.loads(html.unescape(match.group(1)))
 
 
 def _real_world_svg_ir_cases() -> list[dict]:
@@ -210,6 +320,13 @@ def _pcb_has_renderable_content(pcb) -> bool:
 @pytest.mark.parametrize("case", REAL_WORLD_SVG_IR_CASES, ids=lambda case: case["name"])
 def test_promoted_real_world_all_sheets_render_to_ir_and_svg_from_manifest(case):
     from kicad_monkey import KiCadDesign, render_ir_to_svg
+    from kicad_monkey.kicad_sch_svg_renderer import KiCadSvgRenderOptions
+    from kicad_monkey.kicad_schematic_svg_enrichment import (
+        KICAD_SCHEMATIC_SVG_ENRICHMENT_SCHEMA,
+        schematic_root_svg_attrs,
+        schematic_svg_enrichment_metadata_element,
+        schematic_svg_enrichment_payload,
+    )
 
     project_path = resolve_kicad_manifest_path(case, "project_file")
     output_root = resolve_kicad_manifest_path(case, "output_root")
@@ -217,37 +334,79 @@ def test_promoted_real_world_all_sheets_render_to_ir_and_svg_from_manifest(case)
 
     ir_out = output_root / "schematic_ir"
     svg_out = output_root / "schematic_svg"
-    ir_out.mkdir(parents=True, exist_ok=True)
-    svg_out.mkdir(parents=True, exist_ok=True)
+    _clear_output_files(ir_out, ".json")
+    _clear_output_files(svg_out, ".svg")
 
     design = KiCadDesign.from_project_file(project_path)
-    schematics = _walk_design_schematics(design)
-    assert schematics
+    entries = _walk_design_schematic_instances(design)
+    assert entries
+    source_counts = _schematic_source_counts(entries)
+    design_payload = design.to_json(include_indexes=True)
+    render_options = KiCadSvgRenderOptions.enriched_default()
 
-    for index, schematic in enumerate(schematics, start=1):
+    for index, entry in enumerate(entries, start=1):
+        schematic = entry.schematic
         source_path = Path(schematic.source_path) if schematic.source_path else Path(f"sheet_{index}")
         document_id = schematic.uuid or f"{source_path.stem}_{index}"
         doc = design.to_schematic_ir(
             schematic=schematic,
-            sheet_index=index,
-            sheet_count=len(schematics),
-            sheet_name=source_path.stem,
+            sheet_index=entry.sheet_number,
+            sheet_count=len(entries),
+            sheet_path=entry.sheet_path,
+            sheet_instance_path=entry.sheet_instance_path,
+            sheet_name=entry.sheet_name or source_path.stem,
             document_id=document_id,
         )
         assert doc.records, source_path.name
         assert any(record.kind in {"symbol_instance", "sheet_header"} for record in doc.records)
 
-        svg = render_ir_to_svg(doc)
+        profile_obj: Any = render_options.profile
+        profile_value = str(getattr(profile_obj, "value", profile_obj))
+        payload = schematic_svg_enrichment_payload(
+            design_payload,
+            source_path=source_path,
+            sheet_name=entry.sheet_name,
+            sheet_path=entry.sheet_path,
+            sheet_instance_path=entry.sheet_instance_path,
+            profile=profile_value,
+        )
+        svg = render_ir_to_svg(
+            doc,
+            options=render_options,
+            root_extra_attrs=schematic_root_svg_attrs(
+                source_path=source_path,
+                sheet_name=entry.sheet_name,
+                sheet_path=entry.sheet_path,
+                profile=profile_value,
+            ),
+            metadata_elements=[schematic_svg_enrichment_metadata_element(payload)],
+        )
         assert svg.startswith("<?xml")
         assert "<svg" in svg and "</svg>" in svg
         assert "data-ref=\"sheet_header\"" in svg
+        assert f'data-enrichment-schema="{KICAD_SCHEMATIC_SVG_ENRICHMENT_SCHEMA}"' in svg
+        svg_payload = _schematic_enrichment_payload(svg)
+        assert svg_payload["schema"] == KICAD_SCHEMATIC_SVG_ENRICHMENT_SCHEMA
+        assert "components" in svg_payload["design"]
+        assert "nets" in svg_payload["design"]
 
-        stem = f"{index:02d}_{_slug(source_path.stem)}"
+        output_name = _schematic_output_name(entry, source_path, source_counts)
+        stem = f"{index:02d}_{_slug(output_name)}"
         (ir_out / f"{stem}.json").write_text(
             json.dumps(doc.to_normalized_dict(source_path=source_path.name), indent=2) + "\n",
             encoding="utf-8",
         )
         (svg_out / f"{stem}.svg").write_text(svg, encoding="utf-8")
+
+    if case.get("name") == "speedy_processing_module":
+        svg_names = {path.name for path in svg_out.glob("*.svg")}
+        assert any("TPS62A02_BUCK_1V0" in name for name in svg_names)
+        assert not any(re.match(r"\d+_TPS62A02_BUCK\.svg$", name) for name in svg_names)
+        sample_payload = _schematic_enrichment_payload(
+            next(svg_out.glob("*TPS62A02_BUCK_1V0.svg")).read_text(encoding="utf-8")
+        )
+        assert sample_payload["design"]["components"]
+        assert sample_payload["design"]["nets"]
 
 
 @pytest.mark.parametrize(

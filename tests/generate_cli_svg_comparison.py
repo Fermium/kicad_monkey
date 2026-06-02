@@ -553,6 +553,27 @@ def _sheet_page_number(sheet: Any, parent_instance_path: str | None = None) -> i
     return fallback
 
 
+def _schematic_source_counts(entries: list["SchematicEntry"]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for entry in entries:
+        schematic = entry.schematic
+        source = getattr(schematic, "source_path", None)
+        key = str(Path(source).resolve() if source else id(schematic))
+        counts[key] = counts.get(key, 0) + 1
+    return counts
+
+
+def _schematic_output_stem(
+    entry: "SchematicEntry",
+    source_path: Path,
+    counts: dict[str, int],
+) -> str:
+    key = str(source_path.resolve()) if source_path else str(id(entry.schematic))
+    if counts.get(key, 0) > 1 and entry.sheet_name:
+        return entry.sheet_name
+    return source_path.stem
+
+
 def _walk_design_schematics(design: Any) -> list[SchematicEntry]:
     top = design.top_schematic
     if top is None:
@@ -567,13 +588,12 @@ def _walk_design_schematics(design: Any) -> list[SchematicEntry]:
 
     def walk(parent: Any, parent_path: str, parent_instance_path: str | None) -> None:
         child_sheets = list(enumerate(getattr(parent, "sheets", ()) or ()))
-        child_sheets.sort(
-            key=lambda item: (
-                _sheet_page_number(item[1], parent_instance_path)
-                if _sheet_page_number(item[1], parent_instance_path) is not None
-                else 1_000_000 + item[0]
-            )
-        )
+
+        def sort_key(item: tuple[int, Any]) -> int:
+            page = _sheet_page_number(item[1], parent_instance_path)
+            return page if page is not None else 1_000_000 + item[0]
+
+        child_sheets.sort(key=sort_key)
         for _ordinal, sheet in child_sheets:
             child = getattr(parent, "sub_schematics", {}).get(sheet.sheet_file)
             if child is None:
@@ -626,6 +646,7 @@ def _render_monkey_svgs(
     opts.include_metadata = True
     sheets: list[MonkeySheet] = []
     sheet_count = len(schematics)
+    source_counts = _schematic_source_counts(schematics)
     for index, entry in enumerate(schematics, start=1):
         schematic = entry.schematic
         source_path = (
@@ -646,7 +667,8 @@ def _render_monkey_svgs(
             document_id=document_id,
         )
         svg = render_ir_to_svg(doc, options=opts)
-        svg_path = output_dir / f"{index:02d}_{_slug(source_stem)}__{filename_suffix}.svg"
+        output_stem = _schematic_output_stem(entry, source_path, source_counts)
+        svg_path = output_dir / f"{index:02d}_{_slug(output_stem)}__{filename_suffix}.svg"
         svg_path.write_text(svg, encoding="utf-8")
         sheets.append(
             MonkeySheet(

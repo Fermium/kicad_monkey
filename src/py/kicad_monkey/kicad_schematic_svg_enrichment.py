@@ -7,10 +7,15 @@ uses them as a DOM lookup surface that lines up with design/netlist JSON.
 from __future__ import annotations
 
 from collections.abc import Iterable
+import html
+import json
 from typing import Any
 
 from .kicad_plotter_ir import KiCadPlotterOp, KiCadPlotterRecord
 
+
+KICAD_SCHEMATIC_SVG_ENRICHMENT_SCHEMA = "kicad_monkey.schematic.svg.enrichment.a0"
+KICAD_SCHEMATIC_SVG_ENRICHMENT_METADATA_ID = "schematic-enrichment-a0"
 
 _SCHEMATIC_RECORD_KINDS = {
     "sheet_header",
@@ -185,3 +190,59 @@ def schematic_record_has_svg_data_attrs(record: KiCadPlotterRecord) -> bool:
     """Return True when `record` is covered by the schematic SVG contract."""
 
     return record.kind in _SCHEMATIC_RECORD_KINDS
+
+
+def schematic_svg_enrichment_payload(
+    design_payload: dict[str, Any],
+    *,
+    source_path: object = "",
+    sheet_name: object = "",
+    sheet_path: object = "",
+    sheet_instance_path: object = "",
+    profile: object = "enriched",
+) -> dict[str, Any]:
+    """Return document-level metadata embedded in enriched schematic SVG."""
+
+    return {
+        "schema": KICAD_SCHEMATIC_SVG_ENRICHMENT_SCHEMA,
+        "source": {
+            "kicad_sch_file": str(source_path or ""),
+        },
+        "view": {
+            "kind": "schematic_sheet",
+            "profile": str(profile),
+            "sheet_name": str(sheet_name or ""),
+            "sheet_path": str(sheet_path or ""),
+            "sheet_instance_path": str(sheet_instance_path or ""),
+        },
+        "design": design_payload,
+    }
+
+
+def schematic_root_svg_attrs(
+    *,
+    source_path: object = "",
+    sheet_name: object = "",
+    sheet_path: object = "",
+    profile: object = "enriched",
+) -> dict[str, object]:
+    """Return root SVG attributes for enriched schematic output."""
+
+    return {
+        "data-enrichment-schema": KICAD_SCHEMATIC_SVG_ENRICHMENT_SCHEMA,
+        "data-view-kind": "schematic_sheet",
+        "data-profile": str(profile),
+        "data-source": str(source_path or ""),
+        "data-sheet-name": str(sheet_name or ""),
+        "data-sheet-path": str(sheet_path or ""),
+    }
+
+
+def schematic_svg_enrichment_metadata_element(payload: dict[str, Any]) -> str:
+    body = html.escape(json.dumps(payload, indent=2, sort_keys=True), quote=False)
+    return (
+        f'<metadata id="{KICAD_SCHEMATIC_SVG_ENRICHMENT_METADATA_ID}" '
+        f'data-schema="{KICAD_SCHEMATIC_SVG_ENRICHMENT_SCHEMA}">\n'
+        f"{body}\n"
+        "</metadata>"
+    )

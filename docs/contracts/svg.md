@@ -112,8 +112,19 @@ The payload records:
 
 ## Schematic SVG
 
-Schematic SVG uses source-owned ids as the DOM lookup surface. The semantic
-relationship sidecar is the KiCad design/netlist JSON payload:
+Schematic SVG uses source-owned ids as the DOM lookup surface. Enriched
+schematic SVG embeds document-level JSON metadata as:
+
+```xml
+<metadata id="schematic-enrichment-a0" data-schema="kicad_monkey.schematic.svg.enrichment.a0">
+  ...
+</metadata>
+```
+
+The schema file is `schematic_svg_enrichment_a0.schema.json`. The payload
+records the rendered sheet view and embeds the KiCad design JSON payload under
+`design`. That design payload carries components, nets, graphical SVG ids, and
+lookup indexes:
 
 - `components[].svg_id` points to the component SVG group id
 - `nets[].graphical` groups related schematic SVG ids by record type
@@ -132,6 +143,11 @@ In `profile="enriched"` schematic output, records are wrapped in source-owned
   `data-primitive="sheet-entry"`
 - placed symbol pins use nested `data-ref="symbol_pin"` groups with
   `data-primitive="pin"`
+
+Real-world visual-review outputs name repeated hierarchical sheet instances by
+the sheet instance name, not the shared schematic file stem. For example,
+multiple `TPS62A02_BUCK.kicad_sch` instances render as
+`TPS62A02_BUCK_1V0`, `TPS62A02_BUCK_1V8`, etc.
 
 `profile="oracle"` suppresses these metadata hooks for KiCad CLI parity.
 Schematic color and font overrides are supplied through

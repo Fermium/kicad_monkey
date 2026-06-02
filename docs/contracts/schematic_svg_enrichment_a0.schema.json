@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wavenumber-eng.github.io/kicad_monkey/contracts/schematic_svg_enrichment_a0.schema.json",
+  "title": "KiCad Monkey Schematic SVG Enrichment Metadata A0",
+  "description": "Document-level metadata embedded in KiCad Monkey schematic SVG enriched output.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema",
+    "source",
+    "view",
+    "design"
+  ],
+  "properties": {
+    "schema": {
+      "const": "kicad_monkey.schematic.svg.enrichment.a0"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "kicad_sch_file"
+      ],
+      "properties": {
+        "kicad_sch_file": {
+          "type": "string"
+        }
+      }
+    },
+    "view": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "kind",
+        "profile",
+        "sheet_name",
+        "sheet_path"
+      ],
+      "properties": {
+        "kind": {
+          "const": "schematic_sheet"
+        },
+        "profile": {
+          "type": "string"
+        },
+        "sheet_name": {
+          "type": "string"
+        },
+        "sheet_path": {
+          "type": "string"
+        },
+        "sheet_instance_path": {
+          "type": "string"
+        }
+      }
+    },
+    "design": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "schema",
+        "components",
+        "nets"
+      ],
+      "properties": {
+        "schema": {
+          "const": "kicad_monkey.design.a1"
+        },
+        "components": {
+          "type": "array"
+        },
+        "nets": {
+          "type": "array"
+        },
+        "indexes": {
+          "type": "object"
+        }
+      }
+    }
+  }
+}
