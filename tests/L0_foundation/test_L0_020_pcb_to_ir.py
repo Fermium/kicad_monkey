@@ -66,7 +66,7 @@ from kicad_monkey.kicad_pcb_gr_rect import GrRect
 from kicad_monkey.kicad_pcb_gr_text import GrText
 from kicad_monkey.kicad_pcb_graphics import GrTextBox
 from kicad_monkey.kicad_pcb_routing import Arc as TrackArc
-from kicad_monkey.kicad_pcb_routing import NetRef, Segment, Via
+from kicad_monkey.kicad_pcb_routing import FrontBackOptBool, NetRef, Segment, Via
 from kicad_monkey.kicad_pcb_zone import FilledPolygon, Zone
 from kicad_monkey.kicad_primitives import Effects, Font, Stroke
 from kicad_monkey.kicad_property import Property
@@ -937,6 +937,9 @@ def test_via_to_record_carries_drill_and_layers():
     assert rec.extras["size"] == 0.6
     assert rec.extras["layers"] == ["F.Cu", "B.Cu"]
     assert rec.extras["via_type"] == "micro"
+    assert rec.extras["hole_kind"] == "round"
+    assert rec.extras["hole_plating"] == "plated"
+    assert rec.extras["hole_render"] == "drill"
     assert rec.extras["net_id"] == 2
     assert rec.extras["net_name"] == "GND"
     assert [op.kind for op in rec.operations] == [
@@ -950,6 +953,33 @@ def test_via_to_record_default_via_type_is_through():
     via = Via(at_x=0.0, at_y=0.0, size=0.6, drill=0.3, layers=["F.Cu"])
     rec = via_to_record(via)
     assert rec.extras["via_type"] == "through"
+
+
+def test_via_to_record_carries_ipc4761_metadata():
+    via = Via(
+        at_x=0.0,
+        at_y=0.0,
+        size=0.3,
+        drill=0.15,
+        layers=["F.Cu", "B.Cu"],
+        tenting=FrontBackOptBool(front=True, back=False),
+        covering=FrontBackOptBool(front=False, back=True),
+        plugging=FrontBackOptBool(front=False, back=False),
+        capping=True,
+        filling=True,
+    )
+
+    rec = via_to_record(via)
+
+    assert rec.extras["ipc4761_metadata"] == "true"
+    assert rec.extras["ipc4761_tenting_front"] == "true"
+    assert rec.extras["ipc4761_tenting_back"] == "false"
+    assert rec.extras["ipc4761_covering_front"] == "false"
+    assert rec.extras["ipc4761_covering_back"] == "true"
+    assert rec.extras["ipc4761_plugging_front"] == "false"
+    assert rec.extras["ipc4761_plugging_back"] == "false"
+    assert rec.extras["ipc4761_capping"] == "true"
+    assert rec.extras["ipc4761_filling"] == "true"
 
 
 # ---------------------------------------------------------------------------

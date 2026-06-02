@@ -52,8 +52,8 @@ class KiCadVariantDimMode(Enum):
 class KiCadSvgRenderProfile(Enum):
     """High-level SVG output contract."""
 
-    REVIEW = "review"         # enriched output with source identity hooks
-    KICAD_CLI = "kicad_cli"   # oracle output shaped like kicad-cli SVG
+    ENRICHED = "enriched"     # output with source identity and metadata hooks
+    ORACLE = "oracle"         # strict output shaped like kicad-cli SVG
 
 
 @dataclass
@@ -134,10 +134,10 @@ class KiCadSvgRenderOptions:
     variant_dim_opacity: float = 0.6
 
     # ---- output profile ----
-    # REVIEW preserves the historical enriched SVG output with record
-    # id/data hooks. KICAD_CLI suppresses monkey-only identity hooks so oracle
-    # tests can compare against stock `kicad-cli pcb export svg` structure.
-    profile: KiCadSvgRenderProfile | str = KiCadSvgRenderProfile.REVIEW
+    # ENRICHED preserves source id/data hooks for downstream tooling. ORACLE
+    # suppresses monkey-only identity hooks so strict tests can compare against
+    # stock `kicad-cli pcb export svg` structure.
+    profile: KiCadSvgRenderProfile | str = KiCadSvgRenderProfile.ENRICHED
 
     # ---- metadata ----
     # When True, primitives that have a UUID / reference designator
@@ -160,7 +160,7 @@ class KiCadSvgRenderOptions:
             bezier_as_lines=False,
             junction_z_order=KiCadJunctionZOrder.NATIVE,
             truncate_font_size_for_baseline=True,
-            profile=KiCadSvgRenderProfile.KICAD_CLI,
+            profile=KiCadSvgRenderProfile.ORACLE,
         )
 
     @classmethod
@@ -175,15 +175,15 @@ class KiCadSvgRenderOptions:
         )
 
     @classmethod
-    def review_default(cls) -> "KiCadSvgRenderOptions":
-        """Clean review export: anti-aliased, junctions on top, real fonts."""
+    def enriched_default(cls) -> "KiCadSvgRenderOptions":
+        """Clean enriched export: anti-aliased, junctions on top, real fonts."""
         return cls(
             black_and_white=False,
             text_as_polygons=False,
             bezier_as_lines=False,
             junction_z_order=KiCadJunctionZOrder.ALWAYS_ON_TOP,
             truncate_font_size_for_baseline=False,
-            profile=KiCadSvgRenderProfile.REVIEW,
+            profile=KiCadSvgRenderProfile.ENRICHED,
             include_metadata=True,
             include_ids=True,
         )

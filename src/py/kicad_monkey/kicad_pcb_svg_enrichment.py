@@ -1,7 +1,7 @@
 """PCB SVG enrichment helpers.
 
-This module owns the KiCad-native review SVG metadata contract. The strict
-`kicad_cli` renderer profile does not use these helpers.
+This module owns the KiCad-native enriched SVG metadata contract. The strict
+`oracle` renderer profile does not use these helpers.
 """
 
 from __future__ import annotations
@@ -161,6 +161,30 @@ def _net_attrs(extras: dict[str, Any]) -> dict[str, object]:
     return attrs
 
 
+def _hole_kind_from_ops(ops: Iterable[KiCadPlotterOp]) -> str | None:
+    for op in ops:
+        kind = str(getattr(op.kind, "value", op.kind))
+        role = str((op.payload or {}).get("role", ""))
+        if role not in {"pad_drill", "npth_hole", "via_drill", "via_mask_drill"}:
+            continue
+        if kind == "ThickSegment":
+            return "slot"
+        if kind == "Circle":
+            return "round"
+    return None
+
+
+def _copy_prefixed_attrs(
+    attrs: dict[str, object],
+    extras: dict[str, Any],
+    keys: Iterable[str],
+) -> None:
+    for key in keys:
+        value = extras.get(key)
+        if value is not None and str(value) != "":
+            attrs[f"data-{key.replace('_', '-')}"] = value
+
+
 def pcb_record_svg_data_attrs(
     record: KiCadPlotterRecord,
     operations: Iterable[KiCadPlotterOp],
@@ -201,10 +225,33 @@ def pcb_record_svg_data_attrs(
     if primitive in {"via", "via-hole"}:
         if record.uuid:
             attrs["data-hole-owner"] = record.uuid
-        attrs["data-hole-kind"] = extras.get("via_type", "through")
-        attrs["data-hole-plating"] = "plated"
+        attrs["data-hole-kind"] = _hole_kind_from_ops(ops) or extras.get(
+            "hole_kind", "round"
+        )
+        attrs["data-hole-plating"] = extras.get("hole_plating", "plated")
+        attrs["data-via-type"] = extras.get("via_type", "through")
+        if extras.get("drill") is not None:
+            attrs["data-hole-diameter-mm"] = extras["drill"]
+            attrs["data-via-drill-mm"] = extras["drill"]
+        if extras.get("size") is not None:
+            attrs["data-via-size-mm"] = extras["size"]
+        _copy_prefixed_attrs(
+            attrs,
+            extras,
+            (
+                "ipc4761_metadata",
+                "ipc4761_tenting_front",
+                "ipc4761_tenting_back",
+                "ipc4761_covering_front",
+                "ipc4761_covering_back",
+                "ipc4761_plugging_front",
+                "ipc4761_plugging_back",
+                "ipc4761_capping",
+                "ipc4761_filling",
+            ),
+        )
         if primitive == "via-hole":
-            attrs["data-hole-render"] = "drill"
+            attrs["data-hole-render"] = extras.get("hole_render", "drill")
 
     return attrs
 
@@ -253,7 +300,7 @@ def pcb_root_svg_attrs(
     source_path = getattr(pcb, "source_path", None)
     included_layers = [str(layer) for layer in layers] if layers is not None else []
     return {
-        "data-stage": "review",
+        "data-stage": "enriched",
         "data-group-mode": "source-record",
         "data-enrichment-schema": KICAD_PCB_SVG_ENRICHMENT_SCHEMA,
         "data-view-kind": "layer_set" if included_layers else "board",
@@ -321,6 +368,89 @@ def _component_payload(footprint: Any, index: int) -> dict[str, Any]:
     }
 
 
+def _enum_value(value: Any, default: str = "") -> str:
+    raw = getattr(value, "value", value)
+    return str(raw if raw is not None else default)
+
+
+def _optional_float(value: Any) -> float | None:
+    if value is None:
+        return None
+    return float(value)
+
+
+def _stackup_sublayer_payload(sublayer: Any, index: int) -> dict[str, Any]:
+    return {
+        "index": int(index),
+        "thickness_mm": float(getattr(sublayer, "thickness", 0.0) or 0.0),
+        "thickness_locked": bool(getattr(sublayer, "thickness_locked", False)),
+        "material": str(getattr(sublayer, "material", "") or ""),
+        "epsilon_r": _optional_float(getattr(sublayer, "epsilon_r", None)),
+        "loss_tangent": _optional_float(getattr(sublayer, "loss_tangent", None)),
+        "color": str(getattr(sublayer, "color", "") or ""),
+    }
+
+
+def _stackup_layer_payload(layer: Any, index: int) -> dict[str, Any]:
+    item_type = ""
+    get_item_type = getattr(layer, "get_item_type", None)
+    if callable(get_item_type):
+        item_type = _enum_value(get_item_type())
+    return {
+        "index": int(index),
+        "name": str(getattr(layer, "name", "") or ""),
+        "type": str(getattr(layer, "type_name", "") or ""),
+        "role": item_type,
+        "thickness_mm": float(getattr(layer, "thickness", 0.0) or 0.0),
+        "thickness_locked": bool(getattr(layer, "thickness_locked", False)),
+        "material": str(getattr(layer, "material", "") or ""),
+        "epsilon_r": _optional_float(getattr(layer, "epsilon_r", None)),
+        "loss_tangent": _optional_float(getattr(layer, "loss_tangent", None)),
+        "color": str(getattr(layer, "color", "") or ""),
+        "sublayers": [
+            _stackup_sublayer_payload(sublayer, sub_index)
+            for sub_index, sublayer in enumerate(
+                getattr(layer, "sublayers", []) or []
+            )
+        ],
+    }
+
+
+def _stackup_payload(pcb: Any) -> dict[str, Any]:
+    stackup = getattr(pcb, "stackup", None)
+    if stackup is None:
+        return {
+            "present": False,
+            "computed_thickness_mm": 0.0,
+            "copper_finish": "",
+            "dielectric_constraints": False,
+            "edge_connector": "none",
+            "edge_plating": False,
+            "layers": [],
+        }
+
+    get_board_thickness = getattr(stackup, "get_board_thickness", None)
+    computed_thickness = 0.0
+    if callable(get_board_thickness):
+        computed_thickness = _optional_float(get_board_thickness()) or 0.0
+    return {
+        "present": True,
+        "computed_thickness_mm": computed_thickness,
+        "copper_finish": str(getattr(stackup, "copper_finish", "") or ""),
+        "dielectric_constraints": bool(
+            getattr(stackup, "dielectric_constraints", False)
+        ),
+        "edge_connector": _enum_value(
+            getattr(stackup, "edge_connector", None), default="none"
+        ),
+        "edge_plating": bool(getattr(stackup, "edge_plating", False)),
+        "layers": [
+            _stackup_layer_payload(layer, index)
+            for index, layer in enumerate(getattr(stackup, "layers", []) or [])
+        ],
+    }
+
+
 def pcb_svg_enrichment_payload(
     pcb: Any,
     *,
@@ -363,6 +493,7 @@ def pcb_svg_enrichment_payload(
             ],
             "aux_axis_origin_mm": list(getattr(pcb, "aux_axis_origin_mm", (0.0, 0.0))),
             "thickness_mm": float(getattr(pcb, "thickness", 0.0) or 0.0),
+            "stackup": _stackup_payload(pcb),
         },
         "view": {
             "kind": "layer_set" if included_layers else "board",

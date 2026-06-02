@@ -294,7 +294,7 @@ def test_pcb_svg_strict_draw_items_match_kicad_cli(case, kicad_cli_path, tmp_pat
     ours_svg = render_pcb_ir_to_svg(
         pcb,
         layers=list(case.layers),
-        profile="kicad_cli",
+        profile="oracle",
     )
     cli_svg_path = tmp_path / f"{case.case_id}__cli.svg"
     export_svg_with_kicad_cli(

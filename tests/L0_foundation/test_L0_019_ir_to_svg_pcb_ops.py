@@ -64,7 +64,7 @@ def kicad_cli_ctx() -> KiCadSvgRenderContext:
     return KiCadSvgRenderContext(
         sheet_width_nm=297_000_000,
         sheet_height_nm=210_000_000,
-        options=KiCadSvgRenderOptions(profile="kicad_cli"),
+        options=KiCadSvgRenderOptions(profile="oracle"),
     )
 
 
@@ -688,7 +688,7 @@ def test_render_record_kicad_cli_profile_suppresses_source_metadata() -> None:
     ctx = KiCadSvgRenderContext(
         sheet_width_nm=40_000_000,
         sheet_height_nm=30_000_000,
-        options=KiCadSvgRenderOptions(profile="kicad_cli"),
+        options=KiCadSvgRenderOptions(profile="oracle"),
     )
     rec = KiCadPlotterRecord(
         uuid="fp-cli",

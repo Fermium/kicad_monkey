@@ -226,7 +226,7 @@ def test_kicad_pcb_to_svg_uses_ir_renderer():
     assert pcb.to_svg() == render_pcb_ir_to_svg(pcb)
 
 
-def test_render_pcb_ir_to_svg_default_profile_keeps_review_metadata():
+def test_render_pcb_ir_to_svg_default_profile_keeps_enriched_metadata():
     pcb = KiCadPcb.from_string(_PCB_FIXTURE)
 
     svg = render_pcb_ir_to_svg(pcb)
@@ -235,10 +235,10 @@ def test_render_pcb_ir_to_svg_default_profile_keeps_review_metadata():
     assert 'data-enrichment-schema="kicad_monkey.pcb.svg.enrichment.a0"' in svg
 
 
-def test_render_pcb_ir_to_svg_kicad_cli_profile_suppresses_metadata():
+def test_render_pcb_ir_to_svg_oracle_profile_suppresses_metadata():
     pcb = KiCadPcb.from_string(_PCB_FIXTURE)
 
-    svg = render_pcb_ir_to_svg(pcb, profile="kicad_cli")
+    svg = render_pcb_ir_to_svg(pcb, profile="oracle")
 
     assert 'data-ref="' not in svg
     assert 'data-uuid="' not in svg
@@ -248,9 +248,9 @@ def test_render_pcb_ir_to_svg_kicad_cli_profile_suppresses_metadata():
     assert "<path" in svg
 
 
-def test_render_pcb_ir_to_svg_kicad_cli_options_suppress_metadata():
+def test_render_pcb_ir_to_svg_oracle_options_suppress_metadata():
     pcb = KiCadPcb.from_string(_PCB_FIXTURE)
-    options = KiCadSvgRenderOptions(profile="kicad_cli")
+    options = KiCadSvgRenderOptions(profile="oracle")
 
     svg = render_pcb_ir_to_svg(pcb, options=options)
 
@@ -264,13 +264,13 @@ def test_render_pcb_ir_to_svg_kicad_cli_options_suppress_metadata():
 def test_kicad_pcb_to_svg_forwards_profile_to_ir_renderer():
     pcb = KiCadPcb.from_string(_PCB_FIXTURE)
 
-    assert pcb.to_svg(profile="kicad_cli") == render_pcb_ir_to_svg(
+    assert pcb.to_svg(profile="oracle") == render_pcb_ir_to_svg(
         pcb,
-        profile="kicad_cli",
+        profile="oracle",
     )
 
 
-def test_render_pcb_ir_to_svg_review_enriches_pcb_relationships():
+def test_render_pcb_ir_to_svg_enriched_profile_enriches_pcb_relationships():
     from kicad_monkey.kicad_project import KiCadProject
 
     pcb = KiCadPcb.from_string(
@@ -326,7 +326,88 @@ def test_render_pcb_ir_to_svg_review_enriches_pcb_relationships():
     assert 'data-pad-number="1"' in svg
     assert 'data-pad-designator="R1-1"' in svg
     assert 'data-pad-type="thru_hole"' in svg
+    assert 'data-hole-kind="round"' in svg
     assert 'data-hole-plating="plated"' in svg
+    assert 'data-hole-diameter-mm="0.6"' in svg
+    assert 'data-via-type="through"' in svg
+    assert 'data-via-drill-mm="0.4"' in svg
+
+
+def test_render_pcb_ir_to_svg_npth_slot_hole_metadata():
+    pcb = KiCadPcb.from_string(
+        """(kicad_pcb
+\t(version 20240108)
+\t(generator "pcbnew")
+\t(layers (0 "F.Cu" signal) (36 "F.Mask" user))
+\t(footprint "Test:Slot"
+\t\t(layer "F.Cu")
+\t\t(at 0 0 0)
+\t\t(uuid "fp-slot")
+\t\t(property "Reference" "MH1")
+\t\t(pad "" np_thru_hole oval
+\t\t\t(at 10 10)
+\t\t\t(size 0.4 1.0)
+\t\t\t(drill oval 0.4 1.0)
+\t\t\t(layers "*.Cu" "*.Mask")
+\t\t\t(uuid "slot-pad")
+\t\t)
+\t)
+)
+"""
+    )
+
+    svg = render_pcb_ir_to_svg(pcb, layers=["F.Cu"])
+
+    assert 'data-primitive="pad-hole"' in svg
+    assert 'data-hole-kind="slot"' in svg
+    assert 'data-hole-plating="non_plated"' in svg
+    assert 'data-hole-render="drill"' in svg
+    assert 'data-hole-width-mm="0.4"' in svg
+    assert 'data-hole-height-mm="1.0"' in svg
+
+
+def test_render_pcb_ir_to_svg_via_ipc4761_metadata():
+    pcb = KiCadPcb.from_string(
+        """(kicad_pcb
+\t(version 20240108)
+\t(generator "pcbnew")
+\t(layers (0 "F.Cu" signal) (31 "B.Cu" signal))
+\t(net 0 "")
+\t(net 1 "GND")
+\t(via
+\t\t(at 10 10)
+\t\t(size 0.3)
+\t\t(drill 0.15)
+\t\t(layers "F.Cu" "B.Cu")
+\t\t(tenting (front yes) (back no))
+\t\t(covering (front no) (back yes))
+\t\t(plugging (front no) (back no))
+\t\t(capping yes)
+\t\t(filling yes)
+\t\t(net 1)
+\t\t(uuid "via-ipc")
+\t)
+)
+"""
+    )
+
+    svg = render_pcb_ir_to_svg(pcb, layers=["F.Cu"])
+
+    assert 'data-primitive="via"' in svg
+    assert 'data-primitive="via-hole"' in svg
+    assert 'data-hole-kind="round"' in svg
+    assert 'data-hole-plating="plated"' in svg
+    assert 'data-hole-diameter-mm="0.15"' in svg
+    assert 'data-via-type="through"' in svg
+    assert 'data-ipc4761-metadata="true"' in svg
+    assert 'data-ipc4761-tenting-front="true"' in svg
+    assert 'data-ipc4761-tenting-back="false"' in svg
+    assert 'data-ipc4761-covering-front="false"' in svg
+    assert 'data-ipc4761-covering-back="true"' in svg
+    assert 'data-ipc4761-plugging-front="false"' in svg
+    assert 'data-ipc4761-plugging-back="false"' in svg
+    assert 'data-ipc4761-capping="true"' in svg
+    assert 'data-ipc4761-filling="true"' in svg
 
 
 def test_render_pcb_ir_to_svg_embeds_enrichment_payload():
@@ -359,7 +440,7 @@ def test_render_pcb_ir_to_svg_embeds_enrichment_payload():
     assert payload["view"] == {
         "kind": "layer_set",
         "included_layers": ["F.Cu"],
-        "profile": "review",
+        "profile": "enriched",
         "includes_board_outline": False,
     }
     assert payload["layers"]["layer_ordinal_to_name"]["0"] == "F.Cu"
@@ -370,6 +451,61 @@ def test_render_pcb_ir_to_svg_embeds_enrichment_payload():
     assert payload["components"][0]["designator"] == "R1"
     assert payload["components"][0]["footprint"] == "Test:R"
     assert payload["components"][0]["rotation_deg"] == 90.0
+
+
+def test_render_pcb_ir_to_svg_embeds_stackup_payload():
+    pcb = KiCadPcb.from_string(
+        """(kicad_pcb
+\t(version 20240108)
+\t(generator "pcbnew")
+\t(general (thickness 1.6))
+\t(layers (0 "F.Cu" signal) (31 "B.Cu" signal) (44 "Edge.Cuts" user))
+\t(setup
+\t\t(stackup
+\t\t\t(layer "F.Cu" (type "copper") (thickness 0.035 locked) (material "Cu") (color "#AA5500"))
+\t\t\t(layer "dielectric 1" (type "core") (thickness 1.53) (material "FR4") (epsilon_r 4.5) (loss_tangent 0.02))
+\t\t\t(layer "B.Cu" (type "copper") (thickness 0.035) (material "Cu"))
+\t\t\t(copper_finish "ENIG")
+\t\t\t(dielectric_constraints yes)
+\t\t\t(edge_connector bevelled)
+\t\t\t(edge_plating yes)
+\t\t)
+\t)
+\t(gr_line (start 0 0) (end 20 0) (stroke (width 0.15) (type solid)) (layer "Edge.Cuts"))
+\t(gr_line (start 20 0) (end 20 20) (stroke (width 0.15) (type solid)) (layer "Edge.Cuts"))
+\t(gr_line (start 20 20) (end 0 20) (stroke (width 0.15) (type solid)) (layer "Edge.Cuts"))
+\t(gr_line (start 0 20) (end 0 0) (stroke (width 0.15) (type solid)) (layer "Edge.Cuts"))
+)
+"""
+    )
+
+    svg = render_pcb_ir_to_svg(pcb)
+    payload = _pcb_enrichment_payload(svg)
+    stackup = payload["board"]["stackup"]
+
+    assert stackup["present"] is True
+    assert round(stackup["computed_thickness_mm"], 3) == 1.6
+    assert stackup["copper_finish"] == "ENIG"
+    assert stackup["dielectric_constraints"] is True
+    assert stackup["edge_connector"] == "bevelled"
+    assert stackup["edge_plating"] is True
+    assert stackup["layers"][0] == {
+        "index": 0,
+        "name": "F.Cu",
+        "type": "copper",
+        "role": "copper",
+        "thickness_mm": 0.035,
+        "thickness_locked": True,
+        "material": "Cu",
+        "epsilon_r": None,
+        "loss_tangent": None,
+        "color": "#AA5500",
+        "sublayers": [],
+    }
+    assert stackup["layers"][1]["role"] == "dielectric"
+    assert stackup["layers"][1]["material"] == "FR4"
+    assert stackup["layers"][1]["epsilon_r"] == 4.5
+    assert stackup["layers"][1]["loss_tangent"] == 0.02
 
 
 # ---------------------------------------------------------------------------

@@ -972,8 +972,8 @@ class KiCadPcb:
             fill: Fill color (default black)
             stroke: Stroke color (default black)
             black_and_white: If True, force all elements to black/white
-            profile: Optional SVG output profile, such as ``"review"`` or
-                ``"kicad_cli"``.
+            profile: Optional SVG output profile, such as ``"enriched"`` or
+                ``"oracle"``.
             options: Optional low-level SVG render options.
 
         Returns:

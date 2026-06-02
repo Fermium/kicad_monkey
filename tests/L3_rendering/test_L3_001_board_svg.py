@@ -1431,6 +1431,21 @@ class TestBoardSvgGeneration:
         assert "stroke-width:0.1524" not in chunk
         assert "stroke:none" in chunk
 
+    def test_speedy_015mm_filled_capped_vias_emit_ipc4761_metadata(self, speedy_board_review):
+        """Saved Speedy 0.15 mm vias should carry fabrication metadata."""
+        pcb, _board_path, _output_paths = speedy_board_review
+        svg = pcb.to_svg(layers=["F.Cu"])
+
+        filled_capped_vias = re.findall(
+            r'<g[^>]*data-primitive="via"'
+            r'[^>]*data-hole-diameter-mm="0\.15"'
+            r'[^>]*data-ipc4761-capping="true"'
+            r'[^>]*data-ipc4761-filling="true"',
+            svg,
+        )
+
+        assert filled_capped_vias
+
 
 class TestBoardSvgComparison:
     """Tests comparing our SVG output against KiCad CLI references."""

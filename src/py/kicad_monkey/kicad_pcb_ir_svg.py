@@ -454,7 +454,7 @@ def render_pcb_ir_to_svg(
     )
     root_attrs = None
     metadata_elements = None
-    if profile_value != KiCadSvgRenderProfile.KICAD_CLI.value:
+    if profile_value != KiCadSvgRenderProfile.ORACLE.value:
         payload = pcb_svg_enrichment_payload(
             pcb,
             layers=layers,

@@ -165,7 +165,7 @@ def schematic_svg_options_from_preferences(
     """Return schematic SVG options using a KiCad colour theme and default font."""
 
     pref = load_kicad_svg_preference_theme(preferences_dir, theme_name=theme_name)
-    opts = base or KiCadSvgRenderOptions.review_default()
+    opts = base or KiCadSvgRenderOptions.enriched_default()
     overrides: dict[str, str] = dict(opts.color_overrides or {})
     for source_color, theme_key in _SCHEMATIC_LAYER_TO_THEME_KEY.items():
         target = pref.schematic.get(theme_key)

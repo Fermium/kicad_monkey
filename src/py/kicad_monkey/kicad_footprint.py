@@ -580,8 +580,8 @@ class KiCadFootprint:
             fill: Fill color for solid shapes (default: black)
             stroke: Stroke color for lines (default: black)
             black_and_white: If True, use black/white only (matches --black-and-white)
-            profile: Optional SVG output profile, such as ``"review"`` or
-                ``"kicad_cli"``.
+            profile: Optional SVG output profile, such as ``"enriched"`` or
+                ``"oracle"``.
             options: Optional low-level SVG render options.
 
         Returns:

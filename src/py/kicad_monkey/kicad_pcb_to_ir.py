@@ -853,6 +853,37 @@ def _pad_block_label(
     return f"{base}:{suffix}" if suffix else base
 
 
+def _pad_hole_kind(pad: Any) -> str:
+    return (
+        "slot"
+        if bool(getattr(pad, "drill_oval", False))
+        and getattr(pad, "drill_width", None) is not None
+        and getattr(pad, "drill_height", None) is not None
+        else "round"
+    )
+
+
+def _pad_hole_dimension_attrs(pad: Any) -> dict[str, Any]:
+    if _pad_hole_kind(pad) == "slot":
+        attrs: dict[str, Any] = {}
+        width = getattr(pad, "drill_width", None)
+        height = getattr(pad, "drill_height", None)
+        if width is not None:
+            attrs["hole_width_mm"] = float(width)
+        if height is not None:
+            attrs["hole_height_mm"] = float(height)
+        return attrs
+
+    drill = getattr(pad, "drill", None)
+    if drill is None and _enum_text(getattr(pad, "pad_type", "")) == "np_thru_hole":
+        fallback = min(
+            float(getattr(pad, "size_x", 0.0)),
+            float(getattr(pad, "size_y", 0.0)),
+        )
+        drill = fallback if fallback > 0 else None
+    return {"hole_diameter_mm": float(drill)} if drill else {}
+
+
 def _pad_block_extra_attrs(
     pad: Any,
     footprint: "Footprint",
@@ -895,11 +926,12 @@ def _pad_block_extra_attrs(
         attrs.update(
             {
                 "hole_owner": _pad_block_label(pad, footprint, index=pad_index),
-                "hole_kind": pad_type or "pad",
-                "hole_plating": "unplated" if pad_type == "np_thru_hole" else "plated",
+                "hole_kind": _pad_hole_kind(pad),
+                "hole_plating": "non_plated" if pad_type == "np_thru_hole" else "plated",
                 "hole_render": "drill",
             }
         )
+        attrs.update(_pad_hole_dimension_attrs(pad))
     return attrs
 
 
@@ -1164,6 +1196,50 @@ def _via_exposed_mask_layers(via: "Via") -> list[str]:
     return out
 
 
+def _bool_metadata(value: object) -> str | None:
+    if value is True:
+        return "true"
+    if value is False:
+        return "false"
+    return None
+
+
+def _front_back_metadata(prefix: str, value: object) -> dict[str, str]:
+    if value is None:
+        return {}
+    attrs: dict[str, str] = {}
+    front = _bool_metadata(getattr(value, "front", None))
+    back = _bool_metadata(getattr(value, "back", None))
+    if front is not None:
+        attrs[f"{prefix}_front"] = front
+    if back is not None:
+        attrs[f"{prefix}_back"] = back
+    return attrs
+
+
+def _via_fabrication_extras(via: "Via") -> dict[str, str]:
+    extras: dict[str, str] = {}
+    extras.update(
+        _front_back_metadata("ipc4761_tenting", getattr(via, "tenting", None))
+    )
+    extras.update(
+        _front_back_metadata("ipc4761_covering", getattr(via, "covering", None))
+    )
+    extras.update(
+        _front_back_metadata("ipc4761_plugging", getattr(via, "plugging", None))
+    )
+
+    capping = _bool_metadata(getattr(via, "capping", None))
+    filling = _bool_metadata(getattr(via, "filling", None))
+    if capping is not None:
+        extras["ipc4761_capping"] = capping
+    if filling is not None:
+        extras["ipc4761_filling"] = filling
+    if extras:
+        extras["ipc4761_metadata"] = "true"
+    return extras
+
+
 def via_to_record(
     via: "Via",
     *,
@@ -1183,7 +1259,11 @@ def via_to_record(
         "drill": float(via.drill),
         "size": float(via.size),
         "via_type": via.via_type or "through",
+        "hole_kind": "round",
+        "hole_plating": "plated",
+        "hole_render": "drill",
     }
+    extras.update(_via_fabrication_extras(via))
     extras.update(_net_extras(via.net))
     return KiCadPlotterRecord(
         uuid=via.uuid or "",

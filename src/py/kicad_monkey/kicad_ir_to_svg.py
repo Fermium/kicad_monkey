@@ -219,7 +219,7 @@ def _render_typed_cache_polygons(
             stroke_color=color,
             width_nm=0,
         )
-        if len(contours) > 1 or _profile_is_kicad_cli(ctx.options):
+        if len(contours) > 1 or _profile_is_oracle(ctx.options):
             fragment = fragment.replace(" />", ' fill-rule="evenodd" clip-rule="evenodd" />')
         fragments.append(fragment)
     return "\n".join(fragments)
@@ -624,7 +624,7 @@ def _render_filled_polygon_like_cli(
 ) -> str:
     pts = list(points)
     fill_value = fill.value if isinstance(fill, KiCadFillType) else str(fill or "")
-    if _profile_is_kicad_cli(ctx.options) and _is_filled(fill_value) and width_nm == 0:
+    if _profile_is_oracle(ctx.options) and _is_filled(fill_value) and width_nm == 0:
         d = _path_d_from_polygon_points(pts, ctx=ctx)
         if not d:
             return ""
@@ -672,7 +672,7 @@ def _render_stroked_polyline_like_cli(
     line_style: KiCadLineStyle | str | None = None,
 ) -> str:
     pts = list(points)
-    if _profile_is_kicad_cli(ctx.options):
+    if _profile_is_oracle(ctx.options):
         d = _path_d_from_polyline_points(pts, ctx=ctx)
         if not d:
             return ""
@@ -707,7 +707,7 @@ def _render_rect_like_cli(
     corner_radius_nm: int = 0,
     line_style: KiCadLineStyle | str | None = None,
 ) -> str:
-    if _profile_is_kicad_cli(ctx.options) and corner_radius_nm <= 0:
+    if _profile_is_oracle(ctx.options) and corner_radius_nm <= 0:
         d = _path_d_from_polygon_points(
             [(x1, y1), (x2, y1), (x2, y2), (x1, y2)],
             ctx=ctx,
@@ -1218,7 +1218,7 @@ def _render_flash_pad_custom_op(p: dict, *, ctx: KiCadSvgRenderContext) -> str:
         fragments: list[str] = []
         polygon_source = (
             _custom_cli_polygons
-            if _profile_is_kicad_cli(ctx.options)
+            if _profile_is_oracle(ctx.options)
             else _custom_polygons
         )
         for locals_ in polygon_source(payload, expand_for_mask=expand_for_mask):
@@ -1507,30 +1507,30 @@ def _svg_attr(name: str, value: object) -> str:
 
 
 def _svg_profile(options: KiCadSvgRenderOptions) -> str:
-    profile = getattr(options, "profile", KiCadSvgRenderProfile.REVIEW)
+    profile = getattr(options, "profile", KiCadSvgRenderProfile.ENRICHED)
     if isinstance(profile, KiCadSvgRenderProfile):
         return profile.value
     return str(profile)
 
 
-def _profile_is_kicad_cli(options: KiCadSvgRenderOptions) -> bool:
-    return _svg_profile(options) == KiCadSvgRenderProfile.KICAD_CLI.value
+def _profile_is_oracle(options: KiCadSvgRenderOptions) -> bool:
+    return _svg_profile(options) == KiCadSvgRenderProfile.ORACLE.value
 
 
-def _profile_is_review(options: KiCadSvgRenderOptions) -> bool:
-    return _svg_profile(options) == KiCadSvgRenderProfile.REVIEW.value
+def _profile_is_enriched(options: KiCadSvgRenderOptions) -> bool:
+    return _svg_profile(options) == KiCadSvgRenderProfile.ENRICHED.value
 
 
 def _emit_metadata(options: KiCadSvgRenderOptions) -> bool:
-    if _profile_is_kicad_cli(options):
+    if _profile_is_oracle(options):
         return False
-    return _profile_is_review(options) or bool(getattr(options, "include_metadata", False))
+    return _profile_is_enriched(options) or bool(getattr(options, "include_metadata", False))
 
 
 def _emit_ids(options: KiCadSvgRenderOptions) -> bool:
-    if _profile_is_kicad_cli(options):
+    if _profile_is_oracle(options):
         return False
-    return _profile_is_review(options) or bool(getattr(options, "include_ids", False))
+    return _profile_is_enriched(options) or bool(getattr(options, "include_ids", False))
 
 
 def _block_extra_attrs(payload: dict) -> str | None:

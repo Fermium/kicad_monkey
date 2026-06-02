@@ -23,7 +23,7 @@ parity:
   `test_L3_007_pcb_ir_svg_oracle.py` compare semantic snapshots such as
   viewBox, element counts, stroke buckets, drill counts, and now filled black
   ink area.
-- Real-world `board_svg` cases currently generate review output and have a
+- Real-world `board_svg` cases currently generate enriched review output and have a
   few targeted assertions, but they are not broadly compared against KiCad CLI
   layer by layer.
 
@@ -33,7 +33,7 @@ Fresh KiCad CLI inspection on 2026-06-01 shows the structural gap:
 - Stock KiCad CLI uses a top plot group and style buckets, commonly emitting
   filled copper as `<path style="fill:#000000; ... stroke:none;
   fill-rule:evenodd;">`.
-- Current monkey review output emits source-object groups with `id`,
+- Current monkey enriched output emits source-object groups with `id`,
   `data-uuid`, and `data-ref`, and often emits equivalent geometry as
   `<polygon>` or `<polyline>`.
 
@@ -60,8 +60,8 @@ decisions KiCad makes, not only visual similarity.
 - 2026-06-01: Started Phase 1 profile plumbing. Added explicit
   `KiCadSvgRenderProfile` support, propagated `profile` / `options` through
   `render_pcb_ir_to_svg`, `KiCadPcb.to_svg`, `KiCadPcb.to_svg_ir`, and
-  `KiCadFootprint.to_svg`, and added L0 coverage proving `kicad_cli`
-  suppresses monkey-only source metadata while default review output keeps it.
+  `KiCadFootprint.to_svg`, and added L0 coverage proving the oracle profile
+  suppresses monkey-only source metadata while default enriched output keeps it.
 - 2026-06-01: During the broad L3 SVG oracle rerun, `case082` mask-layer
   checks exposed an NPTH mask mismatch. Removed the synthetic black NPTH mask
   aperture so mask layers emit only the KiCad CLI-matching white NPTH drill.
@@ -77,14 +77,14 @@ decisions KiCad makes, not only visual similarity.
   SVG helpers in place.
 - 2026-06-01: Added the first strict structural PCB SVG oracle case
   (`case019` F.Cu via). This lane renders monkey output with
-  `profile="kicad_cli"` and compares canonical draw-item kind sequence,
+  `profile="oracle"` and compares canonical draw-item kind sequence,
   normalized paint style, bbox, and radii against fresh KiCad CLI SVG.
 - 2026-06-01: Started KiCad-like emitter choices for filled pads/polygons.
-  In `profile="kicad_cli"`, filled polygon-style output now emits
+  In `profile="oracle"`, filled polygon-style output now emits
   fill-only `<path>` items with `stroke:none` and `fill-rule:evenodd`.
   Promoted `case083` chamfered roundrect F.Cu into strict structural
   coverage alongside the via case.
-- 2026-06-01: Extended `profile="kicad_cli"` path output to stroked thick
+- 2026-06-01: Extended `profile="oracle"` path output to stroked thick
   segments, covering oval pads, routed/stroked segments, and slot drill
   strokes while preserving default review `<polyline>` output. Promoted
   SMD oval F.Cu and slot-drill F.Cu into strict structural SVG coverage.
@@ -99,7 +99,7 @@ decisions KiCad makes, not only visual similarity.
   width differences as an explicit follow-on target.
 - 2026-06-01: Fixed the Edge.Cuts follow-on target by using PCB stroke widths
   without the schematic minimum pen-width clamp and emitting `gr_rect` as a
-  path in `profile="kicad_cli"`. Promoted via Edge.Cuts and slot Edge.Cuts
+  path in `profile="oracle"`. Promoted via Edge.Cuts and slot Edge.Cuts
   into strict structural coverage.
 - 2026-06-01: Probed the next synthetic promotion set against fresh KiCad CLI
   output. Promoted matching SMD/through-hole pad primitives, bottom-layer pad
@@ -107,7 +107,7 @@ decisions KiCad makes, not only visual similarity.
   into strict structural coverage. Left custom-pad geometry and arc path bbox
   differences as explicit implementation targets instead of weakening the
   strict lane.
-- 2026-06-01: Fixed custom-pad `profile="kicad_cli"` geometry by carrying
+- 2026-06-01: Fixed custom-pad `profile="oracle"` geometry by carrying
   custom anchor shape and primitive stroke widths through the IR, then unioning
   them into the single filled path KiCad emits. Promoted `case122` custom pad
   F.Cu into strict structural coverage.
@@ -121,7 +121,7 @@ decisions KiCad makes, not only visual similarity.
   Left footprint knockout text fill-rule and leader/radial dimension geometry
   mismatches out of strict coverage as follow-on implementation targets.
 - 2026-06-01: Matched KiCad CLI's `fill-rule:evenodd` style for typed render
-  cache paths in `profile="kicad_cli"`. Re-probing footprint knockout text
+  cache paths in `profile="oracle"`. Re-probing footprint knockout text
   then exposed a separate path bbox/order mismatch, so that case remains a
   follow-on geometry target rather than entering strict coverage.
 - 2026-06-01: Closed the footprint knockout follow-on by teaching the
@@ -164,7 +164,7 @@ or `Literal`, but the behavior must be explicit and testable.
 
 Initial profiles:
 
-1. `kicad_cli`
+1. `oracle`
    - Intended for oracle tests.
    - Suppress monkey source metadata groups by default.
    - Suppress monkey-only IDs and `data-*` attributes.
@@ -172,7 +172,7 @@ Initial profiles:
    - Use KiCad-like style bucket formatting where practical.
    - Use black-and-white defaults matching the current CLI oracle command.
 
-2. `review`
+2. `enriched`
    - Intended for local human review and downstream tools.
    - Preserve source-object wrapper groups.
    - Include `id`, `data-uuid`, and `data-ref`.
@@ -187,8 +187,8 @@ Initial profiles:
 API shape:
 
 ```python
-pcb.to_svg(layers=["F.Cu"], profile="kicad_cli")
-pcb.to_svg(layers=["F.Cu"], profile="review")
+pcb.to_svg(layers=["F.Cu"], profile="oracle")
+pcb.to_svg(layers=["F.Cu"], profile="enriched")
 render_pcb_ir_to_svg(pcb, layers=["F.Cu"], options=KiCadSvgRenderOptions(...))
 ```
 
@@ -199,9 +199,9 @@ Implementation requirements:
 - `KiCadFootprint.to_svg` follows the same profile rules where practical.
 - `KiCadSvgRenderOptions.include_metadata` and `include_ids` are honored by
   `render_record` and nested block rendering.
-- Existing tests that assert `data-ref` or `data-uuid` request `review`
+- Existing tests that assert `data-ref` or `data-uuid` request `enriched`
   explicitly.
-- Oracle tests request `kicad_cli` explicitly.
+- Oracle tests request `oracle` explicitly.
 - The default profile is a deliberate API decision. Do not silently change it
   until current internal consumers are audited. During implementation, prefer
   adding explicit profile parameters before changing defaults.
@@ -360,7 +360,7 @@ Implementation plan:
      pad/drill roles before SVG rendering.
 
 4. Use SVG structure comparison after record parity:
-   - Render one record or small record group with `profile="kicad_cli"`.
+   - Render one record or small record group with `profile="oracle"`.
    - Compare canonical draw items against recorder-derived expectations or
      CLI output.
 
@@ -397,20 +397,20 @@ Exit criteria:
 2. Make metadata emission conditional:
    - `svg_group` already supports id/data attributes.
    - `render_record` must pass id/data only when profile/options request it.
-3. Preserve existing review behavior through explicit `profile="review"` in
+3. Preserve existing enriched behavior through explicit `profile="enriched"` in
    review tests.
-4. Add `profile="kicad_cli"` to strict oracle generation.
+4. Add `profile="oracle"` to strict oracle generation.
 5. Add L0 tests:
    - default/options behavior is stable;
-   - `kicad_cli` suppresses record ids/data;
-   - `review` includes record ids/data;
+   - `oracle` suppresses record ids/data;
+   - `enriched` includes record ids/data;
    - style buckets still wrap draw items correctly.
 
 Exit criteria:
 
-- `pcb.to_svg(profile="kicad_cli")` produces no monkey-only `data-*`.
-- `pcb.to_svg(profile="review")` preserves UUID/data review hooks.
-- Existing downstream tests that need metadata pass by requesting review mode.
+- `pcb.to_svg(profile="oracle")` produces no monkey-only `data-*`.
+- `pcb.to_svg(profile="enriched")` preserves UUID/data review hooks.
+- Existing downstream tests that need metadata pass by requesting enriched mode.
 
 ### Phase 2: KiCad-Like Emitter Choices
 
@@ -419,8 +419,8 @@ Target the most important KiCad structural choices first.
 1. Filled pads and filled polygons.
    - KiCad CLI commonly emits filled pad polygons as `<path>` with
      `stroke:none` and `fill-rule:evenodd`.
-   - Decide whether monkey's `kicad_cli` profile converts filled polygons to
-     path output while review mode may keep polygons.
+   - Decide whether monkey's `oracle` profile converts filled polygons to
+     path output while enriched mode may keep polygons.
    - Add strict synthetic tests for pad circle, rect, roundrect, custom pad,
      trapezoid, and regular polygon.
 
@@ -494,14 +494,14 @@ Exit criteria:
    `board_svg` case except documented schematic-only `_assembly` cases.
 2. For each layer:
    - generate KiCad CLI SVG when CLI is available;
-   - generate monkey `kicad_cli` SVG;
-   - generate monkey `review` SVG;
+   - generate monkey `oracle` SVG;
+   - generate monkey `enriched` SVG;
    - generate canonical snapshots and metrics JSON.
 3. Write outputs under each case's ignored `output/board_svg` folder.
 4. Add a review index page with links to:
    - CLI SVG;
-   - monkey CLI-mode SVG;
-   - monkey review-mode SVG;
+   - monkey oracle-mode SVG;
+   - monkey enriched-mode SVG;
    - metrics JSON;
    - optional overlay.
 5. Start as non-failing/manual for all real-world projects.
@@ -605,8 +605,8 @@ Docs:
 Recommended commit-sized slices:
 
 1. Add profile option and metadata gating.
-2. Update tests to request `review` where they rely on ids/data.
-3. Add `kicad_cli` profile use in oracle tests.
+2. Update tests to request `enriched` where they rely on ids/data.
+3. Add `oracle` profile use in oracle tests.
 4. Add canonical SVG analyzer with unit tests.
 5. Replace current semantic snapshot internals with analyzer-backed metrics.
 6. Add strict structural policy for `case083`.
@@ -628,8 +628,8 @@ Recommended commit-sized slices:
   real-world regressions.
 - The public API and design docs explain which SVG profile consumers should
   use:
-  - `kicad_cli` for oracle parity;
-  - `review` for visual inspection and debug;
+  - `oracle` for oracle parity;
+  - `enriched` for visual inspection, semantic metadata, and debug;
   - future `tooling` only if a consumer needs it.
 - Relevant L0 and L3 rendering lanes pass, with KiCad CLI dependency behavior
   documented.

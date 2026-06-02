@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:kicad-monkey:schema:pcb_svg_enrichment_a0",
   "title": "KiCad Monkey PCB SVG enrichment a0",
-  "description": "Document-level metadata embedded in KiCad Monkey PCB SVG review output.",
+  "description": "Document-level metadata embedded in KiCad Monkey PCB SVG enriched output.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -62,6 +62,12 @@
         "type": "number"
       }
     },
+    "nullable_number": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
     "parameter_map": {
       "type": "object",
       "additionalProperties": {
@@ -86,7 +92,8 @@
       "required": [
         "bbox_mm",
         "aux_axis_origin_mm",
-        "thickness_mm"
+        "thickness_mm",
+        "stackup"
       ],
       "properties": {
         "bbox_mm": {
@@ -101,6 +108,141 @@
         },
         "thickness_mm": {
           "type": "number"
+        },
+        "stackup": {
+          "$ref": "#/$defs/stackup"
+        }
+      }
+    },
+    "stackup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "present",
+        "computed_thickness_mm",
+        "copper_finish",
+        "dielectric_constraints",
+        "edge_connector",
+        "edge_plating",
+        "layers"
+      ],
+      "properties": {
+        "present": {
+          "type": "boolean"
+        },
+        "computed_thickness_mm": {
+          "type": "number"
+        },
+        "copper_finish": {
+          "type": "string"
+        },
+        "dielectric_constraints": {
+          "type": "boolean"
+        },
+        "edge_connector": {
+          "type": "string"
+        },
+        "edge_plating": {
+          "type": "boolean"
+        },
+        "layers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stackup_layer"
+          }
+        }
+      }
+    },
+    "stackup_layer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "index",
+        "name",
+        "type",
+        "role",
+        "thickness_mm",
+        "thickness_locked",
+        "material",
+        "epsilon_r",
+        "loss_tangent",
+        "color",
+        "sublayers"
+      ],
+      "properties": {
+        "index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "thickness_mm": {
+          "type": "number"
+        },
+        "thickness_locked": {
+          "type": "boolean"
+        },
+        "material": {
+          "type": "string"
+        },
+        "epsilon_r": {
+          "$ref": "#/$defs/nullable_number"
+        },
+        "loss_tangent": {
+          "$ref": "#/$defs/nullable_number"
+        },
+        "color": {
+          "type": "string"
+        },
+        "sublayers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/stackup_sublayer"
+          }
+        }
+      }
+    },
+    "stackup_sublayer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "index",
+        "thickness_mm",
+        "thickness_locked",
+        "material",
+        "epsilon_r",
+        "loss_tangent",
+        "color"
+      ],
+      "properties": {
+        "index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "thickness_mm": {
+          "type": "number"
+        },
+        "thickness_locked": {
+          "type": "boolean"
+        },
+        "material": {
+          "type": "string"
+        },
+        "epsilon_r": {
+          "$ref": "#/$defs/nullable_number"
+        },
+        "loss_tangent": {
+          "$ref": "#/$defs/nullable_number"
+        },
+        "color": {
+          "type": "string"
         }
       }
     },

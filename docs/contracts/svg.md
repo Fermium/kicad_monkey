@@ -2,16 +2,16 @@
 
 KiCad Monkey has two PCB SVG output profiles:
 
-- `review`: enriched SVG for inspection and downstream applications
-- `kicad_cli`: metadata-free SVG shaped for KiCad CLI oracle comparison
+- `enriched`: source-aware SVG for inspection and downstream applications
+- `oracle`: metadata-free SVG shaped for KiCad CLI oracle comparison
 
-Do not use `review` SVG as the strict KiCad CLI parity artifact. Oracle tests
+Do not use `enriched` SVG as the strict KiCad CLI parity artifact. Oracle tests
 that compare against `kicad-cli pcb export svg` must request
-`profile="kicad_cli"`.
+`profile="oracle"`.
 
 ## PCB SVG
 
-PCB review SVG uses millimeter user coordinates. SVG ids are render-artifact
+PCB enriched SVG uses millimeter user coordinates. SVG ids are render-artifact
 lookup keys. Downstream tools should prefer documented `data-*` attributes and
 the embedded metadata payload for semantic identity.
 
@@ -58,13 +58,23 @@ Drill geometry uses:
 
 - `data-primitive="pad-hole"` or `data-primitive="via-hole"`
 - `data-hole-owner`
-- `data-hole-kind`
-- `data-hole-plating`
+- `data-hole-kind`: `round` or `slot`
+- `data-hole-plating`: `plated`, `non_plated`, or `unknown`
 - `data-hole-render`
+- `data-hole-diameter-mm` for round holes
+- `data-hole-width-mm` / `data-hole-height-mm` for slot holes
+
+Via metadata uses:
+
+- `data-via-type`: `through`, `blind`, `buried`, or `micro`
+- `data-via-drill-mm`
+- `data-via-size-mm`
+- `data-ipc4761-*` attributes for KiCad via fabrication settings when present,
+  including tenting, covering, plugging, capping, and filling
 
 ## PCB Enrichment Metadata
 
-PCB review SVG embeds document-level JSON metadata as:
+PCB enriched SVG embeds document-level JSON metadata as:
 
 ```xml
 <metadata id="pcb-enrichment-a0" data-schema="kicad_monkey.pcb.svg.enrichment.a0">
@@ -77,7 +87,7 @@ The schema file is `pcb_svg_enrichment_a0.schema.json`.
 The payload records:
 
 - source PCB path
-- board bounding box, auxiliary origin, and thickness
+- board bounding box, auxiliary origin, thickness, and stackup
 - emitted view information
 - layer maps and normalized layer roles
 - net, netclass, and component lookup tables
