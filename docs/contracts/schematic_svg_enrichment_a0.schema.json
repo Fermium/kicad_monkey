@@ -9,6 +9,7 @@
     "schema",
     "source",
     "view",
+    "view_indexes",
     "design"
   ],
   "properties": {
@@ -51,6 +52,84 @@
         },
         "sheet_instance_path": {
           "type": "string"
+        }
+      }
+    },
+    "view_indexes": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "sheet_lookup_keys",
+        "svg_to_net",
+        "svg_to_nets",
+        "net_to_svg",
+        "net_uid_to_svg"
+      ],
+      "properties": {
+        "sheet_lookup_keys": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "svg_to_net": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": [
+              "uid",
+              "name"
+            ],
+            "properties": {
+              "uid": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "svg_to_nets": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": [
+                "uid",
+                "name"
+              ],
+              "properties": {
+                "uid": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "net_to_svg": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "net_uid_to_svg": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
         }
       }
     },

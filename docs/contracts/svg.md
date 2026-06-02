@@ -130,6 +130,12 @@ lookup indexes:
 - `components[].svg_id` points to the component SVG group id
 - `nets[].graphical` groups related schematic SVG ids by record type
 - `nets[].graphical.pins[]` maps designator/pin pairs to SVG ids
+- `view_indexes.svg_to_net` maps rendered electrical SVG group ids for the
+  current sheet view directly to `{uid, name}` net summaries
+- `view_indexes.svg_to_nets` preserves multiple candidates if a current-view
+  SVG id cannot be reduced to one net summary
+- `view_indexes.net_to_svg` and `view_indexes.net_uid_to_svg` support
+  current-view net highlighting without walking the whole design payload
 - `indexes.svg_to_net` maps globally unambiguous electrical SVG group ids back
   to net names
 - `indexes.svg_to_nets` maps every electrical SVG group id, including pin
@@ -142,6 +148,12 @@ lookup indexes:
 - `indexes.net_to_graphics` maps each net name to its rendered electrical SVG
   group ids
 - `nets[].endpoints[]` provides semantic trace endpoints
+
+Consumers should use `view_indexes` first for interactions with one rendered
+schematic SVG. The design-wide `indexes` payload is for cross-sheet reasoning,
+global search, and diagnostics. KiCad-facing net names remain in `net.name` and
+in the view net summaries as `name`; the sheet instance path disambiguates
+shared source UUIDs from repeated hierarchical sheets.
 
 In `profile="enriched"` schematic output, records are wrapped in source-owned
 `<g>` elements. These groups carry `data-ref` for the KiCad record kind and

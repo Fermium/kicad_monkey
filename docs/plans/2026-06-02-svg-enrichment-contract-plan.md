@@ -114,3 +114,7 @@ metadata payload for semantic identity.
   each real-world review SVG embeds `kicad_monkey.design.a0` under
   `schematic-enrichment-a0`, and repeated sheet instances use instance names
   such as `TPS62A02_BUCK_1V0` in generated filenames.
+- 2026-06-02: Added schematic `view_indexes` to the enrichment payload so
+  higher-level applications can resolve a rendered SVG group id to the
+  current-view KiCad net summary through `view_indexes.svg_to_net` before
+  falling back to design-wide hierarchy indexes.

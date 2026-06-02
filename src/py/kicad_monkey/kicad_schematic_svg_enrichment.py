@@ -192,6 +192,131 @@ def schematic_record_has_svg_data_attrs(record: KiCadPlotterRecord) -> bool:
     return record.kind in _SCHEMATIC_RECORD_KINDS
 
 
+def _sheet_key_variants(value: object) -> list[str]:
+    text = str(value or "").strip()
+    if not text:
+        return []
+    variants = [text]
+    if not text.startswith("/"):
+        text = f"/{text}"
+        variants.append(text)
+    if text != "/" and not text.endswith("/"):
+        variants.append(f"{text}/")
+    return variants
+
+
+def _sheet_lookup_keys(*, sheet_path: object, sheet_instance_path: object) -> list[str]:
+    keys: list[str] = []
+
+    def add(value: object) -> None:
+        for key in _sheet_key_variants(value):
+            if key not in keys:
+                keys.append(key)
+
+    add(sheet_instance_path)
+    instance_parts = [
+        part for part in str(sheet_instance_path or "").strip("/").split("/") if part
+    ]
+    if len(instance_parts) > 1:
+        add(f"/{'/'.join(instance_parts[1:])}/")
+    elif len(instance_parts) == 1:
+        add("/")
+    add(sheet_path)
+    return keys
+
+
+def _net_summary_by_name(design_payload: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    out: dict[str, dict[str, Any]] = {}
+    for net in design_payload.get("nets", []) or []:
+        if not isinstance(net, dict):
+            continue
+        name = str(net.get("name", "") or "")
+        if not name:
+            continue
+        row: dict[str, Any] = {
+            "uid": str(net.get("uid", "") or ""),
+            "name": name,
+        }
+        if "auto_named" in net:
+            row["auto_named"] = bool(net.get("auto_named"))
+        if net.get("net_class"):
+            row["net_class"] = str(net.get("net_class", ""))
+        out.setdefault(name, row)
+    return out
+
+
+def _net_summary(name: str, net_by_name: dict[str, dict[str, Any]]) -> dict[str, Any]:
+    return dict(net_by_name.get(name) or {"uid": "", "name": name})
+
+
+def schematic_svg_view_indexes(
+    design_payload: dict[str, Any],
+    *,
+    sheet_path: object = "",
+    sheet_instance_path: object = "",
+) -> dict[str, Any]:
+    """Return current-view net lookup indexes for enriched schematic SVG."""
+
+    indexes = design_payload.get("indexes", {}) if isinstance(design_payload, dict) else {}
+    if not isinstance(indexes, dict):
+        indexes = {}
+    sheet_map = indexes.get("sheet_svg_to_nets", {})
+    if not isinstance(sheet_map, dict):
+        sheet_map = {}
+
+    sheet_keys = _sheet_lookup_keys(
+        sheet_path=sheet_path,
+        sheet_instance_path=sheet_instance_path,
+    )
+    svg_to_net_names: dict[str, set[str]] = {}
+    for sheet_key in sheet_keys:
+        row = sheet_map.get(sheet_key, {})
+        if not isinstance(row, dict):
+            continue
+        for svg_id, net_names in row.items():
+            svg_key = str(svg_id or "")
+            if not svg_key:
+                continue
+            if isinstance(net_names, str):
+                candidates = [net_names]
+            else:
+                candidates = list(net_names or [])
+            for name in candidates:
+                net_name = str(name or "")
+                if net_name:
+                    svg_to_net_names.setdefault(svg_key, set()).add(net_name)
+
+    net_by_name = _net_summary_by_name(design_payload)
+    svg_to_nets: dict[str, list[dict[str, Any]]] = {}
+    svg_to_net: dict[str, dict[str, Any]] = {}
+    net_to_svg: dict[str, list[str]] = {}
+    net_uid_to_svg: dict[str, list[str]] = {}
+    for svg_id, net_names in sorted(svg_to_net_names.items()):
+        summaries = [_net_summary(name, net_by_name) for name in sorted(net_names)]
+        svg_to_nets[svg_id] = summaries
+        if len(summaries) == 1:
+            svg_to_net[svg_id] = summaries[0]
+        for summary in summaries:
+            name = str(summary.get("name", "") or "")
+            uid = str(summary.get("uid", "") or "")
+            if name:
+                net_to_svg.setdefault(name, []).append(svg_id)
+            if uid:
+                net_uid_to_svg.setdefault(uid, []).append(svg_id)
+
+    return {
+        "sheet_lookup_keys": sheet_keys,
+        "svg_to_net": svg_to_net,
+        "svg_to_nets": svg_to_nets,
+        "net_to_svg": {
+            name: sorted(set(svg_ids)) for name, svg_ids in sorted(net_to_svg.items())
+        },
+        "net_uid_to_svg": {
+            uid: sorted(set(svg_ids)) for uid, svg_ids in sorted(net_uid_to_svg.items())
+        },
+    }
+
+
 def schematic_svg_enrichment_payload(
     design_payload: dict[str, Any],
     *,
@@ -215,6 +340,11 @@ def schematic_svg_enrichment_payload(
             "sheet_path": str(sheet_path or ""),
             "sheet_instance_path": str(sheet_instance_path or ""),
         },
+        "view_indexes": schematic_svg_view_indexes(
+            design_payload,
+            sheet_path=sheet_path,
+            sheet_instance_path=sheet_instance_path,
+        ),
         "design": design_payload,
     }
 

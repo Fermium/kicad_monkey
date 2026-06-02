@@ -156,39 +156,30 @@ def _svg_group_attrs(svg: str) -> list[dict[str, str]]:
     ]
 
 
-def _sheet_net_candidates(
-    design_payload: dict,
-    *,
-    sheet_keys: list[str],
-    svg_id: str,
-) -> list[str]:
-    indexes = design_payload["indexes"]
-    sheet_map = indexes.get("sheet_svg_to_nets", {})
-    for sheet_key in sheet_keys:
-        sheet_candidates = sheet_map.get(sheet_key, {}).get(svg_id, [])
-        if sheet_candidates:
-            return list(sheet_candidates)
-    candidates = indexes.get("svg_to_nets", {}).get(svg_id, [])
-    if len(candidates) == 1:
-        return list(candidates)
-    net_name = indexes.get("svg_to_net", {}).get(svg_id)
-    return [net_name] if net_name else []
-
-
 def _assert_schematic_svg_net_linkage(svg: str, svg_payload: dict) -> None:
     design_payload = svg_payload["design"]
     assert design_payload["schema"] == "kicad_monkey.design.a0"
 
     indexes = design_payload["indexes"]
+    view_indexes = svg_payload["view_indexes"]
     svg_to_nets = indexes["svg_to_nets"]
     sheet_svg_to_nets = indexes["sheet_svg_to_nets"]
     if not svg_to_nets:
         assert not indexes["net_to_graphics"]
         assert not sheet_svg_to_nets
+        assert not view_indexes["svg_to_net"]
+        assert not view_indexes["svg_to_nets"]
         return
     assert svg_to_nets
     assert sheet_svg_to_nets
     assert indexes["net_to_graphics"]
+    assert {
+        "sheet_lookup_keys",
+        "svg_to_net",
+        "svg_to_nets",
+        "net_to_svg",
+        "net_uid_to_svg",
+    }.issubset(view_indexes)
 
     pin_link_count = 0
     graphic_link_count = 0
@@ -210,15 +201,7 @@ def _assert_schematic_svg_net_linkage(svg: str, svg_payload: dict) -> None:
 
     assert graphic_link_count + pin_link_count
 
-    view = svg_payload["view"]
-    sheet_keys = [
-        key
-        for key in (
-            view.get("sheet_instance_path", ""),
-            view.get("sheet_path", ""),
-        )
-        if key
-    ]
+    sheet_keys = view_indexes["sheet_lookup_keys"]
     rendered_ids: set[str] = set()
     for attrs in _svg_group_attrs(svg):
         svg_id = attrs.get("id") or attrs.get("data-element-key") or attrs.get("data-uuid")
@@ -232,12 +215,16 @@ def _assert_schematic_svg_net_linkage(svg: str, svg_payload: dict) -> None:
 
     linked_group_count = 0
     for svg_id in sorted(rendered_ids & declared_sheet_ids):
-        candidates = _sheet_net_candidates(
-            design_payload,
-            sheet_keys=sheet_keys,
-            svg_id=svg_id,
-        )
+        candidates = view_indexes["svg_to_nets"].get(svg_id, [])
         assert candidates
+        assert all(candidate["name"] for candidate in candidates)
+        if len(candidates) == 1:
+            assert view_indexes["svg_to_net"][svg_id]["name"] == candidates[0]["name"]
+            net_uid = view_indexes["svg_to_net"][svg_id]["uid"]
+            if net_uid:
+                assert svg_id in view_indexes["net_uid_to_svg"][net_uid]
+        for candidate in candidates:
+            assert svg_id in view_indexes["net_to_svg"][candidate["name"]]
         linked_group_count += 1
 
     if declared_sheet_ids:
@@ -505,6 +492,7 @@ def test_promoted_real_world_all_sheets_render_to_ir_and_svg_from_manifest(case)
         )
         assert sample_payload["design"]["components"]
         assert sample_payload["design"]["nets"]
+        assert sample_payload["view_indexes"]["svg_to_net"]
 
 
 @pytest.mark.parametrize(
