@@ -17,6 +17,7 @@ from .kicad_defaults import KICAD_DEFAULT_TEXT_SIZE_MM
 from .kicad_sexpr import QuotedString
 from .kicad_base import (
     FRONT_SILKSCREEN_LAYER,
+    find_element,
     get_value,
     get_at,
     has_flag,
@@ -39,6 +40,7 @@ class Property:
     uuid: Optional[str] = None
     effects: Effects = field(default_factory=Effects)
     render_cache: Optional[RenderCache] = None
+    graphical: bool = True
     _raw_sexp: Optional[list] = field(default=None, repr=False)
 
     @classmethod
@@ -46,18 +48,29 @@ class Property:
         name = unquote_string(sexp[1])
         value = unquote_string(sexp[2])
         x, y, angle = get_at(sexp)
-        layer = unquote_string(get_value(sexp, 'layer', FRONT_SILKSCREEN_LAYER))
-        hide = has_flag(sexp, 'hide') or get_value(sexp, 'hide') == 'yes'
+        layer_elem = find_element(sexp, 'layer')
+        layer = (
+            unquote_string(layer_elem[1])
+            if layer_elem and len(layer_elem) > 1
+            else FRONT_SILKSCREEN_LAYER
+        )
+        effects = Effects.from_sexp(sexp)
+        hide = (
+            has_flag(sexp, 'hide')
+            or get_value(sexp, 'hide') == 'yes'
+            or bool(effects.hide)
+        )
         unlocked = has_flag(sexp, 'unlocked') or get_value(sexp, 'unlocked') == 'yes'
         uuid = unquote_string(get_value(sexp, 'uuid'))
-        effects = Effects.from_sexp(sexp)
         render_cache = RenderCache.from_sexp(sexp)
+        graphical = find_element(sexp, 'at') is not None and layer_elem is not None
 
         return cls(
             name=name, value=value,
             at_x=x, at_y=y, at_angle=angle,
             layer=layer, hide=hide, unlocked=unlocked,
             uuid=uuid, effects=effects, render_cache=render_cache,
+            graphical=graphical,
             _raw_sexp=sexp
         )
 
@@ -192,6 +205,8 @@ class Property:
 
     def to_sexp(self) -> list:
         result = ['property', QuotedString(self.name), QuotedString(self.value)]
+        if not self.graphical:
+            return result
 
         # KiCad's reader requires the angle slot even when zero (drift inventory #1).
         result.append(['at', self.at_x, self.at_y, self.at_angle])

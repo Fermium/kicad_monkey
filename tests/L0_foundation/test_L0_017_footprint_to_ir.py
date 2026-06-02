@@ -210,9 +210,32 @@ def test_fp_text_to_op_returns_none_when_hidden():
     assert fp_text_to_op(text) is None
 
 
+def test_fp_text_from_sexp_parses_hide_yes():
+    text = FpText.from_sexp([
+        "fp_text",
+        "user",
+        "HIDDEN",
+        ["at", 0.0, 0.0, 0.0],
+        ["layer", "F.SilkS"],
+        ["hide", "yes"],
+    ])
+
+    assert text.hide is True
+    assert fp_text_to_op(text) is None
+
+
 def test_fp_text_to_op_returns_none_when_empty():
     text = FpText(text_type="user", text="", at_x=0.0, at_y=0.0)
     assert fp_text_to_op(text) is None
+
+
+def test_fp_text_to_op_resolves_reference_variable():
+    text = FpText(text_type="user", text="${REFERENCE}", at_x=0.0, at_y=0.0)
+
+    op = fp_text_to_op(text, variables={"Reference": "J1"})
+
+    assert op is not None
+    assert op.payload["text"] == "J1"
 
 
 def test_fp_text_to_op_lifts_effects_font_size():
@@ -243,6 +266,13 @@ def test_property_to_op_basic():
 
 def test_property_to_op_returns_none_when_hidden():
     prop = Property(name="Reference", value="R1", hide=True)
+    assert property_to_op(prop) is None
+
+
+def test_property_from_sexp_metadata_only_is_not_graphical():
+    prop = Property.from_sexp(["property", "ki_fp_filters", "wavenumber:R0402"])
+
+    assert prop.graphical is False
     assert property_to_op(prop) is None
 
 

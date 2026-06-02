@@ -333,6 +333,58 @@ def test_render_pcb_ir_to_svg_enriched_profile_enriches_pcb_relationships():
     assert 'data-via-drill-mm="0.4"' in svg
 
 
+def test_render_pcb_ir_to_svg_enriched_metadata_carries_aliases_and_children():
+    from kicad_monkey.kicad_project import KiCadProject
+
+    pcb = KiCadPcb.from_string(
+        """(kicad_pcb
+\t(version 20240108)
+\t(generator "pcbnew")
+\t(layers
+\t\t(0 "F.Cu" signal)
+\t\t(5 "F.SilkS" user "Top Overlay")
+\t\t(44 "Edge.Cuts" user)
+\t)
+\t(setup
+\t\t(stackup
+\t\t\t(layer "F.Cu" (type "copper") (thickness 0.035))
+\t\t\t(layer "F.SilkS" (type "silkscreen"))
+\t\t)
+\t)
+\t(footprint "Test:R"
+\t\t(layer "F.Cu")
+\t\t(at 10 10 0)
+\t\t(uuid "fp-uuid")
+\t\t(property "Reference" "R1" (at 0 0 0) (layer "F.SilkS"))
+\t\t(fp_text user "${REFERENCE}" (at 0 2 0) (layer "F.SilkS"))
+\t\t(fp_text user "NOTE" (at 0 4 0) (layer "F.SilkS"))
+\t\t(fp_line (start -1 -1) (end 1 -1) (stroke (width 0.15) (type solid)) (layer "F.SilkS"))
+\t)
+)
+"""
+    )
+    pcb.project = KiCadProject.from_json_dict(
+        {"text_variables": {"DOC_NO": "11-10084"}}
+    )
+
+    svg = render_pcb_ir_to_svg(pcb, layers=["F.SilkS"])
+    payload = _pcb_enrichment_payload(svg)
+
+    assert payload["project"]["text_variables"] == {"DOC_NO": "11-10084"}
+    assert payload["layers"]["layer_name_to_user_name"]["F.SilkS"] == "Top Overlay"
+    assert payload["layers"]["layer_name_to_display_name"]["F.SilkS"] == "Top Overlay"
+    assert payload["layers"]["layers"][1]["display_name"] == "Top Overlay"
+    assert payload["board"]["stackup"]["layers"][1]["display_name"] == "Top Overlay"
+    assert 'data-ref="property"' in svg
+    assert 'data-footprint-text-role="designator"' in svg
+    assert 'data-property-name="Reference"' in svg
+    assert 'data-ref="fp_text"' in svg
+    assert 'data-footprint-text-role="user"' in svg
+    assert 'data-ref="fp_line"' in svg
+    assert 'data-primitive="footprint-graphic"' in svg
+    assert 'data-footprint-graphic-kind="line"' in svg
+
+
 def test_render_pcb_ir_to_svg_npth_slot_hole_metadata():
     pcb = KiCadPcb.from_string(
         """(kicad_pcb
@@ -492,6 +544,7 @@ def test_render_pcb_ir_to_svg_embeds_stackup_payload():
     assert stackup["layers"][0] == {
         "index": 0,
         "name": "F.Cu",
+        "display_name": "F.Cu",
         "type": "copper",
         "role": "copper",
         "thickness_mm": 0.035,

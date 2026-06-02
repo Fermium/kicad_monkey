@@ -11,13 +11,18 @@ from __future__ import annotations
 
 import base64
 import binascii
-import re
 from dataclasses import dataclass, field
 from enum import Enum
 from math import isclose
 from typing import Any, Mapping, Optional, Tuple
 
 from .kicad_primitives import RenderCache, RenderCacheContour, RenderCachePolygon
+from .kicad_text_variables import (
+    board_text_variables,
+    footprint_text_variables,
+    substitute_text_variables,
+    table_cell_text_variables,
+)
 
 
 class RenderCacheSource(str, Enum):
@@ -440,97 +445,6 @@ def generate_render_cache_from_text_params(
         angle=float(getattr(text_params, "angle", 0.0)),
         polygons=polygons,
     )
-
-
-def board_text_variables(board: Any) -> dict[str, str]:
-    """Return board-level text variables from KiCad board properties."""
-
-    variables: dict[str, str] = {}
-    if board is None:
-        return variables
-
-    project = getattr(board, "project", None)
-    for key, value in (getattr(project, "text_variables", {}) or {}).items():
-        variables[str(key)] = str(value)
-        variables[str(key).lower()] = str(value)
-
-    for prop in getattr(board, "properties", []) or []:
-        key = getattr(prop, "key", getattr(prop, "name", None))
-        value = getattr(prop, "value", None)
-        if key is None or value is None:
-            continue
-        variables[str(key)] = str(value)
-        variables[str(key).lower()] = str(value)
-
-    return variables
-
-
-def footprint_text_variables(footprint: Any) -> dict[str, str]:
-    """Return footprint-local text variables from footprint properties."""
-
-    variables: dict[str, str] = {}
-    if footprint is None:
-        return variables
-
-    for prop in getattr(footprint, "properties", []) or []:
-        name = getattr(prop, "name", None)
-        value = getattr(prop, "value", None)
-        if name is None or value is None:
-            continue
-        variables[str(name)] = str(value)
-        variables[str(name).lower()] = str(value)
-
-    return variables
-
-
-def table_cell_text_variables(cell: Any, table: Any = None) -> dict[str, str]:
-    """Return KiCad's table-cell-local text variables for a cell."""
-
-    variables: dict[str, str] = {}
-    if cell is None:
-        return variables
-
-    cells = list(getattr(table, "cells", []) or [])
-    column_count = int(getattr(table, "column_count", 0) or 0)
-    index = next(
-        (idx for idx, candidate in enumerate(cells) if candidate is cell),
-        None,
-    )
-    if table is not None and index is not None and column_count > 0:
-        row = index // column_count
-        column = index % column_count
-        addr = f"{chr(ord('A') + (column % 26))}{row + 1}"
-        variables.update({
-            "ROW": str(row + 1),
-            "row": str(row + 1),
-            "COL": str(column + 1),
-            "col": str(column + 1),
-            "ADDR": addr,
-            "addr": addr,
-        })
-
-    layer = getattr(cell, "layer", None)
-    if layer is not None:
-        variables["LAYER"] = str(layer)
-        variables["layer"] = str(layer)
-
-    return variables
-
-
-def substitute_text_variables(text: str, variables: Mapping[str, str]) -> str:
-    """Substitute KiCad `${VAR}` text variables with resolved values."""
-
-    if "${" not in text:
-        return text
-
-    def replace_var(match: re.Match[str]) -> str:
-        var_name = match.group(1)
-        return variables.get(
-            var_name,
-            variables.get(var_name.lower(), match.group(0)),
-        )
-
-    return re.sub(r"\$\{([^}]+)\}", replace_var, text)
 
 
 def _decompress_embedded_payload(data: bytes) -> bytes:

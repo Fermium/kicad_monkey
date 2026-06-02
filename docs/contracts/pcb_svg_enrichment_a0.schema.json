@@ -8,6 +8,7 @@
   "required": [
     "schema",
     "source",
+    "project",
     "board",
     "view",
     "layers",
@@ -20,6 +21,9 @@
     },
     "source": {
       "$ref": "#/$defs/source"
+    },
+    "project": {
+      "$ref": "#/$defs/project"
     },
     "board": {
       "$ref": "#/$defs/board"
@@ -83,6 +87,18 @@
       "properties": {
         "kicad_pcb_file": {
           "type": "string"
+        }
+      }
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "text_variables"
+      ],
+      "properties": {
+        "text_variables": {
+          "$ref": "#/$defs/string_map"
         }
       }
     },
@@ -159,6 +175,7 @@
       "required": [
         "index",
         "name",
+        "display_name",
         "type",
         "role",
         "thickness_mm",
@@ -175,6 +192,9 @@
           "minimum": 0
         },
         "name": {
+          "type": "string"
+        },
+        "display_name": {
           "type": "string"
         },
         "type": {
@@ -280,7 +300,9 @@
         "all_layer_names",
         "layer_ordinal_to_name",
         "layer_name_to_role",
-        "layer_name_to_display_name"
+        "layer_name_to_display_name",
+        "layer_name_to_user_name",
+        "layers"
       ],
       "properties": {
         "all_layer_names": {
@@ -297,6 +319,48 @@
         },
         "layer_name_to_display_name": {
           "$ref": "#/$defs/string_map"
+        },
+        "layer_name_to_user_name": {
+          "$ref": "#/$defs/string_map"
+        },
+        "layers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/layer"
+          }
+        }
+      }
+    },
+    "layer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ordinal",
+        "name",
+        "type",
+        "role",
+        "user_name",
+        "display_name"
+      ],
+      "properties": {
+        "ordinal": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "user_name": {
+          "type": "string"
+        },
+        "display_name": {
+          "type": "string"
         }
       }
     },

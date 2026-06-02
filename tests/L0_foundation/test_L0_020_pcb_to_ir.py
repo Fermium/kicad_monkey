@@ -53,6 +53,7 @@ from kicad_monkey import (
 )
 from kicad_monkey.kicad_base import FillType, PadShape
 from kicad_monkey.kicad_fp_line import FpLine
+from kicad_monkey.kicad_fp_text import FpText
 from kicad_monkey.kicad_fp_text_box import FpTextBox
 from kicad_monkey.kicad_pad import Pad
 from kicad_monkey.kicad_pcb import KiCadPcb
@@ -1138,6 +1139,53 @@ def test_pcb_footprint_to_record_emits_fp_text_box_layer_and_variables():
     assert rec.operations[0].kind == KiCadPlotterOpKind.TEXT
     assert rec.operations[0].payload["text"] == "J1"
     assert rec.operations[0].payload["layer"] == "User.4"
+
+
+def test_pcb_footprint_to_record_skips_metadata_only_properties():
+    fp = Footprint(
+        library_link="lib:R",
+        properties=[
+            Property(
+                name="ki_fp_filters",
+                value="wavenumber:R0402_0.40MM_HD",
+                graphical=False,
+            ),
+        ],
+    )
+
+    rec = pcb_footprint_to_record(fp)
+
+    assert rec.operations == []
+
+
+def test_pcb_footprint_to_record_resolves_fp_text_and_tags_child_metadata():
+    fp = Footprint(
+        library_link="lib:J",
+        uuid="fp-uuid",
+        properties=[Property(name="Reference", value="J1", hide=True)],
+        fp_texts=[
+            FpText(
+                text_type="user",
+                text="${REFERENCE}",
+                at_x=0.0,
+                at_y=0.0,
+                layer="F.SilkS",
+                uuid="text-uuid",
+            )
+        ],
+    )
+
+    rec = pcb_footprint_to_record(fp)
+
+    assert len(rec.operations) == 1
+    payload = rec.operations[0].payload
+    assert payload["text"] == "J1"
+    assert payload["data_ref"] == "fp_text"
+    assert payload["data_uuid"] == "text-uuid"
+    assert payload["extra_attrs"]["primitive"] == "footprint-text"
+    assert payload["extra_attrs"]["footprint_text_role"] == "user"
+    assert payload["extra_attrs"]["component"] == "J1"
+    assert payload["extra_attrs"]["layer_name"] == "F.SilkS"
 
 
 # ---------------------------------------------------------------------------

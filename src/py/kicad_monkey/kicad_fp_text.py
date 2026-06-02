@@ -52,9 +52,13 @@ class FpText:
         layer = unquote_string(layer_elem[1]) if layer_elem else FRONT_SILKSCREEN_LAYER
         knockout = has_flag(layer_elem, 'knockout') if layer_elem else False
 
-        hide = has_flag(sexp, 'hide')
-        uuid = unquote_string(get_value(sexp, 'uuid'))
         effects = Effects.from_sexp(sexp)
+        hide = (
+            has_flag(sexp, 'hide')
+            or get_value(sexp, 'hide') == 'yes'
+            or bool(effects.hide)
+        )
+        uuid = unquote_string(get_value(sexp, 'uuid'))
         render_cache = RenderCache.from_sexp(sexp)
 
         return cls(

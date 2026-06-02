@@ -1577,6 +1577,32 @@ def _render_block_group(
     )
 
 
+def _render_op_metadata_group(
+    op: KiCadPlotterOp,
+    body: str,
+    *,
+    ctx: KiCadSvgRenderContext,
+) -> str:
+    payload = op.payload or {}
+    emit_metadata = _emit_metadata(ctx.options)
+    emit_ids = _emit_ids(ctx.options)
+    extra_attrs = _block_extra_attrs(payload) if emit_metadata else None
+    label = str(payload.get("label", "") or "")
+    data_uuid = str(payload.get("data_uuid", "") or "")
+    data_ref = str(payload.get("data_ref", "") or "")
+    if not emit_ids and not emit_metadata and not extra_attrs:
+        return body
+    if not any((label, data_uuid, data_ref, extra_attrs)):
+        return body
+    return svg_group(
+        body,
+        label=(label or None) if emit_ids else None,
+        data_uuid=(data_uuid or None) if emit_metadata else None,
+        data_ref=(data_ref or None) if emit_metadata else None,
+        extra_attrs=extra_attrs,
+    )
+
+
 # Style-bucket grouping: each rendered op fragment is
 # wrapped in a ``<g style="...">`` whose CSS mirrors the element-local
 # attributes. This mirrors ``kicad-cli pcb export svg`` output structure
@@ -1671,7 +1697,8 @@ def _render_ops_with_blocks(
             payload, fragments = stack.pop()
             _append(_render_block_group(payload, "\n".join(fragments), ctx=ctx))
             continue
-        _append(_wrap_with_style_bucket(render_op(op, ctx=ctx)))
+        fragment = _wrap_with_style_bucket(render_op(op, ctx=ctx))
+        _append(_render_op_metadata_group(op, fragment, ctx=ctx))
 
     # Close malformed unbalanced blocks conservatively so a partial
     # recorder stream still produces valid SVG.

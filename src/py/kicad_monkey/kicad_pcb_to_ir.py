@@ -73,7 +73,7 @@ from .kicad_plotter_ir import (
     KiCadPlotterRecord,
     KiCadVertAlign,
 )
-from .kicad_pcb_svg_enrichment import project_net_name_to_classes
+from .kicad_pcb_svg_enrichment import pcb_layer_role, project_net_name_to_classes
 from .kicad_stroke_decompose import (
     decompose_arc,
     decompose_segment,
@@ -2104,6 +2104,149 @@ def dimension_text_to_record(
     )
 
 
+def _footprint_component_attrs(footprint: "Footprint") -> dict[str, Any]:
+    get_property = getattr(footprint, "get_property_value", None)
+    component = get_property("Reference", "") if callable(get_property) else ""
+    return {
+        "component": component,
+        "component_uid": getattr(footprint, "uuid", "") or "",
+        "component_uuid": getattr(footprint, "uuid", "") or "",
+        "footprint": footprint.library_link,
+    }
+
+
+def _footprint_child_label(
+    footprint: "Footprint",
+    primitive: str,
+    source: Any,
+    *,
+    index: int,
+    sub_index: int | None = None,
+) -> tuple[str, str]:
+    source_uuid = str(getattr(source, "uuid", "") or "")
+    owner = str(getattr(footprint, "uuid", "") or footprint.library_link or "footprint")
+    suffix = f":{sub_index}" if sub_index is not None else ""
+    label = f"{source_uuid or owner}:{primitive}:{index}{suffix}"
+    return label, source_uuid or label
+
+
+def _footprint_layer_attrs(layer: object) -> dict[str, Any]:
+    layer_name = str(layer or "")
+    if not layer_name:
+        return {}
+    return {
+        "layer_name": layer_name,
+        "layer_role": pcb_layer_role(layer_name),
+    }
+
+
+def _footprint_text_role(kind: object, *, property_name: object = "") -> str:
+    source = str(property_name or kind or "").lower()
+    if source == "reference":
+        return "designator"
+    if source == "value":
+        return "value"
+    if property_name:
+        return "property"
+    return "user"
+
+
+def _op_with_footprint_child_metadata(
+    op: KiCadPlotterOp,
+    footprint: "Footprint",
+    source: Any,
+    *,
+    data_ref: str,
+    primitive: str,
+    object_id: str,
+    index: int,
+    layer: str,
+    sub_index: int | None = None,
+    extra_attrs: dict[str, Any] | None = None,
+) -> KiCadPlotterOp:
+    label, data_uuid = _footprint_child_label(
+        footprint, primitive, source, index=index, sub_index=sub_index
+    )
+    attrs = {
+        **_footprint_component_attrs(footprint),
+        **_footprint_layer_attrs(layer),
+        "primitive": primitive,
+        "footprint_primitive": data_ref,
+        "footprint_object_index": index,
+    }
+    if sub_index is not None:
+        attrs["footprint_subop_index"] = sub_index
+    if extra_attrs:
+        attrs.update(extra_attrs)
+
+    payload = copy.deepcopy(op.payload)
+    payload["label"] = label
+    payload["data_uuid"] = data_uuid
+    payload["data_ref"] = data_ref
+    payload["object_id"] = object_id
+    merged_extra_attrs = dict(payload.get("extra_attrs") or {})
+    merged_extra_attrs.update(attrs)
+    payload["extra_attrs"] = merged_extra_attrs
+    return KiCadPlotterOp(kind=op.kind, payload=payload)
+
+
+def _op_with_footprint_text_metadata(
+    op: KiCadPlotterOp,
+    footprint: "Footprint",
+    source: Any,
+    *,
+    data_ref: str,
+    object_id: str,
+    index: int,
+    layer: str,
+    text_role: str,
+    sub_index: int | None = None,
+    extra_attrs: dict[str, Any] | None = None,
+) -> KiCadPlotterOp:
+    attrs = {
+        "footprint_text_role": text_role,
+        **(extra_attrs or {}),
+    }
+    return _op_with_footprint_child_metadata(
+        op,
+        footprint,
+        source,
+        data_ref=data_ref,
+        primitive="footprint-text",
+        object_id=object_id,
+        index=index,
+        sub_index=sub_index,
+        layer=layer,
+        extra_attrs=attrs,
+    )
+
+
+def _op_with_footprint_graphic_metadata(
+    op: KiCadPlotterOp,
+    footprint: "Footprint",
+    source: Any,
+    *,
+    data_ref: str,
+    graphic_kind: str,
+    object_id: str,
+    index: int,
+    layer: str,
+    sub_index: int | None = None,
+) -> KiCadPlotterOp:
+    return _op_with_footprint_child_metadata(
+        op,
+        footprint,
+        source,
+        data_ref=data_ref,
+        primitive="footprint-graphic",
+        object_id=object_id,
+        index=index,
+        sub_index=sub_index,
+        layer=layer,
+        extra_attrs={"footprint_graphic_kind": graphic_kind},
+    )
+
+
 def pcb_footprint_to_record(
     footprint: "Footprint",
     *,
@@ -2134,7 +2277,8 @@ def pcb_footprint_to_record(
     other_props = [
         p for p in footprint.properties if p.name not in ("Reference", "Value")
     ]
-    for prop in [p for p in (ref_prop, val_prop) if p is not None] + other_props:
+    ordered_props = [p for p in (ref_prop, val_prop) if p is not None] + other_props
+    for prop_index, prop in enumerate(ordered_props):
         op = property_to_op(prop)
         if op is not None:
             font = prop.effects.font if prop.effects else None
@@ -2151,11 +2295,22 @@ def pcb_footprint_to_record(
                     request,
                     footprint=footprint,
                 )
+            op = _op_with_footprint_text_metadata(
+                op,
+                footprint,
+                prop,
+                data_ref="property",
+                object_id=prop.name,
+                index=prop_index,
+                layer=prop.layer,
+                text_role=_footprint_text_role(prop.name, property_name=prop.name),
+                extra_attrs={"property_name": prop.name},
+            )
             ops.append(_op_with_pcb_layer(op, prop.layer))
 
     variables = _footprint_text_variables(footprint.properties)
-    for txt in footprint.fp_texts:
-        op = fp_text_to_op(txt)
+    for text_index, txt in enumerate(footprint.fp_texts):
+        op = fp_text_to_op(txt, variables=variables)
         if op is not None:
             font = txt.effects.font if txt.effects else None
             if txt.render_cache or (font and font.face):
@@ -2179,8 +2334,20 @@ def pcb_footprint_to_record(
                 op = _apply_knockout_to_text_op(
                     op, knockout_margin_nm=mm_to_nm(margin_mm)
                 )
+            text_type = str(getattr(txt, "text_type", "") or "")
+            op = _op_with_footprint_text_metadata(
+                op,
+                footprint,
+                txt,
+                data_ref="fp_text",
+                object_id=f"{text_type}:{text_index}" if text_type else str(text_index),
+                index=text_index,
+                layer=txt.layer,
+                text_role=_footprint_text_role(text_type),
+                extra_attrs={"fp_text_type": text_type},
+            )
             ops.append(_op_with_pcb_layer(op, txt.layer))
-    for text_box in getattr(footprint, "fp_text_boxes", []) or []:
+    for text_box_index, text_box in enumerate(getattr(footprint, "fp_text_boxes", []) or []):
         text_box_ops = fp_text_box_to_ops(text_box, variables=variables)
         font = text_box.effects.font if text_box.effects else None
         if text_box.render_cache or (font and font.face):
@@ -2200,19 +2367,96 @@ def pcb_footprint_to_record(
                     footprint=footprint,
                 )
                 break
-        ops.extend(_op_with_pcb_layer(op, text_box.layer) for op in text_box_ops)
-    for line in footprint.fp_lines:
-        for op in fp_line_to_ops(line):
+        for op_index, op in enumerate(text_box_ops):
+            if _is_text_op(op):
+                op = _op_with_footprint_text_metadata(
+                    op,
+                    footprint,
+                    text_box,
+                    data_ref="fp_text_box",
+                    object_id=f"text_box:{text_box_index}",
+                    index=text_box_index,
+                    sub_index=op_index,
+                    layer=text_box.layer,
+                    text_role="user",
+                )
+            else:
+                op = _op_with_footprint_graphic_metadata(
+                    op,
+                    footprint,
+                    text_box,
+                    data_ref="fp_text_box",
+                    graphic_kind="text-box-border",
+                    object_id=f"text_box:{text_box_index}",
+                    index=text_box_index,
+                    sub_index=op_index,
+                    layer=text_box.layer,
+                )
+            ops.append(_op_with_pcb_layer(op, text_box.layer))
+    for graphic_index, line in enumerate(footprint.fp_lines):
+        for op_index, op in enumerate(fp_line_to_ops(line)):
+            op = _op_with_footprint_graphic_metadata(
+                op,
+                footprint,
+                line,
+                data_ref="fp_line",
+                graphic_kind="line",
+                object_id=f"line:{graphic_index}",
+                index=graphic_index,
+                sub_index=op_index,
+                layer=line.layer,
+            )
             ops.append(_op_with_pcb_layer(op, line.layer))
-    for arc in footprint.fp_arcs:
-        for op in fp_arc_to_ops(arc):
+    for graphic_index, arc in enumerate(footprint.fp_arcs):
+        for op_index, op in enumerate(fp_arc_to_ops(arc)):
+            op = _op_with_footprint_graphic_metadata(
+                op,
+                footprint,
+                arc,
+                data_ref="fp_arc",
+                graphic_kind="arc",
+                object_id=f"arc:{graphic_index}",
+                index=graphic_index,
+                sub_index=op_index,
+                layer=arc.layer,
+            )
             ops.append(_op_with_pcb_layer(op, arc.layer))
-    for circle in footprint.fp_circles:
-        ops.append(_op_with_pcb_layer(fp_circle_to_op(circle), circle.layer))
-    for rect in footprint.fp_rects:
-        ops.append(_op_with_pcb_layer(fp_rect_to_op(rect), rect.layer))
-    for poly in footprint.fp_polys:
-        ops.append(_op_with_pcb_layer(fp_poly_to_op(poly), poly.layer))
+    for graphic_index, circle in enumerate(footprint.fp_circles):
+        op = _op_with_footprint_graphic_metadata(
+            fp_circle_to_op(circle),
+            footprint,
+            circle,
+            data_ref="fp_circle",
+            graphic_kind="circle",
+            object_id=f"circle:{graphic_index}",
+            index=graphic_index,
+            layer=circle.layer,
+        )
+        ops.append(_op_with_pcb_layer(op, circle.layer))
+    for graphic_index, rect in enumerate(footprint.fp_rects):
+        op = _op_with_footprint_graphic_metadata(
+            fp_rect_to_op(rect),
+            footprint,
+            rect,
+            data_ref="fp_rect",
+            graphic_kind="rect",
+            object_id=f"rect:{graphic_index}",
+            index=graphic_index,
+            layer=rect.layer,
+        )
+        ops.append(_op_with_pcb_layer(op, rect.layer))
+    for graphic_index, poly in enumerate(footprint.fp_polys):
+        op = _op_with_footprint_graphic_metadata(
+            fp_poly_to_op(poly),
+            footprint,
+            poly,
+            data_ref="fp_poly",
+            graphic_kind="poly",
+            object_id=f"poly:{graphic_index}",
+            index=graphic_index,
+            layer=poly.layer,
+        )
+        ops.append(_op_with_pcb_layer(op, poly.layer))
     for pad_index, pad in enumerate(footprint.pads):
         pad_orient_offset = -float(getattr(footprint, "at_angle", 0.0) or 0.0)
         ops.extend(

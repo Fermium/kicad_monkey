@@ -47,7 +47,6 @@ from typing import TYPE_CHECKING, Any, List, cast
 from .kicad_base import FillType, PadShape, PadType, StrokeType
 from .kicad_lib_symbol_to_ir import (
     _effects_to_text_kwargs,
-    _expand_project_text_variables,
     mm_to_nm,
     stroke_width_nm,
 )
@@ -65,6 +64,10 @@ from .kicad_stroke_decompose import (
     is_decomposable_style,
 )
 from .kicad_primitives import Stroke
+from .kicad_text_variables import (
+    object_property_text_variables,
+    substitute_text_variables,
+)
 
 if TYPE_CHECKING:
     from .kicad_footprint import KiCadFootprint
@@ -221,20 +224,40 @@ def fp_poly_to_op(poly: "FpPoly") -> KiCadPlotterOp:
     )
 
 
-def fp_text_to_op(text: "FpText") -> KiCadPlotterOp | None:
+def _resolved_fp_text_value(
+    text_type: object,
+    raw_text: object,
+    variables: dict[str, str] | None,
+) -> str:
+    raw = str(raw_text or "")
+    lookup = variables or {}
+    kind = str(text_type or "")
+    if kind == "reference":
+        raw = lookup.get("Reference", lookup.get("REFERENCE", raw))
+    elif kind == "value":
+        raw = lookup.get("Value", lookup.get("VALUE", raw))
+    return substitute_text_variables(raw, lookup)
+
+
+def fp_text_to_op(
+    text: "FpText",
+    *,
+    variables: dict[str, str] | None = None,
+) -> KiCadPlotterOp | None:
     """
     Convert an :class:`FpText` into a ``Text`` op.
 
     Returns ``None`` when ``text.hide`` is True or ``text.text`` is empty,
     mirroring KiCad's ``PCB_TEXT::Plot`` skip rule.
     """
-    if text.hide or not text.text:
+    resolved_text = _resolved_fp_text_value(text.text_type, text.text, variables)
+    if text.hide or not resolved_text:
         return None
     kwargs = _effects_to_text_kwargs(text.effects)
     return KiCadPlotterOp.text(
         x=mm_to_nm(text.at_x),
         y=mm_to_nm(text.at_y),
-        text=text.text,
+        text=resolved_text,
         orient_deg=float(text.at_angle),
         **kwargs,
     )
@@ -293,7 +316,7 @@ def fp_text_box_to_ops(
     else:
         y = y1 + margin_top
 
-    resolved_text = _expand_project_text_variables(text_box.text, variables)
+    resolved_text = substitute_text_variables(text_box.text, variables or {})
     text_lines = _wrap_text_box_lines(
         resolved_text,
         max_width_mm=max(0.0, (x2 - x1) - margin_left - margin_right),
@@ -350,7 +373,7 @@ def property_to_op(prop: "Property") -> KiCadPlotterOp | None:
     Returns ``None`` when ``prop.hide`` is True or ``prop.value`` is empty,
     mirroring KiCad's ``PCB_FIELD::Plot`` skip rule.
     """
-    if prop.hide or not prop.value:
+    if prop.hide or not prop.value or not getattr(prop, "graphical", True):
         return None
     kwargs = _effects_to_text_kwargs(prop.effects)
     return KiCadPlotterOp.text(
@@ -363,11 +386,7 @@ def property_to_op(prop: "Property") -> KiCadPlotterOp | None:
 
 
 def _footprint_text_variables(properties: list["Property"]) -> dict[str, str]:
-    variables: dict[str, str] = {}
-    for prop in properties:
-        variables[prop.name] = prop.value
-        variables[prop.name.upper()] = prop.value
-    return variables
+    return object_property_text_variables(properties)
 
 
 def _op_with_layer(op: KiCadPlotterOp, layer: str) -> KiCadPlotterOp:
@@ -792,6 +811,7 @@ def footprint_to_record(footprint: "KiCadFootprint") -> KiCadPlotterRecord:
         fp_rects → fp_polys → pads
     """
     ops: list[KiCadPlotterOp] = []
+    variables = _footprint_text_variables(footprint.properties)
 
     # Reference + Value first (matches to_sexp ordering), then others.
     ref_prop = next((p for p in footprint.properties if p.name == "Reference"), None)
@@ -805,10 +825,10 @@ def footprint_to_record(footprint: "KiCadFootprint") -> KiCadPlotterRecord:
             ops.append(_op_with_layer(op, prop.layer))
 
     for txt in footprint.fp_texts:
-        op = fp_text_to_op(txt)
+        op = fp_text_to_op(txt, variables=variables)
         if op is not None:
             ops.append(_op_with_layer(op, txt.layer))
-    variables = _footprint_text_variables(footprint.properties)
+
     for text_box in getattr(footprint, "fp_text_boxes", []) or []:
         ops.extend(
             _op_with_layer(op, text_box.layer)

@@ -45,6 +45,11 @@ Layer metadata uses KiCad layer names directly:
 - `data-layer-names` for multiple layers
 - `data-layer-role` / `data-layer-roles` for normalized roles
 
+The embedded PCB metadata also records imported/user layer aliases. Use
+`layers.layers[].display_name` or `layers.layer_name_to_display_name` for UI
+labels, and `layers.layer_name_to_user_name` when the original KiCad user alias
+must be distinguished from the canonical layer name.
+
 Electrical and component relationships are emitted when known:
 
 - `data-net-index`, `data-net-id`, `data-net`
@@ -53,6 +58,17 @@ Electrical and component relationships are emitted when known:
 - `data-footprint`
 - `data-pad-designator`, `data-pad-number`
 - `data-pad-type`, `data-pad-shape`
+
+Footprint child metadata is emitted for enriched SVG only:
+
+- `data-ref="property"` with `data-footprint-text-role` of `designator`,
+  `value`, or `property`
+- `data-ref="fp_text"` / `data-ref="fp_text_box"` with
+  `data-footprint-text-role="user"` when applicable
+- `data-ref="fp_line"`, `fp_arc`, `fp_circle`, `fp_rect`, or `fp_poly` with
+  `data-primitive="footprint-graphic"`
+- `data-footprint-primitive` and `data-footprint-graphic-kind` identify the
+  source footprint item class
 
 Drill geometry uses:
 
@@ -87,9 +103,10 @@ The schema file is `pcb_svg_enrichment_a0.schema.json`.
 The payload records:
 
 - source PCB path
+- project-level text variables
 - board bounding box, auxiliary origin, thickness, and stackup
 - emitted view information
-- layer maps and normalized layer roles
+- layer maps, user aliases, display names, and normalized layer roles
 - net, netclass, and component lookup tables
 - component placement summaries
 

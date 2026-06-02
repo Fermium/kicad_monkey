@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from .kicad_plotter_ir import KiCadPlotterOp, KiCadPlotterRecord
+from .kicad_text_variables import project_text_variables
 
 
 KICAD_PCB_SVG_ENRICHMENT_SCHEMA = "kicad_monkey.pcb.svg.enrichment.a0"
@@ -311,6 +312,37 @@ def pcb_root_svg_attrs(
     }
 
 
+def _layer_display_name(layer: Any) -> str:
+    name = str(getattr(layer, "canonical_name", "") or "")
+    return str(getattr(layer, "user_name", None) or name)
+
+
+def _layer_type(layer: Any) -> str:
+    layer_type = getattr(layer, "layer_type", "")
+    return str(getattr(layer_type, "value", layer_type) or "")
+
+
+def _layer_item_payload(layer: Any) -> dict[str, Any]:
+    name = str(getattr(layer, "canonical_name", "") or "")
+    user_name = str(getattr(layer, "user_name", None) or "")
+    return {
+        "ordinal": int(getattr(layer, "ordinal", 0) or 0),
+        "name": name,
+        "type": _layer_type(layer),
+        "role": pcb_layer_role(name),
+        "user_name": user_name,
+        "display_name": user_name or name,
+    }
+
+
+def _layer_display_name_map(pcb: Any) -> dict[str, str]:
+    return {
+        str(getattr(layer, "canonical_name", "") or ""): _layer_display_name(layer)
+        for layer in getattr(pcb, "layers", []) or []
+        if getattr(layer, "canonical_name", "")
+    }
+
+
 def _layer_payload(pcb: Any) -> dict[str, Any]:
     layers = list(getattr(pcb, "layers", []) or [])
     names = [str(getattr(layer, "canonical_name", "") or "") for layer in layers]
@@ -326,14 +358,18 @@ def _layer_payload(pcb: Any) -> dict[str, Any]:
             name: pcb_layer_role(name) for name in names if name
         },
         "layer_name_to_display_name": {
+            str(getattr(layer, "canonical_name", "") or ""): _layer_display_name(layer)
+            for layer in layers
+            if getattr(layer, "canonical_name", "")
+        },
+        "layer_name_to_user_name": {
             str(getattr(layer, "canonical_name", "") or ""): str(
-                getattr(layer, "user_name", None)
-                or getattr(layer, "canonical_name", "")
-                or ""
+                getattr(layer, "user_name", None) or ""
             )
             for layer in layers
             if getattr(layer, "canonical_name", "")
         },
+        "layers": [_layer_item_payload(layer) for layer in layers],
     }
 
 
@@ -391,14 +427,21 @@ def _stackup_sublayer_payload(sublayer: Any, index: int) -> dict[str, Any]:
     }
 
 
-def _stackup_layer_payload(layer: Any, index: int) -> dict[str, Any]:
+def _stackup_layer_payload(
+    layer: Any,
+    index: int,
+    *,
+    layer_display_names: dict[str, str],
+) -> dict[str, Any]:
     item_type = ""
     get_item_type = getattr(layer, "get_item_type", None)
     if callable(get_item_type):
         item_type = _enum_value(get_item_type())
+    name = str(getattr(layer, "name", "") or "")
     return {
         "index": int(index),
-        "name": str(getattr(layer, "name", "") or ""),
+        "name": name,
+        "display_name": layer_display_names.get(name, name),
         "type": str(getattr(layer, "type_name", "") or ""),
         "role": item_type,
         "thickness_mm": float(getattr(layer, "thickness", 0.0) or 0.0),
@@ -418,6 +461,7 @@ def _stackup_layer_payload(layer: Any, index: int) -> dict[str, Any]:
 
 def _stackup_payload(pcb: Any) -> dict[str, Any]:
     stackup = getattr(pcb, "stackup", None)
+    layer_display_names = _layer_display_name_map(pcb)
     if stackup is None:
         return {
             "present": False,
@@ -445,7 +489,9 @@ def _stackup_payload(pcb: Any) -> dict[str, Any]:
         ),
         "edge_plating": bool(getattr(stackup, "edge_plating", False)),
         "layers": [
-            _stackup_layer_payload(layer, index)
+            _stackup_layer_payload(
+                layer, index, layer_display_names=layer_display_names
+            )
             for index, layer in enumerate(getattr(stackup, "layers", []) or [])
         ],
     }
@@ -483,6 +529,9 @@ def pcb_svg_enrichment_payload(
         "schema": KICAD_PCB_SVG_ENRICHMENT_SCHEMA,
         "source": {
             "kicad_pcb_file": str(source_path) if source_path else "",
+        },
+        "project": {
+            "text_variables": project_text_variables(getattr(pcb, "project", None)),
         },
         "board": {
             "bbox_mm": [
