@@ -327,9 +327,9 @@ def test_kicad_netlist_json_pin_endpoints_keep_source_pin_identity():
     assert semantic_endpoint["object_id"] == "hier-uuid"
     assert semantic_endpoint["name"] == "SIG"
     assert semantic_endpoint["connection_point"] == {
-        "x": 10000,
-        "y": 20000,
-        "units": "kicad_sch_iu",
+        "x": 1.0,
+        "y": 2.0,
+        "units": "mm",
     }
     endpoint = endpoints["pin:U1:5"]
     assert endpoint["endpoint_id"] == "pin:U1:5"

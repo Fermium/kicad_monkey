@@ -18,6 +18,7 @@ from .kicad_netlist_model import (
     KiCadNetlistComponent,
     KiCadNetlistTerminal,
 )
+from .kicad_schematic_connectivity import SCH_IU_PER_MM
 
 if TYPE_CHECKING:  # pragma: no cover - typing only
     from .kicad_design import KiCadDesign
@@ -124,14 +125,12 @@ def _project_json(design: "KiCadDesign") -> dict[str, Any]:
             "name": project_path.stem if project_path else None,
             "filename": project_path.name if project_path else None,
             "path": str(project_path) if project_path else None,
-            "parameters": {},
             "text_variables": {},
         }
     return {
         "name": project_path.stem if project_path else None,
         "filename": project_path.name if project_path else None,
         "path": str(project_path) if project_path else None,
-        "parameters": dict(sorted(project.text_variables.items())),
         "text_variables": dict(sorted(project.text_variables.items())),
     }
 
@@ -629,11 +628,16 @@ def _semantic_endpoint_json(endpoint: KiCadNetEndpoint) -> dict[str, Any]:
     }
     if endpoint.connection_point is not None:
         row["connection_point"] = {
-            "x": int(endpoint.connection_point[0]),
-            "y": int(endpoint.connection_point[1]),
-            "units": "kicad_sch_iu",
+            "x": _schematic_iu_to_mm(endpoint.connection_point[0]),
+            "y": _schematic_iu_to_mm(endpoint.connection_point[1]),
+            "units": "mm",
         }
     return row
+
+
+def _schematic_iu_to_mm(value: int) -> float:
+    """Convert snapped schematic internal units to KiCad schematic millimetres."""
+    return round(int(value) / SCH_IU_PER_MM, 4)
 
 
 def _endpoint_sort_key(endpoint: dict[str, Any]) -> tuple[object, ...]:

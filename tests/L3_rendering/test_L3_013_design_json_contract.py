@@ -47,6 +47,8 @@ def test_public_design_json_uses_altium_shaped_kicad_contract():
     assert payload["schema"] == "kicad_monkey.design.a0"
     assert payload["generator"] == "kicad_monkey"
     assert payload["project"]["filename"] == "CANBOB (MAGE-CANBOB-003).kicad_pro"
+    assert "parameters" not in payload["project"]
+    assert isinstance(payload["project"]["text_variables"], dict)
     assert payload["components"]
     assert payload["nets"]
     assert payload["sheets"]
