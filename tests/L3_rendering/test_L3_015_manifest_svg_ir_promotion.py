@@ -140,11 +140,108 @@ _SCHEMATIC_ENRICHMENT_RE = re.compile(
     re.DOTALL,
 )
 
+_SVG_GROUP_RE = re.compile(r"<g\b(?P<attrs>[^>]*)>", re.DOTALL)
+_SVG_ATTR_RE = re.compile(r'([A-Za-z_:][-A-Za-z0-9_:.]*)="([^"]*)"')
 
 def _schematic_enrichment_payload(svg: str) -> dict:
     match = _SCHEMATIC_ENRICHMENT_RE.search(svg)
     assert match is not None, f"Schematic enrichment metadata not found in:\n{svg[:800]}"
     return json.loads(html.unescape(match.group(1)))
+
+
+def _svg_group_attrs(svg: str) -> list[dict[str, str]]:
+    return [
+        {name: html.unescape(value) for name, value in _SVG_ATTR_RE.findall(match.group("attrs"))}
+        for match in _SVG_GROUP_RE.finditer(svg)
+    ]
+
+
+def _sheet_net_candidates(
+    design_payload: dict,
+    *,
+    sheet_keys: list[str],
+    svg_id: str,
+) -> list[str]:
+    indexes = design_payload["indexes"]
+    sheet_map = indexes.get("sheet_svg_to_nets", {})
+    for sheet_key in sheet_keys:
+        sheet_candidates = sheet_map.get(sheet_key, {}).get(svg_id, [])
+        if sheet_candidates:
+            return list(sheet_candidates)
+    candidates = indexes.get("svg_to_nets", {}).get(svg_id, [])
+    if len(candidates) == 1:
+        return list(candidates)
+    net_name = indexes.get("svg_to_net", {}).get(svg_id)
+    return [net_name] if net_name else []
+
+
+def _assert_schematic_svg_net_linkage(svg: str, svg_payload: dict) -> None:
+    design_payload = svg_payload["design"]
+    assert design_payload["schema"] == "kicad_monkey.design.a0"
+
+    indexes = design_payload["indexes"]
+    svg_to_nets = indexes["svg_to_nets"]
+    sheet_svg_to_nets = indexes["sheet_svg_to_nets"]
+    if not svg_to_nets:
+        assert not indexes["net_to_graphics"]
+        assert not sheet_svg_to_nets
+        return
+    assert svg_to_nets
+    assert sheet_svg_to_nets
+    assert indexes["net_to_graphics"]
+
+    pin_link_count = 0
+    graphic_link_count = 0
+    for net in design_payload["nets"]:
+        net_name = net["name"]
+        graphical = net["graphical"]
+        for key, values in graphical.items():
+            if key == "pins":
+                continue
+            for svg_id in values:
+                assert net_name in svg_to_nets[svg_id]
+                graphic_link_count += 1
+        for pin in graphical["pins"]:
+            svg_id = pin["svg_id"]
+            assert net_name in svg_to_nets[svg_id]
+            if pin.get("source_pin_id"):
+                assert net_name in svg_to_nets[pin["source_pin_id"]]
+            pin_link_count += 1
+
+    assert graphic_link_count + pin_link_count
+
+    view = svg_payload["view"]
+    sheet_keys = [
+        key
+        for key in (
+            view.get("sheet_instance_path", ""),
+            view.get("sheet_path", ""),
+        )
+        if key
+    ]
+    rendered_ids: set[str] = set()
+    for attrs in _svg_group_attrs(svg):
+        svg_id = attrs.get("id") or attrs.get("data-element-key") or attrs.get("data-uuid")
+        if svg_id:
+            rendered_ids.add(svg_id)
+    declared_sheet_ids = {
+        svg_id
+        for sheet_key in sheet_keys
+        for svg_id in sheet_svg_to_nets.get(sheet_key, {})
+    }
+
+    linked_group_count = 0
+    for svg_id in sorted(rendered_ids & declared_sheet_ids):
+        candidates = _sheet_net_candidates(
+            design_payload,
+            sheet_keys=sheet_keys,
+            svg_id=svg_id,
+        )
+        assert candidates
+        linked_group_count += 1
+
+    if declared_sheet_ids:
+        assert linked_group_count
 
 
 def _real_world_svg_ir_cases() -> list[dict]:
@@ -389,6 +486,7 @@ def test_promoted_real_world_all_sheets_render_to_ir_and_svg_from_manifest(case)
         assert svg_payload["schema"] == KICAD_SCHEMATIC_SVG_ENRICHMENT_SCHEMA
         assert "components" in svg_payload["design"]
         assert "nets" in svg_payload["design"]
+        _assert_schematic_svg_net_linkage(svg, svg_payload)
 
         output_name = _schematic_output_name(entry, source_path, source_counts)
         stem = f"{index:02d}_{_slug(output_name)}"

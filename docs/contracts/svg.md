@@ -122,13 +122,25 @@ schematic SVG embeds document-level JSON metadata as:
 ```
 
 The schema file is `schematic_svg_enrichment_a0.schema.json`. The payload
-records the rendered sheet view and embeds the KiCad design JSON payload under
+records the rendered sheet view and embeds the `kicad_monkey.design.a0`
+KiCad design JSON payload under
 `design`. That design payload carries components, nets, graphical SVG ids, and
 lookup indexes:
 
 - `components[].svg_id` points to the component SVG group id
 - `nets[].graphical` groups related schematic SVG ids by record type
 - `nets[].graphical.pins[]` maps designator/pin pairs to SVG ids
+- `indexes.svg_to_net` maps globally unambiguous electrical SVG group ids back
+  to net names
+- `indexes.svg_to_nets` maps every electrical SVG group id, including pin
+  groups, to all candidate net names; repeated hierarchical sheets can make a
+  source-owned SVG id non-unique
+- `indexes.sheet_svg_to_nets` maps KiCad sheet instance path plus electrical
+  SVG group id to candidate net names for the rendered sheet instance; use the
+  SVG metadata `view.sheet_instance_path` first and `view.sheet_path` as a
+  fallback
+- `indexes.net_to_graphics` maps each net name to its rendered electrical SVG
+  group ids
 - `nets[].endpoints[]` provides semantic trace endpoints
 
 In `profile="enriched"` schematic output, records are wrapped in source-owned

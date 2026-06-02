@@ -44,7 +44,7 @@ def test_public_design_json_uses_altium_shaped_kicad_contract():
     assert _CANBOB_PRO is not None
     payload = KiCadDesign.from_project_file(_CANBOB_PRO).to_json(include_indexes=True)
 
-    assert payload["schema"] == "kicad_monkey.design.a1"
+    assert payload["schema"] == "kicad_monkey.design.a0"
     assert payload["generator"] == "kicad_monkey"
     assert payload["project"]["filename"] == "CANBOB (MAGE-CANBOB-003).kicad_pro"
     assert payload["components"]
@@ -99,6 +99,8 @@ def test_public_design_json_uses_altium_shaped_kicad_contract():
     assert indexes["net_to_components"]
     assert indexes["svg_to_component"]
     assert indexes["svg_to_net"]
+    assert indexes["svg_to_nets"]
+    assert indexes["sheet_svg_to_nets"]
     assert indexes["net_to_graphics"]
 
     populated_graphics = {
@@ -118,7 +120,7 @@ def test_public_design_json_uses_altium_shaped_kicad_contract():
     assert any(net["graphical"]["pins"] for net in payload["nets"])
 
     hierarchy = payload["schematic_hierarchy"]
-    assert hierarchy["schema"] == "kicad_monkey.schematic_hierarchy.a1"
+    assert hierarchy["schema"] == "kicad_monkey.schematic_hierarchy.a0"
     assert hierarchy["documents"]
     assert hierarchy["sheet_symbols"]
 

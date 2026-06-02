@@ -64,7 +64,7 @@
       ],
       "properties": {
         "schema": {
-          "const": "kicad_monkey.design.a1"
+          "const": "kicad_monkey.design.a0"
         },
         "components": {
           "type": "array"

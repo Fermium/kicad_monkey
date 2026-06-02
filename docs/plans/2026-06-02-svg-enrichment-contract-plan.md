@@ -111,6 +111,6 @@ metadata payload for semantic identity.
   nested `sheet_pin` groups and design/netlist JSON `sheet_entries` points to
   those pin groups instead of the parent sheet group.
 - 2026-06-02: Added schematic document-level enrichment metadata plan follow-up:
-  each real-world review SVG embeds `kicad_monkey.design.a1` under
+  each real-world review SVG embeds `kicad_monkey.design.a0` under
   `schematic-enrichment-a0`, and repeated sheet instances use instance names
   such as `TPS62A02_BUCK_1V0` in generated filenames.

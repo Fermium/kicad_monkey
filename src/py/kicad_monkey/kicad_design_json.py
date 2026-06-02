@@ -25,9 +25,9 @@ if TYPE_CHECKING:  # pragma: no cover - typing only
     from .kicad_schematic import KiCadSchematic
 
 
-KICAD_DESIGN_JSON_SCHEMA = "kicad_monkey.design.a1"
+KICAD_DESIGN_JSON_SCHEMA = "kicad_monkey.design.a0"
 KICAD_NETLIST_JSON_SCHEMA = "kicad_monkey.netlist.a0"
-KICAD_SCHEMATIC_HIERARCHY_SCHEMA = "kicad_monkey.schematic_hierarchy.a1"
+KICAD_SCHEMATIC_HIERARCHY_SCHEMA = "kicad_monkey.schematic_hierarchy.a0"
 KICAD_DESIGN_JSON_GENERATOR = "kicad_monkey"
 
 
@@ -689,8 +689,23 @@ def _indexes_json(netlist: KiCadNetlist, components: list[dict[str, Any]]) -> di
 
     component_to_nets: dict[str, list[str]] = {}
     net_to_components: dict[str, list[str]] = {}
-    svg_to_net: dict[str, str] = {}
+    svg_to_net_candidates: dict[str, set[str]] = {}
+    sheet_svg_to_net_candidates: dict[str, dict[str, set[str]]] = {}
     net_to_graphics: dict[str, list[str]] = {}
+
+    def add_svg_net(svg_id: object, net_name: str) -> None:
+        text = str(svg_id or "")
+        if text:
+            svg_to_net_candidates.setdefault(text, set()).add(net_name)
+
+    def add_sheet_svg_net(sheet_path: object, svg_id: object, net_name: str) -> None:
+        sheet = str(sheet_path or "")
+        text = str(svg_id or "")
+        if sheet and text:
+            sheet_svg_to_net_candidates.setdefault(sheet, {}).setdefault(text, set()).add(
+                net_name
+            )
+
     for net in netlist.nets:
         designators = sorted({term.designator for term in net.terminals if term.designator})
         net_to_components[net.name] = designators
@@ -703,9 +718,32 @@ def _indexes_json(netlist: KiCadNetlist, components: list[dict[str, Any]]) -> di
                 if not svg_id:
                     continue
                 graphics.append(svg_id)
-                svg_to_net.setdefault(svg_id, net.name)
+                add_svg_net(svg_id, net.name)
+        for term in net.terminals:
+            for svg_id in (term.svg_id, term.source_pin_id):
+                svg_id = str(svg_id or "")
+                if not svg_id:
+                    continue
+                graphics.append(svg_id)
+                add_svg_net(svg_id, net.name)
+                add_sheet_svg_net(term.sheet_path, svg_id, net.name)
+        for endpoint in net.endpoints:
+            add_sheet_svg_net(endpoint.source_sheet, endpoint.element_id, net.name)
+            add_sheet_svg_net(endpoint.source_sheet, endpoint.object_id, net.name)
         if graphics:
             net_to_graphics[net.name] = sorted(set(graphics))
+
+    svg_to_nets = {
+        svg_id: sorted(net_names)
+        for svg_id, net_names in sorted(svg_to_net_candidates.items())
+    }
+    sheet_svg_to_nets = {
+        sheet: {
+            svg_id: sorted(net_names)
+            for svg_id, net_names in sorted(sheet_map.items())
+        }
+        for sheet, sheet_map in sorted(sheet_svg_to_net_candidates.items())
+    }
 
     return {
         "svg_to_component": svg_to_component,
@@ -713,7 +751,13 @@ def _indexes_json(netlist: KiCadNetlist, components: list[dict[str, Any]]) -> di
             key: sorted(set(values)) for key, values in sorted(component_to_nets.items())
         },
         "net_to_components": dict(sorted(net_to_components.items())),
-        "svg_to_net": dict(sorted(svg_to_net.items())),
+        "svg_to_net": {
+            svg_id: net_names[0]
+            for svg_id, net_names in svg_to_nets.items()
+            if len(net_names) == 1
+        },
+        "svg_to_nets": svg_to_nets,
+        "sheet_svg_to_nets": sheet_svg_to_nets,
         "net_to_graphics": dict(sorted(net_to_graphics.items())),
     }
 
