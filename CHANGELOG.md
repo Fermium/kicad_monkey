@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.6.3
+
+- Publish the 2026-06-03 public package build for downstream KiCad SVG and
+  design-review consumers.
+- Carry forward the 2026.6.2 enriched PCB/SVG metadata and schematic instance
+  API surface as the current audited `kicad-monkey` release.
+
 ## 2026.6.2
 
 - Harden PCB SVG rendering against KiCad CLI oracle output, including custom
