@@ -982,6 +982,8 @@ def _pad_block_ops(
 
     if drill_ops:
         label = _pad_block_label(pad, footprint, index=pad_index, suffix="hole")
+        pad_type = _enum_text(getattr(pad, "pad_type", ""))
+        hole_layers = None if pad_type == "np_thru_hole" else layers
         ops.append(
             KiCadPlotterOp.start_block(
                 label=label,
@@ -991,7 +993,7 @@ def _pad_block_ops(
                 extra_attrs=_pad_block_extra_attrs(
                     pad, footprint, board, primitive="pad-hole", pad_index=pad_index
                 ),
-                layers=layers,
+                layers=hole_layers,
             )
         )
         ops.extend(drill_ops)

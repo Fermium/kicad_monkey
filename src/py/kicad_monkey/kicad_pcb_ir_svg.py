@@ -184,6 +184,9 @@ def _filter_record_ops_by_layer(
     for op in ops:
         op_layers = _op_layer_set(op)
         role = str((getattr(op, "payload", None) or {}).get("role", ""))
+        if role == "npth_hole":
+            new_ops.append(op)
+            continue
         allow_copper_span = role in {"via_aperture", "via_drill"}
         if not op_layers or _layer_set_matches_wanted(
             op_layers,
@@ -198,6 +201,13 @@ def _filter_record_ops_by_layer(
     from dataclasses import replace
 
     return replace(record, operations=new_ops)
+
+
+def _record_has_npth_hole(record: "KiCadPlotterRecord") -> bool:
+    return any(
+        str((getattr(op, "payload", None) or {}).get("role", "")) == "npth_hole"
+        for op in record.operations or ()
+    )
 
 
 def _filter_records_by_layer(
@@ -225,7 +235,7 @@ def _filter_records_by_layer(
     kept: list["KiCadPlotterRecord"] = []
     for record in records:
         record_layers = _record_layer_set(record)
-        if not record_layers or _layer_set_matches_wanted(
+        if _record_has_npth_hole(record) or not record_layers or _layer_set_matches_wanted(
             record_layers,
             wanted,
             allow_copper_span=(record.kind == "via"),
@@ -268,10 +278,7 @@ def _synthesize_pad_drill_outlines_for_layer(
             pad_type_value = (
                 pad.pad_type.value if isinstance(pad.pad_type, PadType) else str(pad.pad_type)
             )
-            if pad_type_value not in (
-                PadType.THRU_HOLE.value,
-                PadType.NP_THRU_HOLE.value,
-            ):
+            if pad_type_value != PadType.THRU_HOLE.value:
                 continue
 
             pad_local_x = float(pad.at_x)

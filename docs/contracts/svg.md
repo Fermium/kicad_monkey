@@ -80,6 +80,11 @@ Drill geometry uses:
 - `data-hole-diameter-mm` for round holes
 - `data-hole-width-mm` / `data-hole-height-mm` for slot holes
 
+Non-plated through-hole pad drill records are board cutouts. In enriched PCB
+SVG, their `pad-hole` groups remain visible in layer-filtered views for every
+board layer, including inner copper layers, while `data-layer-names` preserves
+the source pad layer declaration.
+
 Via metadata uses:
 
 - `data-via-type`: `through`, `blind`, `buried`, or `micro`

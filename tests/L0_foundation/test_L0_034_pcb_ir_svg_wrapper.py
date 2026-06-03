@@ -418,6 +418,43 @@ def test_render_pcb_ir_to_svg_npth_slot_hole_metadata():
     assert 'data-hole-height-mm="1.0"' in svg
 
 
+def test_render_pcb_ir_to_svg_npth_hole_metadata_visible_on_inner_layers():
+    pcb = KiCadPcb.from_string(
+        """(kicad_pcb
+\t(version 20240108)
+\t(generator "pcbnew")
+\t(layers
+\t\t(0 "F.Cu" signal)
+\t\t(1 "In1.Cu" signal)
+\t\t(31 "B.Cu" signal)
+\t\t(36 "F.Mask" user)
+\t)
+\t(footprint "Test:Mount"
+\t\t(layer "F.Cu")
+\t\t(at 0 0 0)
+\t\t(uuid "fp-mount")
+\t\t(property "Reference" "MH1")
+\t\t(pad "" np_thru_hole circle
+\t\t\t(at 10 10)
+\t\t\t(size 2.5 2.5)
+\t\t\t(drill 2.5)
+\t\t\t(layers "F&B.Cu" "*.Mask")
+\t\t\t(uuid "npth-pad")
+\t\t)
+\t)
+)
+"""
+    )
+
+    svg = render_pcb_ir_to_svg(pcb, layers=["In1.Cu"])
+
+    assert 'data-primitive="pad-hole"' in svg
+    assert 'data-hole-owner="npth-pad"' in svg
+    assert 'data-hole-kind="round"' in svg
+    assert 'data-hole-plating="non_plated"' in svg
+    assert 'data-layer-names="F&amp;B.Cu,*.Mask"' in svg
+
+
 def test_render_pcb_ir_to_svg_via_ipc4761_metadata():
     pcb = KiCadPcb.from_string(
         """(kicad_pcb
