@@ -190,10 +190,14 @@ keys exposed by `SCHEMATIC_SVG_COLOR_ROLES`, including `wire`, `bus`,
 `junction`, `component_outline`, `component_body`, `pin`, `pin_name`,
 `pin_number`, `reference`, `value`, `fields`, `label_local`, `label_global`,
 `label_hier`, `sheet`, `sheet_background`, `sheet_label`, `worksheet`, and
-`background`. Role aliases such as `symbol_fill`, `symbol_outline`,
-`global_label`, and `drawing_sheet` are normalized to the canonical role names
-when options are built. `schematic_svg_options_from_preferences(...)` loads
-KiCad preferences into role colors and `font_face_override`. Raw
+`background`. The special `foreground` role is a fallback for explicit custom
+schematic colors that do not match a KiCad theme source color; black-and-white
+themes set it to black so custom-colored symbol graphics still become
+monochrome. Role aliases such as `symbol_fill`, `symbol_outline`,
+`global_label`, `drawing_sheet`, and `default_foreground` are normalized to the
+canonical role names when options are built.
+`schematic_svg_options_from_preferences(...)` loads KiCad preferences into role
+colors and `font_face_override`. Raw
 `color_overrides` remains available as a source-color escape hatch; application
 themes should use semantic roles.
 

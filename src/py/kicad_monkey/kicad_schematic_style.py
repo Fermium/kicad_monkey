@@ -72,7 +72,10 @@ SCHEMATIC_SVG_ROLE_COLORS = {
     "wire": LAYER_WIRE,
     "worksheet": LAYER_SCHEMATIC_DRAWINGSHEET,
 }
-SCHEMATIC_SVG_COLOR_ROLES = tuple(sorted(SCHEMATIC_SVG_ROLE_COLORS))
+SCHEMATIC_SVG_FALLBACK_COLOR_ROLES = frozenset({"foreground"})
+SCHEMATIC_SVG_COLOR_ROLES = tuple(
+    sorted(set(SCHEMATIC_SVG_ROLE_COLORS) | SCHEMATIC_SVG_FALLBACK_COLOR_ROLES)
+)
 SCHEMATIC_SVG_BLACK_AND_WHITE_ROLE_COLORS = {
     role: "#FFFFFF"
     if role in {"background", "component_body", "sheet_background"}
@@ -82,7 +85,11 @@ SCHEMATIC_SVG_BLACK_AND_WHITE_ROLE_COLORS = {
 _SCHEMATIC_SVG_COLOR_ROLE_ALIASES = {
     "component": "component_outline",
     "component_fill": "component_body",
+    "default": "foreground",
+    "default_foreground": "foreground",
     "drawing_sheet": "worksheet",
+    "fallback": "foreground",
+    "fallback_foreground": "foreground",
     "global_label": "label_global",
     "hier_label": "label_hier",
     "hierarchical_label": "label_hier",
@@ -138,6 +145,8 @@ def schematic_svg_role_color_overrides(
 
     for raw_role, target in role_colors.items():
         role = normalize_schematic_svg_color_role(raw_role)
+        if role in SCHEMATIC_SVG_FALLBACK_COLOR_ROLES:
+            continue
         source = SCHEMATIC_SVG_ROLE_COLORS.get(role)
         if source is None:
             allowed = ", ".join(SCHEMATIC_SVG_COLOR_ROLES)
@@ -225,6 +234,7 @@ __all__ = [
     "DEFAULT_PIN_SYMBOL_RADIUS_NM",
     "SCHEMATIC_SVG_BLACK_AND_WHITE_ROLE_COLORS",
     "SCHEMATIC_SVG_COLOR_ROLES",
+    "SCHEMATIC_SVG_FALLBACK_COLOR_ROLES",
     "SCHEMATIC_SVG_ROLE_COLORS",
     "LAYER_BUS",
     "LAYER_BUS_JUNCTION",

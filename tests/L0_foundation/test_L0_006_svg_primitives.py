@@ -186,7 +186,9 @@ def test_ctx_resolve_color_black_and_white_native_uses_role_theme():
     opts = KiCadSvgRenderOptions.black_and_white_native()
     ctx = _ctx(options=opts)
     assert ctx.resolve_color("#009600FF") == "#000000"
+    assert ctx.resolve_color("#CC0000FF") == "#000000"
     assert ctx.resolve_color("#FFFFC2FF") == "#FFFFFF"
+    assert ctx.resolve_color("#FFFFFF00") == "#FFFFFF"
 
 
 def test_options_with_schematic_role_colors_validates_and_merges():
@@ -196,6 +198,7 @@ def test_options_with_schematic_role_colors_validates_and_merges():
     )
 
     assert "wire" in SCHEMATIC_SVG_COLOR_ROLES
+    assert "foreground" in SCHEMATIC_SVG_COLOR_ROLES
     assert opts.schematic_role_colors == {
         "wire": "#222222",
         "component_body": "#F8F8F8",
@@ -305,6 +308,16 @@ def test_svg_line_uses_semantic_role_theme():
     s = svg_line(0, 0, 1_000_000, 0, ctx=ctx, color="#009600FF")
     assert 'stroke="#000000"' in s
     assert "#009600FF" not in s
+
+
+def test_svg_line_uses_foreground_role_for_custom_schematic_color():
+    opts = KiCadSvgRenderOptions.enriched_default().with_schematic_role_colors(
+        foreground="#000000"
+    )
+    ctx = _ctx(options=opts)
+    s = svg_line(0, 0, 1_000_000, 0, ctx=ctx, color="#CC0000FF")
+    assert 'stroke="#000000"' in s
+    assert "#CC0000FF" not in s
 
 
 # ---------------------------------------------------------------------------

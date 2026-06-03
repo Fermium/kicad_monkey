@@ -271,6 +271,14 @@ class KiCadSvgRenderOptions:
             default=self.background_color,
         )
 
+    def effective_foreground_color(self) -> str | None:
+        """Return the fallback colour for unmapped explicit schematic colours."""
+
+        return schematic_svg_role_color(
+            self.effective_schematic_role_colors(),
+            "foreground",
+        )
+
 
 # =============================================================================
 # Context
@@ -388,6 +396,9 @@ class KiCadSvgRenderContext:
             )
             if themed is not None:
                 return themed
+        foreground = self.options.effective_foreground_color()
+        if foreground is not None and not _is_white_color(resolved):
+            return foreground
         if self.options.black_and_white:
             if _color_override_key_no_alpha(resolved) == "#FFFFFF":
                 return "#FFFFFF"
@@ -442,6 +453,11 @@ def _color_override_key_no_alpha(color: str | None) -> str:
     if key.startswith("#") and len(key) == 9 and key.endswith("FF"):
         return key[:7]
     return key
+
+
+def _is_white_color(color: str | None) -> bool:
+    key = _color_override_key(color)
+    return key in {"#FFFFFF", "#FFFFFFFF", "#FFFFFF00"}
 
 
 def _fmt_dasharray(line_style: KiCadLineStyle, stroke_width: float) -> str | None:
