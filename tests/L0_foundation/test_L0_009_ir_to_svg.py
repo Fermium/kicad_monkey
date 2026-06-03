@@ -587,20 +587,20 @@ def test_render_ir_to_svg_is_parseable_xml() -> None:
     assert len(list(root)) >= 2
 
 
-def test_render_ir_to_svg_options_black_and_white() -> None:
+def test_render_ir_to_svg_options_black_and_white_native_theme() -> None:
     op = KiCadPlotterOp.text(
         x=0, y=0, text="hi", size_x_nm=1_000_000, size_y_nm=1_000_000,
-        color="#FF0000",
+        color="#840000FF",
     )
     rec = KiCadPlotterRecord(uuid="t", kind="text", object_id="t", operations=[op])
     doc = KiCadPlotterDocument(
         records=[rec],
         canvas={"width_nm": 100_000_000, "height_nm": 100_000_000},
     )
-    svg = render_ir_to_svg(doc, options=KiCadSvgRenderOptions(black_and_white=True))
-    # text colour gets overridden to black.
+    svg = render_ir_to_svg(doc, options=KiCadSvgRenderOptions.black_and_white_native())
+    # text colour gets overridden through the semantic black-and-white role theme.
     assert 'fill="#000000"' in svg
-    assert "#FF0000" not in svg
+    assert "#840000FF" not in svg
 
 
 def test_render_ir_to_svg_respects_caller_provided_ctx() -> None:

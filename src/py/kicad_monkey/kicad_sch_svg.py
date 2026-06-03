@@ -128,12 +128,17 @@ def _svg_options_from_compat(
     theme: SchematicTheme,
     options: SchematicRenderOptions,
 ) -> KiCadSvgRenderOptions:
-    return KiCadSvgRenderOptions(
-        black_and_white=theme.black_and_white,
-        background_color=theme.background_color if options.include_background else None,
-        color_overrides=theme.color_overrides,
-        text_as_polygons=options.text_as_polygons,
+    svg_options = (
+        KiCadSvgRenderOptions.black_and_white_native()
+        if theme.black_and_white
+        else KiCadSvgRenderOptions()
     )
+    svg_options.background_color = (
+        theme.background_color if options.include_background else None
+    )
+    svg_options.color_overrides = theme.color_overrides
+    svg_options.text_as_polygons = options.text_as_polygons
+    return svg_options
 
 
 def render_schematic_svg(

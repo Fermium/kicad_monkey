@@ -179,9 +179,23 @@ multiple `TPS62A02_BUCK.kicad_sch` instances render as
 `TPS62A02_BUCK_1V0`, `TPS62A02_BUCK_1V8`, etc.
 
 `profile="oracle"` suppresses these metadata hooks for KiCad CLI parity.
-Schematic color and font overrides are supplied through
-`KiCadSvgRenderOptions.color_overrides`, `font_face_override`, and the
-`schematic_svg_options_from_preferences(...)` KiCad-theme helper.
+Schematic colors are controlled through semantic role colors on
+`KiCadSvgRenderOptions.schematic_role_colors` or the copy helper
+`KiCadSvgRenderOptions.with_schematic_role_colors(...)`. This is the canonical
+schematic theming path, including black-and-white output:
+`KiCadSvgRenderOptions.black_and_white_native()` installs the
+`SCHEMATIC_SVG_BLACK_AND_WHITE_ROLE_COLORS` role theme instead of using a
+separate schematic monochrome switch. Valid roles are the KiCad schematic theme
+keys exposed by `SCHEMATIC_SVG_COLOR_ROLES`, including `wire`, `bus`,
+`junction`, `component_outline`, `component_body`, `pin`, `pin_name`,
+`pin_number`, `reference`, `value`, `fields`, `label_local`, `label_global`,
+`label_hier`, `sheet`, `sheet_background`, `sheet_label`, `worksheet`, and
+`background`. Role aliases such as `symbol_fill`, `symbol_outline`,
+`global_label`, and `drawing_sheet` are normalized to the canonical role names
+when options are built. `schematic_svg_options_from_preferences(...)` loads
+KiCad preferences into role colors and `font_face_override`. Raw
+`color_overrides` remains available as a source-color escape hatch; application
+themes should use semantic roles.
 
 Downstream tools should not infer schematic connectivity from rendered text or
 group nesting alone.

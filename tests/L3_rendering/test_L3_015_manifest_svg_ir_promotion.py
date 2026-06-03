@@ -312,6 +312,29 @@ PAD_FLASH_OP_KINDS = {
 }
 
 
+def _enum_value(value: object) -> str:
+    enum_value = getattr(value, "value", None)
+    return str(enum_value) if enum_value is not None else str(value)
+
+
+def _pad_expects_flash_op(pad: object) -> bool:
+    pad_type = _enum_value(getattr(pad, "pad_type", ""))
+    if pad_type != "np_thru_hole":
+        return True
+
+    shape = _enum_value(getattr(pad, "shape", ""))
+    if shape != "circle":
+        return True
+
+    drill = getattr(pad, "drill", None)
+    if drill is None:
+        return True
+
+    size_x = float(getattr(pad, "size_x", 0.0) or 0.0)
+    size_y = float(getattr(pad, "size_y", 0.0) or 0.0)
+    return max(size_x, size_y) > float(drill)
+
+
 def _op_kind(op) -> str:
     return op.kind.value if hasattr(op.kind, "value") else str(op.kind)
 
@@ -722,7 +745,10 @@ def test_public_official_footprints_render_to_ir_and_svg_from_manifest(case):
     hist = _op_hist(doc)
     assert sum(hist.values()) > 0
     if fp.pads:
-        assert sum(hist.get(kind, 0) for kind in PAD_FLASH_OP_KINDS) >= len(fp.pads)
+        expected_pad_flashes = sum(
+            1 for pad in fp.pads if _pad_expects_flash_op(pad)
+        )
+        assert sum(hist.get(kind, 0) for kind in PAD_FLASH_OP_KINDS) >= expected_pad_flashes
     if fp.fp_lines:
         assert hist.get("ThickSegment", 0) >= len(fp.fp_lines)
     if fp.fp_arcs:

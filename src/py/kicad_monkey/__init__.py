@@ -413,6 +413,12 @@ __all__ = [
     "svg_text",
     "svg_text_or_poly",
     "svg_text_poly",
+    "SCHEMATIC_SVG_BLACK_AND_WHITE_ROLE_COLORS",
+    "SCHEMATIC_SVG_COLOR_ROLES",
+    "SCHEMATIC_SVG_ROLE_COLORS",
+    "normalize_schematic_svg_color_role",
+    "schematic_svg_role_color",
+    "schematic_svg_role_color_overrides",
     "KiCadSvgPreferenceTheme",
     "load_kicad_svg_preference_theme",
     "schematic_svg_options_from_preferences",
@@ -1343,6 +1349,16 @@ def __getattr__(name: str) -> Any:
     ):
         from . import kicad_sch_svg_renderer as _svg
         return getattr(_svg, name)
+    if name in (
+        "SCHEMATIC_SVG_BLACK_AND_WHITE_ROLE_COLORS",
+        "SCHEMATIC_SVG_COLOR_ROLES",
+        "SCHEMATIC_SVG_ROLE_COLORS",
+        "normalize_schematic_svg_color_role",
+        "schematic_svg_role_color",
+        "schematic_svg_role_color_overrides",
+    ):
+        from . import kicad_schematic_style as _sch_style
+        return getattr(_sch_style, name)
     if name in (
         "KiCadSvgPreferenceTheme",
         "load_kicad_svg_preference_theme",

@@ -120,6 +120,15 @@ PUBLIC_API_EXPORTS: tuple[PublicApiExport, ...] = (
     PublicApiExport("render_schematic_svg", PublicApiStratum.RENDERING),
     PublicApiExport("render_symbol_svg", PublicApiStratum.RENDERING),
     PublicApiExport("render_library_svg", PublicApiStratum.RENDERING),
+    PublicApiExport("SCHEMATIC_SVG_COLOR_ROLES", PublicApiStratum.RENDERING),
+    PublicApiExport("SCHEMATIC_SVG_ROLE_COLORS", PublicApiStratum.RENDERING),
+    PublicApiExport(
+        "SCHEMATIC_SVG_BLACK_AND_WHITE_ROLE_COLORS",
+        PublicApiStratum.RENDERING,
+    ),
+    PublicApiExport("normalize_schematic_svg_color_role", PublicApiStratum.RENDERING),
+    PublicApiExport("schematic_svg_role_color", PublicApiStratum.RENDERING),
+    PublicApiExport("schematic_svg_role_color_overrides", PublicApiStratum.RENDERING),
     # File-level utilities that remain package-level public API.
     PublicApiExport("read_kicad_pro_parameters", PublicApiStratum.UTILITIES),
     PublicApiExport("KiCadEnvironment", PublicApiStratum.UTILITIES),

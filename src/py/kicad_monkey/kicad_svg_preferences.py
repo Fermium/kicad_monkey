@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import json
 from pathlib import Path
 import re
 from typing import Any
 
-from . import kicad_schematic_style as sch_style
+from .kicad_schematic_style import SCHEMATIC_SVG_COLOR_ROLES
 from .kicad_sch_svg_renderer import KiCadSvgRenderOptions
 from .kicad_symbol_svg import SymbolTheme
 
@@ -28,36 +28,6 @@ _CSS_RGB_RE = re.compile(
     r"(?:\s*,\s*([0-9.]+)\s*)?\)",
     re.IGNORECASE,
 )
-
-
-_SCHEMATIC_LAYER_TO_THEME_KEY = {
-    sch_style.LAYER_BUS: "bus",
-    sch_style.LAYER_BUS_JUNCTION: "bus_junction",
-    sch_style.LAYER_DEVICE: "component_outline",
-    sch_style.LAYER_DEVICE_BACKGROUND: "component_body",
-    sch_style.LAYER_DNP_MARKER: "dnp_marker",
-    sch_style.LAYER_FIELDS: "fields",
-    sch_style.LAYER_GLOBLABEL: "label_global",
-    sch_style.LAYER_HIERLABEL: "label_hier",
-    sch_style.LAYER_JUNCTION: "junction",
-    sch_style.LAYER_LOCLABEL: "label_local",
-    sch_style.LAYER_NOCONNECT: "no_connect",
-    sch_style.LAYER_NOTES: "note",
-    sch_style.LAYER_PIN: "pin",
-    sch_style.LAYER_PINNAM: "pin_name",
-    sch_style.LAYER_PINNUM: "pin_number",
-    sch_style.LAYER_REFERENCEPART: "reference",
-    sch_style.LAYER_SCHEMATIC_DRAWINGSHEET: "worksheet",
-    sch_style.LAYER_SCHEMATIC_BACKGROUND: "background",
-    sch_style.LAYER_SHEET: "sheet",
-    sch_style.LAYER_SHEET_BACKGROUND: "sheet_background",
-    sch_style.LAYER_SHEETFIELDS: "sheet_fields",
-    sch_style.LAYER_SHEETFILENAME: "sheet_filename",
-    sch_style.LAYER_SHEETLABEL: "sheet_label",
-    sch_style.LAYER_SHEETNAME: "sheet_name",
-    sch_style.LAYER_VALUEPART: "value",
-    sch_style.LAYER_WIRE: "wire",
-}
 
 
 def _read_json(path: Path) -> dict[str, Any]:
@@ -101,19 +71,6 @@ def _normalise_css_color(value: object) -> str:
     if a is None or a == 255:
         return f"#{r:02X}{g:02X}{b:02X}"
     return f"#{r:02X}{g:02X}{b:02X}{a:02X}"
-
-
-def _color_key(value: str) -> str:
-    return re.sub(r"\s+", "", value).upper()
-
-
-def _add_color_override(overrides: dict[str, str], source: str, target: str) -> None:
-    if not source or not target:
-        return
-    source_key = _color_key(source)
-    overrides[source_key] = target
-    if source_key.startswith("#") and len(source_key) == 9 and source_key.endswith("FF"):
-        overrides[source_key[:7]] = target
 
 
 def load_kicad_svg_preference_theme(
@@ -165,15 +122,14 @@ def schematic_svg_options_from_preferences(
     """Return schematic SVG options using a KiCad colour theme and default font."""
 
     pref = load_kicad_svg_preference_theme(preferences_dir, theme_name=theme_name)
-    opts = base or KiCadSvgRenderOptions.enriched_default()
-    overrides: dict[str, str] = dict(opts.color_overrides or {})
-    for source_color, theme_key in _SCHEMATIC_LAYER_TO_THEME_KEY.items():
-        target = pref.schematic.get(theme_key)
+    opts = replace(base) if base is not None else KiCadSvgRenderOptions.enriched_default()
+    role_colors: dict[str, str] = {}
+    for role in SCHEMATIC_SVG_COLOR_ROLES:
+        target = pref.schematic.get(role)
         if target:
-            _add_color_override(overrides, source_color, target)
-    opts.color_overrides = overrides
-    if pref.schematic.get("background"):
-        opts.background_color = pref.schematic["background"]
+            role_colors[role] = target
+    if role_colors:
+        opts = opts.with_schematic_role_colors(role_colors)
     if pref.default_font:
         opts.font_face_override = pref.default_font
     return opts

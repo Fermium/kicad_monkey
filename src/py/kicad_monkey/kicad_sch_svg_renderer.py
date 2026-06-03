@@ -17,10 +17,17 @@ from __future__ import annotations
 import html
 import math
 import re
-from dataclasses import dataclass, field
+from collections.abc import Mapping
+from dataclasses import dataclass, field, replace
 from enum import Enum, auto
 from typing import Any, Iterable
 
+from .kicad_schematic_style import (
+    SCHEMATIC_SVG_BLACK_AND_WHITE_ROLE_COLORS,
+    normalize_schematic_svg_color_role,
+    schematic_svg_role_color,
+    schematic_svg_role_color_overrides,
+)
 from .kicad_plotter_ir import (
     KiCadFillType,
     KiCadHorizAlign,
@@ -73,9 +80,9 @@ class KiCadSvgRenderOptions:
     output_unit_suffix: str = "mm"
 
     # ---- colour / theme ----
-    # When True, force black-on-white (parity with `kicad-cli sch
-    # export svg --black-and-white`). When False, honour per-item
-    # colours.
+    # Low-level monochrome fallback used by PCB/footprint callers. Schematic
+    # callers should use ``schematic_role_colors`` so black-and-white and
+    # custom themes follow the same semantic role path.
     black_and_white: bool = False
     # Background fill colour for the page rect; ``None`` skips the
     # background.
@@ -83,6 +90,12 @@ class KiCadSvgRenderOptions:
     # Optional colour remap keyed by source SVG colour.  This lets callers
     # apply KiCad colour-theme preferences without altering IR payloads.
     color_overrides: dict[str, str] | None = None
+    # Semantic schematic colour theme keyed by KiCad role names such as
+    # ``wire``, ``component_outline``, ``component_body``, ``pin``,
+    # ``label_global``, and ``worksheet``. These role colours are translated
+    # to source-colour overrides at render time and take precedence over
+    # ``color_overrides``.
+    schematic_role_colors: dict[str, str] | None = None
     # Optional fallback colours used when an IR op does not carry an
     # explicit fill/stroke colour. PCB SVG uses these to preserve the
     # public ``to_svg(fill=..., stroke=..., black_and_white=False)`` API.
@@ -200,10 +213,63 @@ class KiCadSvgRenderOptions:
 
     @classmethod
     def black_and_white_native(cls) -> "KiCadSvgRenderOptions":
-        """Match ``kicad-cli sch export svg --black-and-white``."""
+        """Match ``kicad-cli sch export svg --black-and-white`` via role colours."""
         opts = cls.kicad_native()
-        opts.black_and_white = True
+        opts.schematic_role_colors = dict(SCHEMATIC_SVG_BLACK_AND_WHITE_ROLE_COLORS)
         return opts
+
+    def with_schematic_role_colors(
+        self,
+        role_colors: Mapping[str, str] | None = None,
+        **overrides: str,
+    ) -> "KiCadSvgRenderOptions":
+        """Return a copy with semantic schematic SVG role colours applied."""
+
+        merged: dict[str, str] = {
+            normalize_schematic_svg_color_role(key): str(value)
+            for key, value in (self.schematic_role_colors or {}).items()
+        }
+        if role_colors:
+            merged.update(
+                {
+                    normalize_schematic_svg_color_role(key): str(value)
+                    for key, value in role_colors.items()
+                }
+            )
+        if overrides:
+            merged.update(
+                {
+                    normalize_schematic_svg_color_role(key): str(value)
+                    for key, value in overrides.items()
+                }
+            )
+        schematic_svg_role_color_overrides(merged)
+        return replace(self, schematic_role_colors=merged)
+
+    def effective_schematic_role_colors(self) -> dict[str, str]:
+        """Return semantic schematic role colours active for this render."""
+
+        colors: dict[str, str] = {}
+        if self.schematic_role_colors:
+            colors.update(self.schematic_role_colors)
+        return colors
+
+    def effective_color_overrides(self) -> dict[str, str]:
+        """Return source-colour overrides after applying semantic role colours."""
+
+        return schematic_svg_role_color_overrides(
+            self.effective_schematic_role_colors(),
+            base=self.color_overrides,
+        )
+
+    def effective_background_color(self) -> str | None:
+        """Return the resolved SVG document background colour."""
+
+        return schematic_svg_role_color(
+            self.effective_schematic_role_colors(),
+            "background",
+            default=self.background_color,
+        )
 
 
 # =============================================================================
@@ -312,18 +378,20 @@ class KiCadSvgRenderContext:
         return nc
 
     def resolve_color(self, color: str | None) -> str:
-        """Apply black-and-white override + None → current_color fallback."""
+        """Apply theme overrides and fall back from None to current_color."""
         resolved = self.current_color if color is None else color
+        effective_overrides = self.options.effective_color_overrides()
+        if effective_overrides:
+            themed = (
+                effective_overrides.get(_color_override_key(resolved))
+                or effective_overrides.get(_color_override_key_no_alpha(resolved))
+            )
+            if themed is not None:
+                return themed
         if self.options.black_and_white:
             if _color_override_key_no_alpha(resolved) == "#FFFFFF":
                 return "#FFFFFF"
             return "#000000"
-        if self.options.color_overrides:
-            return (
-                self.options.color_overrides.get(_color_override_key(resolved))
-                or self.options.color_overrides.get(_color_override_key_no_alpha(resolved))
-                or resolved
-            )
         return resolved
 
 
@@ -1144,7 +1212,7 @@ def svg_document(
     bg = (
         background_color
         if background_color is not None
-        else ctx.options.background_color
+        else ctx.options.effective_background_color()
     )
 
     body_text = body if isinstance(body, str) else "\n".join(s for s in body if s)

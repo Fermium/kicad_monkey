@@ -10,6 +10,7 @@ no oracle.
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
@@ -25,7 +26,11 @@ from kicad_monkey import (
     KiCadSvgRenderProfile,
     KiCadVariantDimMode,
     KiCadVertAlign,
+    SCHEMATIC_SVG_BLACK_AND_WHITE_ROLE_COLORS,
+    SCHEMATIC_SVG_COLOR_ROLES,
     fmt_user_number,
+    schematic_svg_options_from_preferences,
+    schematic_svg_role_color,
     svg_arc,
     svg_bezier,
     svg_circle,
@@ -117,8 +122,9 @@ def test_options_polytext_factory():
 
 def test_options_black_and_white_native_factory():
     o = KiCadSvgRenderOptions.black_and_white_native()
-    assert o.black_and_white is True
+    assert o.black_and_white is False
     assert o.junction_z_order == KiCadJunctionZOrder.NATIVE
+    assert o.schematic_role_colors == SCHEMATIC_SVG_BLACK_AND_WHITE_ROLE_COLORS
 
 
 def test_options_dataclass_is_mutable():
@@ -176,10 +182,72 @@ def test_ctx_resolve_color_none_returns_current():
     assert ctx.resolve_color(None) == "#0000FF"
 
 
-def test_ctx_resolve_color_black_and_white_overrides():
-    opts = KiCadSvgRenderOptions(black_and_white=True)
+def test_ctx_resolve_color_black_and_white_native_uses_role_theme():
+    opts = KiCadSvgRenderOptions.black_and_white_native()
     ctx = _ctx(options=opts)
-    assert ctx.resolve_color("#FF00FF") == "#000000"
+    assert ctx.resolve_color("#009600FF") == "#000000"
+    assert ctx.resolve_color("#FFFFC2FF") == "#FFFFFF"
+
+
+def test_options_with_schematic_role_colors_validates_and_merges():
+    opts = KiCadSvgRenderOptions.enriched_default().with_schematic_role_colors(
+        {"wire": "#222222"},
+        component_body="#F8F8F8",
+    )
+
+    assert "wire" in SCHEMATIC_SVG_COLOR_ROLES
+    assert opts.schematic_role_colors == {
+        "wire": "#222222",
+        "component_body": "#F8F8F8",
+    }
+    assert schematic_svg_role_color(opts.schematic_role_colors, "symbol_fill") == "#F8F8F8"
+
+
+def test_options_with_schematic_role_colors_rejects_unknown_role():
+    with pytest.raises(ValueError, match="unknown schematic SVG colour role"):
+        KiCadSvgRenderOptions.enriched_default().with_schematic_role_colors(
+            {"not_a_role": "#222222"}
+        )
+
+
+def test_ctx_resolve_color_uses_semantic_schematic_roles():
+    opts = KiCadSvgRenderOptions.enriched_default().with_schematic_role_colors(
+        wire="#222222",
+        component_body="#F8F8F8",
+    )
+    ctx = _ctx(options=opts)
+
+    assert ctx.resolve_color("#009600FF") == "#222222"
+    assert ctx.resolve_color("#FFFFC2FF") == "#F8F8F8"
+
+
+def test_schematic_svg_options_from_preferences_uses_semantic_roles(tmp_path: Path):
+    (tmp_path / "colors").mkdir()
+    (tmp_path / "eeschema.json").write_text(
+        json.dumps({"appearance": {"color_theme": "review", "default_font": "Arial"}}),
+        encoding="utf-8",
+    )
+    (tmp_path / "colors" / "review.json").write_text(
+        json.dumps(
+            {
+                "schematic": {
+                    "background": "#101010",
+                    "component_body": "#F8F8F8",
+                    "wire": "#222222",
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    opts = schematic_svg_options_from_preferences(tmp_path)
+
+    assert opts.schematic_role_colors == {
+        "background": "#101010",
+        "component_body": "#F8F8F8",
+        "wire": "#222222",
+    }
+    assert opts.font_face_override == "Arial"
 
 
 def test_ctx_push_offset_does_not_mutate_self():
@@ -229,12 +297,14 @@ def test_svg_line_no_dasharray_for_solid():
     assert "stroke-dasharray=" not in s
 
 
-def test_svg_line_black_and_white_forces_black():
-    opts = KiCadSvgRenderOptions(black_and_white=True)
+def test_svg_line_uses_semantic_role_theme():
+    opts = KiCadSvgRenderOptions.enriched_default().with_schematic_role_colors(
+        wire="#000000"
+    )
     ctx = _ctx(options=opts)
-    s = svg_line(0, 0, 1_000_000, 0, ctx=ctx, color="#FF0000")
+    s = svg_line(0, 0, 1_000_000, 0, ctx=ctx, color="#009600FF")
     assert 'stroke="#000000"' in s
-    assert "#FF0000" not in s
+    assert "#009600FF" not in s
 
 
 # ---------------------------------------------------------------------------
@@ -725,6 +795,15 @@ def test_svg_document_includes_background_rect_by_default():
     ctx = _ctx()
     out = svg_document("<line/>", ctx=ctx)
     assert re.search(r'<rect x="0" y="0" .*fill="#FFFFFF"', out) is not None
+
+
+def test_svg_document_uses_semantic_background_role_color():
+    opts = KiCadSvgRenderOptions.enriched_default().with_schematic_role_colors(
+        background="#101010"
+    )
+    ctx = _ctx(options=opts)
+    out = svg_document("<line/>", ctx=ctx)
+    assert re.search(r'<rect x="0" y="0" .*fill="#101010"', out) is not None
 
 
 def test_svg_document_skip_background_when_none():
