@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>KiCad Monkey Setup</title>
+</head>
+<body data-doc="setup" data-profile="python-package">
+  <h1>Setup</h1>
+  <p>
+    KiCad Monkey is a pure Python package for KiCad parser, model, round-trip,
+    and rendering primitives. It uses uv, Hatchling, Rack, pytest, Ruff,
+    Pyright, build, and Twine.
+  </p>
+
+  <h2>Required Tools</h2>
+  <ul>
+    <li>Python 3.11 or 3.12</li>
+    <li>uv</li>
+    <li>Git</li>
+    <li>KiCad CLI for rendering lanes that compare against KiCad output</li>
+  </ul>
+
+  <h2>Development Commands</h2>
+  <pre><code>uv sync --extra test
+uv run rack run --all
+uv run python -m build
+uv run twine check dist/*</code></pre>
+
+  <h2>Artifact Policy</h2>
+  <p>
+    Package build artifacts under <code>dist/</code>, Rack output, and local
+    render output are transient. Durable behavior belongs in source, tests,
+    contracts, ADRs, design docs, and dated release notes.
+  </p>
+</body>
+</html>

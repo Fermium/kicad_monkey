@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>KiCad Monkey Architecture</title>
+</head>
+<body data-doc="architecture" data-profile="python-package">
+  <h1>Architecture</h1>
+  <p>
+    KiCad Monkey owns low-level KiCad file parsing, typed source models,
+    close-to-format writeback, public API facades, and 2D rendering primitives.
+    Higher-level workflow orchestration belongs in downstream packages such as
+    KiCad Cruncher.
+  </p>
+
+  <h2>Boundaries</h2>
+  <ul>
+    <li><code>src/py/kicad_monkey/</code> owns public package behavior.</li>
+    <li><code>kicad_* </code> modules preserve KiCad-native semantics and file shapes.</li>
+    <li><code>kicad_design.py</code> and design JSON modules own project-level facades.</li>
+    <li><code>kicad_*_to_ir.py</code> and <code>kicad_ir_to_svg.py</code> own rendering IR and SVG output.</li>
+    <li><code>docs/contracts/</code> owns machine-readable public contracts.</li>
+    <li><code>docs/design/</code> owns durable API and signoff design docs.</li>
+  </ul>
+
+  <h2>Release Policy</h2>
+  <p>
+    Public interfaces are promoted through contract manifests, design docs, and
+    Rack-owned L99 signoff. The package remains pure Python; native, workflow,
+    manufacturing, and application policies should stay outside this repository.
+  </p>
+</body>
+</html>
