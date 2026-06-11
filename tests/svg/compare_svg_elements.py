@@ -893,13 +893,25 @@ def compare_svgs(
     # Track which Python elements have been matched
     matched_py_indices = set()
 
-    # Match reference elements to Python elements
+    # Match reference elements to Python elements.
+    # Prefer not-yet-matched candidates so duplicate geometry (e.g. a fill
+    # path and a stroke path covering the same outline) doesn't leave a
+    # Python element orphaned; fall back to any match.
     for ref_elem in ref_elements:
-        py_match = find_matching_element(ref_elem, py_elements, position_tolerance)
+        unmatched = [
+            e for i, e in enumerate(py_elements) if i not in matched_py_indices
+        ]
+        py_match = (
+            find_matching_element(ref_elem, unmatched, position_tolerance)
+            or find_matching_element(ref_elem, py_elements, position_tolerance)
+        )
 
         if py_match:
-            # Found a match - compare attributes
-            matched_py_indices.add(py_elements.index(py_match))
+            # Found a match - compare attributes (identity-based index so
+            # value-equal duplicates are tracked individually)
+            matched_py_indices.add(
+                next(i for i, e in enumerate(py_elements) if e is py_match)
+            )
             result.matched_count += 1
 
             diffs = compare_elements(ref_elem, py_match, position_tolerance)

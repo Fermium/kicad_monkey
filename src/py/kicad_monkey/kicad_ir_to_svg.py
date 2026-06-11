@@ -282,6 +282,10 @@ def _render_text_op(op: KiCadPlotterOp, *, ctx: KiCadSvgRenderContext) -> str:
     text_renderer: Callable[..., str] = (
         svg_text_poly if bool(p.get("text_as_polygons", False)) else svg_text_or_poly
     )
+    if text_renderer is svg_text_poly and p.get("polyline_per_segment") is not None:
+        # Per-op granularity override (gr_text stroke font): kicad-cli's PCB
+        # plotter records one path per stroke segment, not per polyline.
+        base_kwargs["per_segment"] = bool(p.get("polyline_per_segment"))
     if not multiline or "\n" not in text:
         return text_renderer(x, y, text, **base_kwargs)
     lines = text.split("\n")

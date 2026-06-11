@@ -12,7 +12,7 @@ PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SOURCE = PACKAGE_ROOT / "tests" / "corpus" / "kicad"
 DEFAULT_ARCHIVE = PACKAGE_ROOT / "tests" / "corpus" / "kicad.zip"
 
-EXCLUDED_DIR_NAMES = {".git", ".history", ".pytest_cache", "__pycache__", "output", "review", "review_tmp"}
+EXCLUDED_DIR_NAMES = {".git", ".history", ".pytest_cache", "__pycache__", "_stage", "output", "review", "review_tmp"}
 EXCLUDED_FILE_NAMES = {".DS_Store", "Thumbs.db", "fp-info-cache"}
 EXCLUDED_SUFFIXES = {".bak", ".kicad_prl", ".lck", ".log", ".tmp", ".zip"}
 
@@ -46,9 +46,23 @@ def _iter_source_files(source: Path) -> list[Path]:
     return files
 
 
+# Regenerable test products: excluded from the archive, but their presence in
+# the source tree is expected (tests write them at runtime) and must not block
+# packaging. kicad-cli regenerates .kicad_prl beside every board/project it
+# touches, so oracle runs recreate them. Genuine editor/backup debris still
+# refuses the build.
+_RUNTIME_PRODUCT_DIR_NAMES = {"_stage", "output"}
+_RUNTIME_PRODUCT_SUFFIXES = {".kicad_prl"}
+
+
 def _find_debris(source: Path) -> list[Path]:
     debris: list[Path] = []
     for path in sorted(source.rglob("*")):
+        rel_parts = path.relative_to(source).parts
+        if any(part in _RUNTIME_PRODUCT_DIR_NAMES for part in rel_parts):
+            continue
+        if path.suffix.lower() in _RUNTIME_PRODUCT_SUFFIXES:
+            continue
         if path.is_dir() and _is_excluded_dir(path):
             debris.append(path)
         elif path.is_file() and _is_excluded_file(path):

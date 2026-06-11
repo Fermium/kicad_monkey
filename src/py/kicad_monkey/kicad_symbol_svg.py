@@ -39,6 +39,7 @@ from typing import TYPE_CHECKING, List, Optional, Tuple
 
 from .kicad_geometry import BoundingBox
 from .kicad_stroke_font import get_renderer as get_stroke_font_renderer
+from .kicad_sym_rectangle import SymFillType
 
 if TYPE_CHECKING:
     from .kicad_lib_symbol import LibSymbol
@@ -63,17 +64,18 @@ class SymbolTheme:
     # Body graphics (rectangles, circles, arcs, polylines)
     # KiCad CLI uses #840000 for body strokes
     body_outline: str = "#840000"
-    body_fill: str = "#FFFFC0"     # Light yellow/cream (not used in CLI output)
+    body_fill: str = "#FFFFC2"     # Device background fill - matches kicad-cli
     body_stroke_width: float = 0.1524  # 6 mils - KiCad default
 
     # Pins - KiCad CLI uses #840000 for pin lines (same as body)
     pin_color: str = "#840000"
     pin_stroke_width: float = 0.1524  # 6 mils
 
-    # Text colors - KiCad CLI uses #006464 for text (reference, value, pin names/numbers)
+    # Text colors - KiCad CLI uses #006464 for reference/value/pin names
+    # and #A90000 for pin numbers
     text_color: str = "#006464"
     pin_name_color: str = "#006464"
-    pin_number_color: str = "#006464"
+    pin_number_color: str = "#A90000"
     reference_color: str = "#006464"
     value_color: str = "#006464"
     field_color: str = "#006464"
@@ -105,6 +107,14 @@ class SymbolTheme:
     def get_text_color(self) -> str:
         """Get text color, respecting B&W mode."""
         return "#000000" if self.black_and_white else self.text_color
+
+    def get_pin_name_color(self) -> str:
+        """Get pin name color, respecting B&W mode."""
+        return "#000000" if self.black_and_white else self.pin_name_color
+
+    def get_pin_number_color(self) -> str:
+        """Get pin number color, respecting B&W mode."""
+        return "#000000" if self.black_and_white else self.pin_number_color
 
 
 # =============================================================================
@@ -707,17 +717,111 @@ def _render_subsymbol_graphics(
     lines = []
     theme = ctx.theme
     stroke_color = theme.get_body_outline()
-    stroke_width = theme.body_stroke_width
+    default_width = theme.body_stroke_width
 
-    # Style for body graphics
-    style = (f'fill:none; \n'
-             f'stroke:{stroke_color}; stroke-width:{stroke_width:.4f}; stroke-opacity:1; \n'
-             f'stroke-linecap:round; stroke-linejoin:round;fill:none')
+    def _stroke_style(elem) -> str:
+        """Per-element stroke style: honor (stroke (width ...)) when set."""
+        width = getattr(getattr(elem, 'stroke', None), 'width', 0.0) or 0.0
+        if width <= 0:
+            width = default_width
+        return (f'fill:none; \n'
+                f'stroke:{stroke_color}; stroke-width:{width:.4f}; stroke-opacity:1; \n'
+                f'stroke-linecap:round; stroke-linejoin:round;fill:none')
 
+    def _fill_color(elem) -> Optional[str]:
+        """SVG fill color for the element, or None when not filled.
+
+        Default theme follows the kicad-cli oracle (#FFFFC2 device
+        background); custom themes override via ``theme.body_fill``.
+        """
+        fill = getattr(elem, 'fill', None)
+        if fill is None:
+            return None
+        if fill.type == SymFillType.BACKGROUND:
+            color = theme.get_body_fill()
+            return None if color == 'none' else color
+        if fill.type == SymFillType.OUTLINE:
+            return stroke_color
+        if fill.type == SymFillType.COLOR and fill.color:
+            r, g, b = fill.color[0], fill.color[1], fill.color[2]
+            return f'#{r:02X}{g:02X}{b:02X}'
+        return None
+
+    def _append_fill(shape_svg: str, color: str) -> None:
+        # kicad-cli emits background fills as a stroke-free group drawn
+        # beneath the outline pass.
+        fill_lines.append(
+            f'<g style="fill:{color}; fill-opacity:1.0000; stroke:none;">'
+        )
+        fill_lines.append(shape_svg)
+        fill_lines.append('</g>')
+
+    def _append_fill_path(points: list[tuple[float, float]], color: str) -> None:
+        # kicad-cli emits polygonal fills as a single self-styled closed
+        # path (M ... Z) without repeating the closing point.
+        pts = list(points)
+        if len(pts) >= 2 and pts[0] == pts[-1]:
+            pts = pts[:-1]
+        if len(pts) < 3:
+            return
+        fill_lines.append(
+            f'<path style="fill:{color}; fill-opacity:1.0000; '
+            f'stroke:none;fill-rule:evenodd;"'
+        )
+        fill_lines.append(
+            f'd="M {ctx.fmt(ctx.tx(pts[0][0]))},{ctx.fmt(ctx.ty(pts[0][1]))}'
+        )
+        for x, y in pts[1:]:
+            fill_lines.append(f'{ctx.fmt(ctx.tx(x))},{ctx.fmt(ctx.ty(y))}')
+        fill_lines.append('Z" /> ')
+
+    fill_lines: list[str] = []
+
+    # ---- Fill pass (drawn first, beneath all outlines) ----
+    for rect in subsym.rectangles:
+        color = _fill_color(rect)
+        if color:
+            x1, y1 = ctx.tx(rect.start_x), ctx.ty(rect.start_y)
+            x2, y2 = ctx.tx(rect.end_x), ctx.ty(rect.end_y)
+            x, y = min(x1, x2), min(y1, y2)
+            w, h = abs(x2 - x1), abs(y2 - y1)
+            _append_fill(
+                f'<rect x="{ctx.fmt(x)}" y="{ctx.fmt(y)}" '
+                f'width="{ctx.fmt(w)}" height="{ctx.fmt(h)}" rx="0.0000" />',
+                color,
+            )
+
+    for circle in subsym.circles:
+        color = _fill_color(circle)
+        if color:
+            cx, cy = ctx.tx(circle.center_x), ctx.ty(circle.center_y)
+            _append_fill(
+                f'<circle cx="{ctx.fmt(cx)}" cy="{ctx.fmt(cy)}" '
+                f'r="{ctx.fmt(circle.radius)}" />',
+                color,
+            )
+
+    for poly in subsym.polylines:
+        color = _fill_color(poly)
+        if color and len(poly.points) >= 3:
+            _append_fill_path(list(poly.points), color)
+
+    for arc in subsym.arcs:
+        color = _fill_color(arc)
+        if color:
+            arc_points = _arc_to_points(arc.start_x, arc.start_y, arc.mid_x,
+                                        arc.mid_y, arc.end_x, arc.end_y,
+                                        segments=16)
+            _append_fill_path(arc_points, color)
+
+    lines.extend(fill_lines)
+
+    # ---- Stroke pass ----
     # Render polylines as path elements
     for poly in subsym.polylines:
         if len(poly.points) < 2:
             continue
+        style = _stroke_style(poly)
         # Build path data with translated coordinates
         path_d = f"M {ctx.fmt(ctx.tx(poly.points[0][0]))},{ctx.fmt(ctx.ty(poly.points[0][1]))}"
         for x, y in poly.points[1:]:
@@ -728,6 +832,7 @@ def _render_subsymbol_graphics(
 
     # Render rectangles as polylines (4 edges)
     for rect in subsym.rectangles:
+        style = _stroke_style(rect)
         x1, y1 = ctx.tx(rect.start_x), ctx.ty(rect.start_y)
         x2, y2 = ctx.tx(rect.end_x), ctx.ty(rect.end_y)
         # Each edge as a separate path
@@ -744,6 +849,7 @@ def _render_subsymbol_graphics(
 
     # Render circles
     for circle in subsym.circles:
+        style = _stroke_style(circle)
         cx = ctx.tx(circle.center_x)
         cy = ctx.ty(circle.center_y)
         r = circle.radius
@@ -764,6 +870,7 @@ def _render_subsymbol_graphics(
 
     # Render arcs
     for arc in subsym.arcs:
+        style = _stroke_style(arc)
         arc_points = _arc_to_points(arc.start_x, arc.start_y, arc.mid_x, arc.mid_y,
                                     arc.end_x, arc.end_y, segments=16)
         if arc_points:
@@ -956,6 +1063,7 @@ def _append_stroked_text(
     v_align: str,
     class_name: str,
     ctx: SymbolSvgContext,
+    stroke_color: Optional[str] = None,
 ) -> None:
     if not text:
         return
@@ -968,6 +1076,13 @@ def _append_stroked_text(
         anchor = "end"
     text_len = len(text) * size_x * 0.6
     escaped = _escape_xml(text)
+    if stroke_color is not None:
+        # Per-role color override (e.g. pin numbers use #A90000 in the
+        # kicad-cli default theme while the enclosing text group is #006464).
+        lines.append(
+            f'<g style="fill:none; stroke:{stroke_color}; '
+            f'stroke-opacity:1; stroke-linecap:round; stroke-linejoin:round;">'
+        )
     lines.append(f'<text x="{ctx.fmt(pos_x)}" y="{ctx.fmt(pos_y)}"')
     lines.append(
         f'textLength="{ctx.fmt(text_len)}" font-size="{ctx.fmt(size_y)}" '
@@ -996,6 +1111,8 @@ def _append_stroked_text(
             lines.append('" />')
 
     lines.append('</g>')
+    if stroke_color is not None:
+        lines.append('</g>')
 
 
 def _render_subsymbol_pin_texts(
@@ -1071,6 +1188,7 @@ def _render_subsymbol_pin_texts(
                 v_align=v_align,
                 class_name="pin-number",
                 ctx=ctx,
+                stroke_color=ctx.theme.get_pin_number_color(),
             )
 
         if draws_name:

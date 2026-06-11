@@ -44,6 +44,8 @@ from typing import Any, Iterator, List, Optional, Union, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .kicad_geometry import BoundingBox
+    from .kicad_object_collection import KiCadObjectCollection
+    from .kicad_plotter_ir import KiCadPlotterDocument
     from .kicad_sch_svg_renderer import KiCadSvgRenderOptions
 
 from ._api_markers import public_api
@@ -679,7 +681,7 @@ class KiCadPcb:
         *,
         source_path: str | None = None,
         document_id: str | None = None,
-    ):
+    ) -> "KiCadPlotterDocument":
         """Render this board to plotter IR."""
         from .kicad_pcb_to_ir import pcb_to_ir
 
@@ -715,7 +717,7 @@ class KiCadPcb:
 
     @public_api
     @property
-    def objects(self):
+    def objects(self) -> "KiCadObjectCollection":
         """Live read-only query view over board-owned objects."""
         from .kicad_object_collection import KiCadObjectCollection
 

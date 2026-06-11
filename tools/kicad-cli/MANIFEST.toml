@@ -1,0 +1,50 @@
+# kicad-cli versions staged in the test corpus.
+#
+# Binaries themselves live in the corpus (WN_TEST_CORPUS), NOT in this
+# repo (each version is several hundred megabytes). This manifest is the
+# authoritative pointer: tests/kicad_cli_resolver.py prefers builds in
+# the order they are listed here over any other staged build found by
+# mtime. The corpus can contain stale experimental builds that must not
+# be picked up just because their mtime is newer.
+#
+# To add a new staged version, build kicad-cli from a clean checkout,
+# copy the resulting release tree to
+#   <corpus>/tools/kicad-cli/<short-hash>/{bin,share,lib,etc}
+# and append a [[versions]] block here.
+
+corpus_relative_root = "tools/kicad-cli"
+license = "GPL-2.0-or-later"
+
+[[versions]]
+short_hash     = "f11d3da6771a"
+kicad_commit   = "f11d3da6771a56ac3df742bbfc069d20e2c24cde"
+kicad_version  = "10.99.0"
+build_type     = "RelWithDebInfo"
+platform       = "win32-x64"
+staged_on      = "2026-05-12"
+sch_format_max = 20260410
+recorder       = true
+notes = """
+Active schematic SVG/IR oracle build (RECORDER_PLOTTER patches +
+eeschema KICAD_RECORDER_OUTPUT hook). Schematic-only staging: no
+_pcbnew.dll, so the resolver's pcb_svg capability probe skips it.
+"""
+
+[[versions]]
+short_hash     = "76f8839fd232"
+kicad_commit   = "76f8839fd232594f81180f644e3370c390025144"
+kicad_version  = "10.99.0"
+build_type     = "RelWithDebInfo"
+platform       = "win32-x64"
+staged_on      = "2026-05-09"
+sch_format_max = 20260410
+notes = """
+Active PCB SVG oracle build. Self-contained release tree (bin + share)
+built from canonical KiCad source. Includes upstream commit 934a5bac34
+(FROM_CHARS_FLAGS): scientific notation in .kicad_pcb round-trips
+correctly, unlike the kicad-win-builder stagings (99c64afbf83f /
+00911f90fd99), which are stale and must not be used as oracles. The
+win-builder builds also compute SVG page origin with half-stroke
+inflation, producing a constant 0.025 mm draw-item shift vs the
+reference output used by L3_016.
+"""

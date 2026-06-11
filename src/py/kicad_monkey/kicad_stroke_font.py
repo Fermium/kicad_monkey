@@ -28,6 +28,84 @@ STROKE_FONT_SCALE = 1.0 / 21.0
 FONT_OFFSET = -8
 ITALIC_TILT = 1.0 / 8.0  # tan(angle) for italic (from font.h line 61)
 
+# Markup constants from KiCad:
+# - OVERBAR_POSITION_FACTOR: KIFONT::METRICS::m_OverbarHeight (font_metrics.h),
+#   the distance between the text baseline and the overbar, in glyph heights.
+# - OVERBAR_TRIM_RATIO: font.cpp drawMarkup() shortens the bar by
+#   ``aSize.x * 0.1`` at each end so its rounded caps don't overhang.
+# - SUPER_SUB_SIZE_MULTIPLIER / SUPER_HEIGHT_OFFSET / SUB_HEIGHT_OFFSET:
+#   STROKE_FONT::GetTextAsGlyphs() (stroke_font.cpp).
+OVERBAR_POSITION_FACTOR = 1.23
+OVERBAR_TRIM_RATIO = 0.1
+SUPER_SUB_SIZE_MULTIPLIER = 0.8
+SUPER_HEIGHT_OFFSET = 0.35
+SUB_HEIGHT_OFFSET = 0.15
+
+_MARKUP_MARKERS = ("~{", "^{", "_{")
+
+
+@dataclass
+class MarkupNode:
+    """One node of KiCad's lightweight text markup tree.
+
+    Either a plain-text run (``marker == ""``) or a marked span
+    (``marker`` in ``~`` overbar / ``^`` superscript / ``_`` subscript)
+    whose content lives in ``children``.
+    """
+
+    text: str = ""
+    marker: str = ""
+    children: "List[MarkupNode]" = None  # type: ignore[assignment]
+
+    def __post_init__(self) -> None:
+        if self.children is None:
+            self.children = []
+
+
+def has_markup(text: str) -> bool:
+    """Return True when *text* contains KiCad ``~{}`` / ``^{}`` / ``_{}`` markup."""
+    return any(marker in text for marker in _MARKUP_MARKERS)
+
+
+def parse_markup(text: str) -> "List[MarkupNode]":
+    """Parse KiCad's ``~{}`` (overbar), ``^{}`` (superscript) and ``_{}``
+    (subscript) markup into a node tree.
+
+    Mirrors KiCad's MARKUP parser semantics: a marker character is only
+    special when immediately followed by ``{``; everything else (including
+    bare ``~``/``^``/``_`` and unmatched ``}``) is literal text.
+    """
+
+    def parse_parts(index: int, stop_on_brace: bool = False) -> Tuple[List[MarkupNode], int]:
+        parts: List[MarkupNode] = []
+        buffer: List[str] = []
+
+        def flush_buffer() -> None:
+            if buffer:
+                parts.append(MarkupNode(text="".join(buffer)))
+                buffer.clear()
+
+        while index < len(text):
+            char = text[index]
+            if stop_on_brace and char == "}":
+                flush_buffer()
+                return parts, index + 1
+
+            if index + 1 < len(text) and char in "^_~" and text[index + 1] == "{":
+                flush_buffer()
+                children, index = parse_parts(index + 2, stop_on_brace=True)
+                parts.append(MarkupNode(marker=char, children=children))
+                continue
+
+            buffer.append(char)
+            index += 1
+
+        flush_buffer()
+        return parts, index
+
+    parts, _index = parse_parts(0)
+    return parts
+
 # Load glyph data from JSON file
 _GLYPH_DATA_FILE = Path(__file__).parent / "kicad_stroke_font_data.json"
 
@@ -443,45 +521,93 @@ class KiCadStrokeFontRenderer:
         polylines: List[List[Tuple[float, float]]] = []
         cursor_x = offset_x
 
-        for char in text:
-            if char == " ":
-                cursor_x += self._space_width * size_x
-                continue
+        def transform_point(sx: float, sy: float, *, point_tilt: float) -> Tuple[float, float]:
+            # Italic tilt (add, not subtract, to match KiCad behavior)
+            if point_tilt != 0:
+                sx += sy * point_tilt
 
-            glyph = get_glyph(char)
-            if glyph is None:
-                glyph = get_glyph("?")
+            # Mirror
+            if mirror:
+                sx = -sx
+
+            # Rotate (standard CCW rotation in coordinate space)
+            rx = sx * cos_a - sy * sin_a
+            ry = sx * sin_a + sy * cos_a
+
+            # Translate to final position
+            return (rx + pos_x, ry + pos_y)
+
+        def emit_chars(chars: str, glyph_size_x: float, glyph_size_y: float, style_dy: float) -> None:
+            nonlocal cursor_x
+            for char in chars:
+                if char == " ":
+                    cursor_x += self._space_width * glyph_size_x
+                    continue
+
+                glyph = get_glyph(char)
                 if glyph is None:
+                    glyph = get_glyph("?")
+                    if glyph is None:
+                        continue
+
+                for stroke in glyph.strokes:
+                    if len(stroke) < 2:
+                        continue
+
+                    polyline: List[Tuple[float, float]] = []
+                    for gx, gy in stroke:
+                        # Scale and add cursor offset
+                        sx = gx * glyph_size_x + cursor_x
+                        sy = gy * glyph_size_y + offset_y + style_dy
+                        polyline.append(transform_point(sx, sy, point_tilt=tilt))
+
+                    polylines.append(polyline)
+
+                cursor_x += glyph.width * glyph_size_x
+
+        def walk(nodes: List[MarkupNode], subscript: bool, superscript: bool) -> None:
+            nonlocal cursor_x
+            for node in nodes:
+                if not node.marker:
+                    # Plain text run. Sub/superscript scale and baseline shift
+                    # mirror STROKE_FONT::GetTextAsGlyphs() (subscript wins
+                    # the offset when both flags are inherited).
+                    if subscript or superscript:
+                        glyph_size_x = size_x * SUPER_SUB_SIZE_MULTIPLIER
+                        glyph_size_y = size_y * SUPER_SUB_SIZE_MULTIPLIER
+                        if subscript:
+                            style_dy = glyph_size_y * SUB_HEIGHT_OFFSET
+                        else:
+                            style_dy = -glyph_size_y * SUPER_HEIGHT_OFFSET
+                    else:
+                        glyph_size_x = size_x
+                        glyph_size_y = size_y
+                        style_dy = 0.0
+                    emit_chars(node.text, glyph_size_x, glyph_size_y, style_dy)
                     continue
 
-            for stroke in glyph.strokes:
-                if len(stroke) < 2:
-                    continue
+                bar_start_x = cursor_x
+                walk(
+                    node.children,
+                    subscript or node.marker == "_",
+                    superscript or node.marker == "^",
+                )
+                if node.marker == "~":
+                    # Overbar per FONT::drawMarkup(): a single bar from the
+                    # span's start cursor to its end cursor, trimmed a little
+                    # at both ends, at 1.23 glyph heights above the baseline.
+                    # The bar is never italic-tilted (Transform gets tilt=0).
+                    trim = size_x * OVERBAR_TRIM_RATIO
+                    bar_y = offset_y - size_y * OVERBAR_POSITION_FACTOR
+                    polylines.append([
+                        transform_point(bar_start_x + trim, bar_y, point_tilt=0.0),
+                        transform_point(cursor_x - trim, bar_y, point_tilt=0.0),
+                    ])
 
-                polyline: List[Tuple[float, float]] = []
-                for gx, gy in stroke:
-                    # Scale and add cursor offset
-                    sx = gx * size_x + cursor_x
-                    sy = gy * size_y + offset_y
-
-                    # Italic tilt (add, not subtract, to match KiCad behavior)
-                    if tilt != 0:
-                        sx += sy * tilt
-
-                    # Mirror
-                    if mirror:
-                        sx = -sx
-
-                    # Rotate (standard CCW rotation in coordinate space)
-                    rx = sx * cos_a - sy * sin_a
-                    ry = sx * sin_a + sy * cos_a
-
-                    # Translate to final position
-                    polyline.append((rx + pos_x, ry + pos_y))
-
-                polylines.append(polyline)
-
-            cursor_x += glyph.width * size_x
+        if has_markup(text):
+            walk(parse_markup(text), False, False)
+        else:
+            emit_chars(text, size_x, size_y, 0.0)
 
         return polylines
 
@@ -525,15 +651,33 @@ class KiCadStrokeFontRenderer:
         return segments
 
     def _calculate_text_width(self, text: str) -> float:
-        """Calculate normalized text width."""
+        """Calculate normalized text width (markup-aware)."""
+        if has_markup(text):
+            return self._markup_nodes_width(parse_markup(text), styled=False)
+        return self._plain_run_width(text, scale=1.0)
+
+    def _plain_run_width(self, text: str, *, scale: float) -> float:
         width = 0.0
         for char in text:
             if char == " ":
-                width += self._space_width
+                width += self._space_width * scale
             else:
                 glyph = get_glyph(char)
                 if glyph:
-                    width += glyph.width
+                    width += glyph.width * scale
+        return width
+
+    def _markup_nodes_width(self, nodes: "List[MarkupNode]", *, styled: bool) -> float:
+        width = 0.0
+        for node in nodes:
+            if not node.marker:
+                scale = SUPER_SUB_SIZE_MULTIPLIER if styled else 1.0
+                width += self._plain_run_width(node.text, scale=scale)
+            else:
+                width += self._markup_nodes_width(
+                    node.children,
+                    styled=styled or node.marker in "_^",
+                )
         return width
 
 

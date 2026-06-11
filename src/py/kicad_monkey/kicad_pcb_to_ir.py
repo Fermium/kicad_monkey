@@ -642,6 +642,10 @@ def gr_text_to_op(text: "GrText", board: "KiCadPcb | None" = None) -> KiCadPlott
             payload={
                 **op.payload,
                 "text_as_polygons": True,
+                # kicad-cli plots stroke-font board text one segment per
+                # path (PCB plotter records each MoveTo/LineTo pair), so
+                # request per-segment polyline granularity for parity.
+                "polyline_per_segment": True,
             },
         )
     op = _op_with_render_cache_payload(op, cache_request)

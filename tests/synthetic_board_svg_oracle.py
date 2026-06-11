@@ -217,6 +217,63 @@ SYNTHETIC_ORACLE_CASES: Tuple[SyntheticOracleCase, ...] = (
         metrics=("viewbox", "total_strokes", "filled_black_ink_area"),
         minimums=(("total_strokes", 1),),
     ),
+    # Font parity ratchet (2026-06-10). Despite their directory names,
+    # case026-028 carry an Arial ``(face ...)`` + embedded render_cache,
+    # so they pin TTF glyph-polygon replay (filled paths + ink area).
+    # case029 is the true KiCad stroke-font case: kicad-cli plots one
+    # path per stroke segment, matched by the gr_text
+    # ``polyline_per_segment`` granularity in the IR converter.
+    # case030-032 pin a second TTF face ("Wavenumber" render_cache)
+    # across silk / copper / mask layers.
+    SyntheticOracleCase(
+        case_id="text_ttf_arial_silk",
+        board_relpath="case026__text_stroke_basic/simple_text.kicad_pcb",
+        layers=("F.SilkS",),
+        metrics=("viewbox", "total_strokes", "filled_black_ink_area"),
+        minimums=(("total_strokes", 1),),
+    ),
+    SyntheticOracleCase(
+        case_id="text_ttf_arial_bold_silk",
+        board_relpath="case027__text_stroke_bold/simple_text_bold.kicad_pcb",
+        layers=("F.SilkS",),
+        metrics=("viewbox", "total_strokes", "filled_black_ink_area"),
+        minimums=(("total_strokes", 1),),
+    ),
+    SyntheticOracleCase(
+        case_id="text_ttf_arial_italic_silk",
+        board_relpath="case028__text_stroke_italic/simple_test_italic.kicad_pcb",
+        layers=("F.SilkS",),
+        metrics=("viewbox", "total_strokes", "filled_black_ink_area"),
+        minimums=(("total_strokes", 1),),
+    ),
+    SyntheticOracleCase(
+        case_id="text_stroke_kicad_font_silk",
+        board_relpath="case029__text_stroke_kicad_font/simple_test_kicad_font.kicad_pcb",
+        layers=("F.SilkS",),
+        metrics=("viewbox", "total_strokes"),
+        minimums=(("total_strokes", 4),),
+    ),
+    SyntheticOracleCase(
+        case_id="text_ttf_wavenumber_silk",
+        board_relpath="case030__text_ttf_arial/complex_font.kicad_pcb",
+        layers=("F.SilkS",),
+        metrics=("viewbox", "total_strokes", "filled_black_ink_area"),
+        minimums=(("total_strokes", 1),),
+    ),
+    SyntheticOracleCase(
+        case_id="text_ttf_wavenumber_top_copper",
+        board_relpath="case031__text_ttf_arial_top/complex_font_top_layer.kicad_pcb",
+        layers=("F.Cu",),
+        metrics=("viewbox", "total_strokes", "filled_black_ink_area"),
+        minimums=(("total_strokes", 1),),
+    ),
+    SyntheticOracleCase(
+        case_id="text_ttf_wavenumber_top_mask",
+        board_relpath="case032__text_ttf_arial_top_mask/complex_font_top_layer_top_soldermask.kicad_pcb",
+        layers=("F.Mask",),
+        metrics=("viewbox", "total_strokes", "filled_black_ink_area"),
+        minimums=(("total_strokes", 1),),
+    ),
 )
 
 

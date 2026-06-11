@@ -14,6 +14,9 @@ from typing import Iterator, List, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .kicad_geometry import BoundingBox, SvgRenderContext
+    from .kicad_object_collection import KiCadObjectCollection
+    from .kicad_pcb import KiCadPcb
+    from .kicad_plotter_ir import KiCadPlotterDocument
 
 from ._api_markers import public_api
 from .kicad_sexpr import QuotedString
@@ -438,7 +441,12 @@ class Footprint:
         return self.placement.sheetfile
 
     @public_api
-    def to_ir(self, *, document_id: str | None = None, board=None):
+    def to_ir(
+        self,
+        *,
+        document_id: str | None = None,
+        board: "KiCadPcb | None" = None,
+    ) -> "KiCadPlotterDocument":
         """Render this PCB-embedded footprint to a single-record plotter IR document."""
         from .kicad_pcb_to_ir import pcb_footprint_to_record
         from .kicad_plotter_ir import KiCadPlotterDocument
@@ -486,7 +494,7 @@ class Footprint:
 
     @public_api
     @property
-    def objects(self):
+    def objects(self) -> "KiCadObjectCollection":
         """Live read-only query view over embedded-footprint-owned objects."""
         from .kicad_object_collection import KiCadObjectCollection
 

@@ -1085,6 +1085,7 @@ def svg_text_poly(
     font_face: str = "",
     pen_width_nm: int | float | None = None,
     mirror: bool = False,
+    per_segment: bool | None = None,
 ) -> str:
     """
     Emit text as ``<polyline>`` strokes via :class:`KiCadStrokeFontRenderer`.
@@ -1131,7 +1132,8 @@ def svg_text_poly(
     if not polylines_mm:
         return ""
 
-    per_segment = bool(ctx.options.text_polyline_per_segment) if ctx is not None else False
+    if per_segment is None:
+        per_segment = bool(ctx.options.text_polyline_per_segment) if ctx is not None else False
 
     fragments: list[str] = []
     for polyline in polylines_mm:

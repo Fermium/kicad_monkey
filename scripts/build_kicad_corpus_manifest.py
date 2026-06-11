@@ -396,7 +396,23 @@ def _topic_cases(kicad_root: Path) -> list[dict[str, Any]]:
         )
 
     for sym in sorted((kicad_root / "symbol_svg" / "input").glob("*.kicad_sym")):
-        origin = "fixture" if sym.stem == "MIMXRT685SFVKB" else "synthetic"
+        is_internal_library = sym.stem == "MIMXRT685SFVKB"
+        origin = "internal_library" if is_internal_library else "synthetic"
+        if is_internal_library:
+            provenance = {
+                "source_kind": "internal_library_copy",
+                "source_path": (
+                    "C:/eli/wn-hw/libz/wn-general/symbols/kicad/"
+                    "MIMXRT685SFVKB.kicad_sym"
+                ),
+                "license_usage": "internal_validation_only",
+            }
+        else:
+            provenance = {
+                "source_kind": "synthetic",
+                "source_path": None,
+                "license_usage": "test_fixture",
+            }
         cases.append(
             _topic_case(
                 kicad_root,
@@ -407,13 +423,7 @@ def _topic_cases(kicad_root: Path) -> list[dict[str, Any]]:
                 origin=origin,
                 extra={
                     "symbol_unit_count": _symbol_unit_count(sym),
-                    "provenance": {
-                        "source_kind": "library_fixture"
-                        if origin == "fixture"
-                        else "synthetic",
-                        "source_path": None,
-                        "license_usage": "test_fixture",
-                    },
+                    "provenance": provenance,
                 },
             )
         )
@@ -426,7 +436,7 @@ def _topic_cases(kicad_root: Path) -> list[dict[str, Any]]:
                 case_id=fp.stem,
                 input_file=fp,
                 domains=["footprint_ir", "footprint_svg", "footprint_library"],
-                origin="fixture",
+                origin="internal_library",
             )
         )
 
@@ -687,11 +697,11 @@ def _real_world_recorder_cases(kicad_root: Path) -> list[dict[str, Any]]:
             first="",
             recorder_only=["StrokedTextRun", "ThickSegment"],
         ),
-        "crickets_charge_indicator.1": active(
-            "crickets_charge_indicator",
+        "charge_indicator.1": active(
+            "charge_indicator",
             (
-                "projects/crickets_charge_indicator/input/"
-                "11-10043__crickets_charge_indicator__C.kicad_sch"
+                "projects/charge_indicator/input/"
+                "11-10043__charge_indicator__C.kicad_sch"
             ),
             canvas=[0, 0],
             matched=461,
@@ -701,11 +711,11 @@ def _real_world_recorder_cases(kicad_root: Path) -> list[dict[str, Any]]:
             first="",
             recorder_only=["PlotImage", "StrokedTextRun"],
         ),
-        "crickets_taillight.1": reference(
-            "crickets_taillight",
+        "taillight.1": reference(
+            "taillight",
             (
-                "projects/crickets_taillight/input/"
-                "11-10045__crickets_taillight__C.kicad_sch"
+                "projects/taillight/input/"
+                "11-10045__taillight__C.kicad_sch"
             ),
             canvas=[0, 0],
             reason="its top-level normalized match ratio is below the active "

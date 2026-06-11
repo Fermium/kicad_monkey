@@ -128,9 +128,12 @@ CASES = [
 
 @pytest.fixture(scope="module")
 def kicad_cli() -> Path:
-    cli = resolve_kicad_cli()
+    # This gate upgrades both schematic and PCB files, so it needs a build
+    # with the pcbnew kiface loaded (schematic-only staged builds cannot
+    # run `pcb upgrade`).
+    cli = resolve_kicad_cli(required_capability="pcb_svg")
     if cli is None or not Path(cli).exists():
-        pytest.skip("no kicad-cli resolvable on this machine")
+        pytest.skip("no PCB-capable kicad-cli resolvable on this machine")
     return Path(cli)
 
 

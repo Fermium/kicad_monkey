@@ -35,8 +35,8 @@ def _manifest_short_hashes() -> list[str]:
     experimental builds that should not be used just because their mtime is
     newer.
     """
-    tests_repo_root = Path(__file__).resolve().parents[3]
-    manifest = tests_repo_root / "tools" / "kicad-cli" / "MANIFEST.toml"
+    repo_root = Path(__file__).resolve().parents[1]
+    manifest = repo_root / "tools" / "kicad-cli" / "MANIFEST.toml"
     if not manifest.exists():
         return []
 

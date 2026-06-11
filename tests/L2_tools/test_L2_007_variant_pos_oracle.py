@@ -66,9 +66,11 @@ def _variants_pcb() -> Path:
 
 @pytest.fixture(scope="module")
 def kicad_cli() -> Path:
-    cli = resolve_kicad_cli()
+    # `pcb export pos` needs the pcbnew kiface; schematic-only staged builds
+    # cannot run it.
+    cli = resolve_kicad_cli(required_capability="pcb_svg")
     if cli is None or not Path(cli).exists():
-        pytest.skip("no kicad-cli resolvable on this machine")
+        pytest.skip("no PCB-capable kicad-cli resolvable on this machine")
     return Path(cli)
 
 
