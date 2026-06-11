@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026.6.10
+
+- Fix pin-name markup rendering in symbol SVG output: `~{...}` overbar,
+  `_{...}` subscript, and `^{...}` superscript are now parsed and rendered
+  instead of being drawn literally (GitHub issue #1). Markup works for both
+  the KiCad stroke font and TTF-faced pin fonts, with bar position, glyph
+  scaling, and baseline offsets matching `kicad-cli sym export svg`.
+- Align the default symbol SVG theme with KiCad CLI output (body fill,
+  outline stroke widths, pin-number color). Custom theme overrides remain
+  available and unchanged.
+- Add stroke-font markup unit coverage, TTF-face overbar regression cases,
+  and strict element-level symbol SVG parity tests against the KiCad CLI
+  reference output.
+- Pin the staged KiCad CLI oracle builds in `tools/kicad-cli/MANIFEST.toml`
+  so test references resolve deterministically instead of by file mtime.
+- Refresh the redistributable test corpus archive: add overbar markup
+  fixtures (stroke and TTF variants), exclude regenerable runtime products
+  (`output/`, `_stage/`, `.kicad_prl`) from packaging and hygiene checks,
+  and remove editor/backup debris.
+
 ## 2026.6.3
 
 - Publish the 2026-06-03 public package build for downstream KiCad SVG and
