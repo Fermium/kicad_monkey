@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026.6.13
+
+- Fix KiCad netlist parity for hierarchical designs with sheet-level board
+  exclusion: off-board child sheet contents are omitted while parent-side sheet
+  pin nets remain connected.
+- Align KiCad S-expression netlist component metadata with `kicad-cli`,
+  including shown field text, blank `~` normalization, `libsource`,
+  `sheetpath`, `tstamps`, property rows, and multi-unit `units` blocks.
+- Improve multi-unit symbol handling with KiCad-like duplicate reference
+  suppression, instance timestamp ordering, unit names, common pins, stacked pin
+  expansion, and unit pin ordering.
+- Add the sanitized `4-ch-backplane` real-world fixture to the packed corpus as
+  an active netlist, schematic SVG/IR, and PCB SVG/IR regression case for the
+  hierarchy/design-block issue that exposed the old parser drift.
+- Refresh strict KiCad CLI oracle coverage for netlist projects and document the
+  remaining expected metadata-only xfails separately from structural netlist
+  parity.
+
 ## 2026.6.10
 
 - Fix pin-name markup rendering in symbol SVG output: `~{...}` overbar,

@@ -29,6 +29,7 @@ from kicad_monkey import (
 )
 from kicad_monkey.kicad_lib_subsymbol import LibSubSymbol
 from kicad_monkey.kicad_lib_symbol import LibSymbol
+from kicad_monkey.kicad_netlist_model import KiCadNetlistComponentUnit
 from kicad_monkey.kicad_sch_enums import PinElectricalType, PinGraphicStyle
 from kicad_monkey.kicad_sch_symbol import SchSymbol
 from kicad_monkey.kicad_schematic import KiCadSchematic
@@ -288,6 +289,39 @@ def test_emit_components_carry_extra_properties():
     assert _value(p, "value") == "ERJ-3EKF1002V"
 
 
+def test_emit_components_carry_kicad_metadata_blocks():
+    nl = _simple_netlist()
+    comp_model = nl.components[0]
+    comp_model.datasheet = "https://example.test/r1.pdf"
+    comp_model.description = "Resistor row"
+    comp_model.fields = {
+        "MPN": "ERJ-3EKF1002V",
+        "Footprint": "Resistor_SMD:R_0603",
+        "Datasheet": "https://example.test/r1.pdf",
+        "Description": "",
+    }
+    comp_model.units = [KiCadNetlistComponentUnit(name="A", pins=["1", "2"])]
+    text = to_kicad_sexpr(nl)
+    tree = parse_sexp(text)
+    comp = _find(_find(tree, "components"), "comp")
+    assert _value(comp, "datasheet") == "https://example.test/r1.pdf"
+    assert _value(comp, "description") == "Resistor row"
+
+    fields = _find_all(_find(comp, "fields"), "field")
+    assert [(_value(field, "name"), _strip(field[2]) if len(field) > 2 else "") for field in fields] == [
+        ("MPN", "ERJ-3EKF1002V"),
+        ("Footprint", "Resistor_SMD:R_0603"),
+        ("Datasheet", "https://example.test/r1.pdf"),
+        ("Description", ""),
+    ]
+
+    units = _find(comp, "units")
+    unit = _find(units, "unit")
+    assert _value(unit, "name") == "A"
+    pins = _find_all(_find(unit, "pins"), "pin")
+    assert [_value(pin, "num") for pin in pins] == ["1", "2"]
+
+
 def test_emit_components_carry_sheetpath_and_tstamps():
     text = to_kicad_sexpr(_simple_netlist())
     tree = parse_sexp(text)
@@ -296,6 +330,17 @@ def test_emit_components_carry_sheetpath_and_tstamps():
     assert _value(sp, "names") == "/"
     assert _value(sp, "tstamps") == "/"
     assert _value(comp, "tstamps") == "r1-uuid"
+
+
+def test_emit_components_carry_multi_unit_tstamps():
+    nl = _simple_netlist()
+    nl.components[0].instance_uuid = "u1"
+    nl.components[0].instance_uuids = ["u1", "u2", "u3"]
+    text = to_kicad_sexpr(nl)
+    tree = parse_sexp(text)
+    comp = _find(_find(tree, "components"), "comp")
+    tstamps = _find(comp, "tstamps")
+    assert [_strip(value) for value in tstamps[1:]] == ["u1", "u2", "u3"]
 
 
 def test_emit_components_omit_footprint_when_empty():

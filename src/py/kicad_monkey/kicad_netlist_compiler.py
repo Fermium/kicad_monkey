@@ -208,6 +208,12 @@ class _PinDriver:
     # since pin names aren't unique across units. Equals
     # :attr:`designator` for single-unit symbols.
     designator_with_unit: str = ""
+    # Number of active pins on the parent symbol for this sheet/unit.
+    # KiCad's connection graph treats isolated one-pin component symbols
+    # as forced no-connects even when that single pin has a visible name;
+    # multi-pin symbols can still produce high-quality ``Net-(ref-name)``
+    # auto names for isolated named pins.
+    parent_pin_count: int = 0
     # True for hidden ``power_in`` pins on ordinary symbols. KiCad lets
     # these implicitly join a power net by pin name, but an explicit
     # power symbol on the same merged net wins the naming tiebreak.
@@ -254,6 +260,11 @@ class _LabelDriver:
     # suffixing stable when final net materialisation order differs from
     # schematic driver discovery order.
     source_order: int = 0
+    # Optional sheet path to use when this driver wins net naming.
+    # Single-sheet compilation fills this with the current sheet path;
+    # design-level compilation may override sheet-pin naming for special
+    # hierarchy cases such as off-board child sheets.
+    sheet_path: str = ""
 
     @property
     def name(self) -> str:
@@ -291,6 +302,7 @@ class Subgraph:
     chosen_priority: KiCadDriverPriority = KiCadDriverPriority.NONE
     chosen_kind: KiCadDriverKind = KiCadDriverKind.NONE
     chosen_name: str = ""
+    chosen_sheet_path: str = ""
     no_connect: bool = False
 
 
@@ -309,12 +321,14 @@ def _resolve_driver(sg: Subgraph) -> None:
     priority compare.
     """
     candidates: List[Tuple[
-        KiCadDriverPriority, int, str, KiCadDriverKind, str, int,
+        KiCadDriverPriority, int, str, KiCadDriverKind, str, int, str,
     ]] = []
 
     # Label-style drivers
     for idx, ld in enumerate(sg.label_drivers):
-        candidates.append((ld.priority, 0, ld.name, ld.kind, ld.name, idx))
+        candidates.append((
+            ld.priority, 0, ld.name, ld.kind, ld.name, idx, ld.sheet_path
+        ))
 
     # Pin-style drivers — only contribute if no higher-priority label
     # exists (priority comparison handles this naturally).
@@ -325,13 +339,14 @@ def _resolve_driver(sg: Subgraph) -> None:
         implicit_rank = 1 if pd.is_implicit_hidden_power else 0
         candidates.append((
             pd.priority, implicit_rank, display, _pin_kind(pd.priority),
-            display, pin_offset + idx,
+            display, pin_offset + idx, "",
         ))
 
     if not candidates:
         sg.chosen_priority = KiCadDriverPriority.NONE
         sg.chosen_kind = KiCadDriverKind.NONE
         sg.chosen_name = ""
+        sg.chosen_sheet_path = ""
         return
 
     # Sort by (-priority, implicit-hidden-power rank, name, insertion_idx)
@@ -342,6 +357,7 @@ def _resolve_driver(sg: Subgraph) -> None:
     sg.chosen_priority = KiCadDriverPriority(best[0])
     sg.chosen_kind = best[3]
     sg.chosen_name = best[4]
+    sg.chosen_sheet_path = best[6] or ""
 
 
 def _pin_kind(priority: KiCadDriverPriority) -> KiCadDriverKind:
@@ -404,7 +420,10 @@ def name_net(sg: Subgraph, sheet_path: str = "/") -> Tuple[str, bool]:
         # ``CTX_NETNAME`` escape (``/`` → ``{slash}``) here. Mirrors
         # KiCad's ``SCH_CONNECTION::ConfigureFromLabel`` /
         # ``Name()`` which composes pre-escaped name segments.
-        return f"{sheet_path}{_escape_netname(sg.chosen_name)}", False
+        scoped_sheet_path = sg.chosen_sheet_path or sheet_path
+        if not scoped_sheet_path.endswith("/"):
+            scoped_sheet_path = scoped_sheet_path + "/"
+        return f"{scoped_sheet_path}{_escape_netname(sg.chosen_name)}", False
 
     # No driver / pure pin — auto-name from the best pin candidate.
     #
@@ -427,11 +446,25 @@ def name_net(sg: Subgraph, sheet_path: str = "/") -> Tuple[str, bool]:
     # insertion order.
     if sg.pin_drivers:
         is_isolated = len(sg.pin_drivers) == 1
-        # ``sg.no_connect`` flags subgraph-level NC markers. A single
-        # NC-typed pin or a single isolated pin both flip the prefix
-        # to ``unconnected-``; multi-pin subgraphs with a mix of NC
-        # and non-NC pins inherit the prefix from the chosen pin.
-        sg_unconnected = sg.no_connect or is_isolated
+        single_pin = sg.pin_drivers[0] if is_isolated else None
+        single_pin_type = single_pin.pin_type if single_pin is not None else ""
+        isolated_one_pin_symbol = (
+            single_pin is not None
+            and int(getattr(single_pin, "parent_pin_count", 0) or 0) == 1
+        )
+        weak_isolated = (
+            is_isolated
+            and (
+                single_pin_type in ("passive", "unspecified")
+                or "no_connect" in single_pin_type
+                or isolated_one_pin_symbol
+            )
+        )
+        # ``sg.no_connect`` flags subgraph-level NC markers. Explicit
+        # NC pins, weak isolated pins, and isolated one-pin symbols flip
+        # the prefix to ``unconnected-``; visible named pins on multi-pin
+        # symbols can keep KiCad's normal ``Net-(ref-pinname)`` form.
+        sg_unconnected = sg.no_connect or weak_isolated
 
         def _pin_suffix(pd: "_PinDriver", forced_unconn: bool) -> Tuple[str, bool]:
             """Return (suffix, is_unconnected) per KiCad rules.
@@ -985,6 +1018,7 @@ def _collect_pin_drivers(
                     power_value=pin_power_value,
                     has_multiple=has_multiple,
                     designator_with_unit=designator_with_unit,
+                    parent_pin_count=len(symbol_pins),
                     is_implicit_hidden_power=pin_is_implicit_hidden_power,
                     source_uuid=source_pin_uuid,
                     svg_uuid=getattr(symbol, "uuid", "") or "",
@@ -1006,6 +1040,7 @@ def _pin_type_to_string(electrical_type) -> str:
 def _collect_label_drivers(
     schematic: "KiCadSchematic",
     cgraph: ConnectivityGraph,
+    sheet_path: str = "/",
 ) -> List[_LabelDriver]:
     """Emit one driver per label / global label / hier label / sheet pin.
 
@@ -1033,6 +1068,7 @@ def _collect_label_drivers(
             source_uuid=getattr(label, "uuid", "") or "",
             svg_uuid=getattr(label, "uuid", "") or "",
             source_order=_next_source_order(),
+            sheet_path=sheet_path,
         ))
 
     for label in getattr(schematic, "global_labels", ()):
@@ -1045,6 +1081,7 @@ def _collect_label_drivers(
             source_uuid=getattr(label, "uuid", "") or "",
             svg_uuid=getattr(label, "uuid", "") or "",
             source_order=_next_source_order(),
+            sheet_path=sheet_path,
         ))
 
     for label in getattr(schematic, "hierarchical_labels", ()):
@@ -1059,6 +1096,7 @@ def _collect_label_drivers(
             source_uuid=getattr(label, "uuid", "") or "",
             svg_uuid=getattr(label, "uuid", "") or "",
             source_order=_next_source_order(),
+            sheet_path=sheet_path,
         ))
 
     # Sheet pins on hierarchical sheet placements.
@@ -1080,6 +1118,7 @@ def _collect_label_drivers(
                 source_uuid=getattr(pin, "uuid", "") or "",
                 svg_uuid=sheet_pin_svg_uuid,
                 source_order=_next_source_order(),
+                sheet_path=sheet_path,
             ))
 
     return out
@@ -1175,19 +1214,23 @@ def compile_sheet_subgraphs(
 
     # Collect wire / bus segments for later point-on-segment attach.
     segments: List[Tuple[CoordKey, CoordKey]] = []
+    wire_segments: List[Tuple[CoordKey, CoordKey]] = []
 
     # Wires + buses contribute edges; bus entries contribute their
     # diagonal; junctions register as nodes.
     for wire in getattr(schematic, "wires", ()):
         cgraph.add_wire(wire)
-        segments.extend(_segments_from_polyline(list(wire.points)))
+        wire_segs = _segments_from_polyline(list(wire.points))
+        wire_segments.extend(wire_segs)
+        segments.extend(wire_segs)
     for bus in getattr(schematic, "buses", ()):
         cgraph.add_bus(bus)
         segments.extend(_segments_from_polyline(list(bus.points)))
     for entry in getattr(schematic, "bus_entries", ()):
         a, b = cgraph.add_bus_entry(entry)
         segments.append((a, b))
-    cgraph.add_junctions(getattr(schematic, "junctions", ()))
+    junction_coords = cgraph.add_junctions(getattr(schematic, "junctions", ()))
+    _attach_drivers_to_segments(cgraph, junction_coords, wire_segments)
 
     # Drivers (after coord nodes are seeded so component walk picks them up).
     pin_drivers = _collect_pin_drivers(
@@ -1196,7 +1239,7 @@ def compile_sheet_subgraphs(
         subpart_id_separator=subpart_id_separator,
         legacy_unit_lookup=legacy_unit_lookup,
     )
-    label_drivers = _collect_label_drivers(schematic, cgraph)
+    label_drivers = _collect_label_drivers(schematic, cgraph, sheet_path=sheet_path)
 
     # Attach LABEL coords (only) to any wire segments they lie on.
     # KiCad's CONNECTION_GRAPH registers pins at their single exact

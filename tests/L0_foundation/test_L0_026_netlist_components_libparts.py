@@ -47,6 +47,7 @@ def _libsym(
     name: str, *pins: SymPin,
     power: bool = False, power_kind: Optional[str] = None,
     description: str = "", datasheet: str = "",
+    keywords: str = "", fp_filters: str = "",
 ) -> LibSymbol:
     sub = LibSubSymbol(name=f"{name}_1_0", unit=1, style=0, pins=list(pins))
     props = []
@@ -54,6 +55,10 @@ def _libsym(
         props.append(SymProperty(key="Description", value=description, id=5))
     if datasheet:
         props.append(SymProperty(key="Datasheet", value=datasheet, id=3))
+    if keywords:
+        props.append(SymProperty(key="ki_keywords", value=keywords, id=5))
+    if fp_filters:
+        props.append(SymProperty(key="ki_fp_filters", value=fp_filters, id=6))
     # Add a Reference / Value property so get_property_value() works.
     # Value uses the bare part name (post-colon) — matches the KiCad
     # convention where a symbol's `Value` field holds e.g. "R", not
@@ -67,14 +72,16 @@ def _libsym(
 
 def _placed(lib_id: str, *, reference: str, value: str = "",
             footprint: str = "", uuid: str = "",
+            lib_name: str = "",
             properties_extra: Optional[dict] = None,
             in_bom: bool = True, on_board: bool = True,
             dnp: bool = False,
-            at_x: float = 0.0, at_y: float = 0.0) -> SchSymbol:
+            at_x: float = 0.0, at_y: float = 0.0,
+            unit: int = 1) -> SchSymbol:
     sym = SchSymbol(lib_id=lib_id, at_x=at_x, at_y=at_y, at_angle=0.0,
-                    mirror=None, unit=1, convert=1,
+                    mirror=None, unit=unit, convert=1,
                     in_bom=in_bom, on_board=on_board, dnp=dnp,
-                    uuid=uuid)
+                    uuid=uuid, lib_name=lib_name)
     sym.properties = [
         SymProperty(key="Reference", value=reference, id=0),
         SymProperty(key="Value", value=value or reference, id=1),
@@ -173,6 +180,73 @@ def test_collect_components_dedupes_by_uuid():
     assert len(comps) == 1
 
 
+def test_collect_components_collapses_multi_unit_reference():
+    """KiCad emits one component row per reference, not one per unit."""
+    libU = _libsym("Device:U", _pin(0.0, 0.0, number="1"))
+    sch = KiCadSchematic()
+    sch.uuid = "root"
+    sch.lib_symbols.append(libU)
+    sch.symbols.append(_placed(
+        "Device:U", reference="U1", uuid="u1-unit2",
+        footprint="Package:WrongUnit", unit=2, at_x=10.0,
+    ))
+    sch.symbols.append(_placed(
+        "Device:U", reference="U1", uuid="u1-unit1",
+        footprint="Package:Unit1", unit=1,
+    ))
+    compiled = compile_design_subgraphs(sch)
+    comps = collect_design_components(compiled)
+    assert len(comps) == 1
+    assert comps[0].reference == "U1"
+    assert comps[0].footprint == "Package:Unit1"
+    assert comps[0].instance_uuid == "u1-unit1"
+    assert comps[0].instance_uuids == ["u1-unit2", "u1-unit1"]
+
+
+def test_collect_components_suppresses_later_cross_sheet_multi_unit_rows():
+    libU = LibSymbol(
+        name="Device:U",
+        subsymbols=[
+            LibSubSymbol(
+                name="Device:U_1_0",
+                unit=1,
+                style=0,
+                pins=[_pin(0.0, 0.0, number="1")],
+            ),
+            LibSubSymbol(
+                name="Device:U_2_0",
+                unit=2,
+                style=0,
+                pins=[_pin(0.0, 0.0, number="2")],
+            ),
+        ],
+    )
+    child_a = KiCadSchematic()
+    child_a.uuid = "child-a"
+    child_a.lib_symbols.append(libU)
+    child_a.symbols.append(_placed(
+        "Device:U", reference="U1", uuid="u1-a", unit=1,
+    ))
+    child_b = KiCadSchematic()
+    child_b.uuid = "child-b"
+    child_b.lib_symbols.append(libU)
+    child_b.symbols.append(_placed(
+        "Device:U", reference="U1", uuid="u1-b", unit=2,
+    ))
+    root = KiCadSchematic()
+    root.uuid = "root"
+    root.sheets.append(_sheet("a.kicad_sch", "A", "sheet-a"))
+    root.sheets.append(_sheet("b.kicad_sch", "B", "sheet-b"))
+    root.sub_schematics["a.kicad_sch"] = child_a
+    root.sub_schematics["b.kicad_sch"] = child_b
+
+    comps = collect_design_components(compile_design_subgraphs(root))
+    assert len(comps) == 1
+    assert comps[0].reference == "U1"
+    assert comps[0].sheet_path_names == "/A/"
+    assert comps[0].instance_uuids == ["u1-a"]
+
+
 def test_collect_components_carries_extra_properties():
     libR = _libsym("Device:R", _pin(0.0, 0.0, number="1"))
     sch = KiCadSchematic()
@@ -195,6 +269,106 @@ def test_collect_components_carries_extra_properties():
     assert c.properties == {"MPN": "ERJ-3EKF1002V", "Manufacturer": "Panasonic"}
 
 
+def test_collect_components_carries_kicad_component_metadata():
+    libU = _libsym(
+        "VendorPart_1",
+        _pin(0.0, 0.0, number="1"),
+        _pin(2.54, 0.0, number="2"),
+        description="Library description",
+        keywords="mixed signal",
+        fp_filters="Package:QFN*",
+    )
+    sub = KiCadSchematic()
+    sub.uuid = "child"
+    sub.lib_symbols.append(libU)
+    sub.symbols.append(_placed(
+        "Vendor:VendorPart",
+        reference="U1",
+        value="VendorPart",
+        footprint="Package:QFN",
+        uuid="u1",
+        lib_name="VendorPart_1",
+        properties_extra={
+            "Datasheet": "https://example.test/ds.pdf",
+            "Description": "Placed description",
+            "MPN": "VP-123",
+        },
+    ))
+
+    root = KiCadSchematic()
+    root.uuid = "root"
+    root.sheets.append(_sheet("sub.kicad_sch", "Analog", "sheetuuid"))
+    root.sub_schematics["sub.kicad_sch"] = sub
+
+    comps = collect_design_components(compile_design_subgraphs(root))
+    assert len(comps) == 1
+    comp = comps[0]
+    assert comp.libsource_lib == ""
+    assert comp.libsource_part == "VendorPart_1"
+    assert comp.libsource_description == "Library description"
+    assert comp.datasheet == "https://example.test/ds.pdf"
+    assert comp.description == "Placed description"
+    assert comp.fields == {
+        "MPN": "VP-123",
+        "Footprint": "Package:QFN",
+        "Datasheet": "https://example.test/ds.pdf",
+        "Description": "Placed description",
+    }
+    assert comp.properties == {
+        "MPN": "VP-123",
+        "Sheetname": "Analog",
+        "Sheetfile": "sub.kicad_sch",
+        "ki_keywords": "mixed signal",
+        "ki_fp_filters": "Package:QFN*",
+    }
+    assert [(unit.name, unit.pins) for unit in comp.units] == [("A", ["1", "2"])]
+
+
+def test_collect_components_units_match_kicad_position_ordering():
+    libU = LibSymbol(
+        name="Device:U",
+        subsymbols=[
+            LibSubSymbol(
+                name="Device:U_0_0",
+                unit=0,
+                style=0,
+                pins=[_pin(1.0, -1.0, number="[7-8]")],
+            ),
+            LibSubSymbol(
+                name="Device:U_1_0",
+                unit=1,
+                style=0,
+                unit_name="LEFT",
+                pins=[
+                    _pin(10.0, 0.0, number="3"),
+                    _pin(-5.0, 1.0, number="2"),
+                    _pin(-5.0, -1.0, number="1"),
+                ],
+            ),
+            LibSubSymbol(
+                name="Device:U_2_0",
+                unit=2,
+                style=0,
+                pins=[
+                    _pin(0.0, 2.0, number="B"),
+                    _pin(0.0, 1.0, number="A"),
+                ],
+            ),
+        ],
+    )
+    sch = KiCadSchematic()
+    sch.uuid = "root"
+    sch.lib_symbols.append(libU)
+    sch.symbols.append(_placed("Device:U", reference="U1", uuid="u1"))
+
+    comps = collect_design_components(compile_design_subgraphs(sch))
+    assert len(comps) == 1
+    assert [(unit.name, unit.pins) for unit in comps[0].units] == [
+        ("LEFT", ["2", "1", "7", "8", "3"]),
+        ("B", ["B", "A", "7", "8"]),
+    ]
+
+
 def test_collect_components_carries_in_bom_dnp_flags():
     """Symbols round-trip ``in_bom`` and ``dnp`` flags.
 
@@ -212,6 +386,10 @@ def test_collect_components_carries_in_bom_dnp_flags():
     assert comps[0].in_bom is False
     assert comps[0].on_board is True
     assert comps[0].dnp is True
+    assert list(comps[0].properties.items()) == [
+        ("exclude_from_bom", ""),
+        ("dnp", ""),
+    ]
 
 
 def test_collect_components_expands_value_var_from_symbol_property():
@@ -232,8 +410,33 @@ def test_collect_components_expands_value_var_from_symbol_property():
     compiled = compile_design_subgraphs(sch)
     comps = collect_design_components(compiled)
     assert comps[0].value == "10kOhm"
-    # User-defined property values stay verbatim — only `value` expands.
+    # User-defined property values use KiCad's shown-text path too.
     assert comps[0].properties["ALTIUM_VALUE"] == "10kOhm"
+
+
+def test_collect_components_user_fields_expand_value_var_and_blank_tilde():
+    libR = _libsym("Device:R", _pin(0.0, 0.0, number="1"))
+    sch = KiCadSchematic()
+    sch.uuid = "root"
+    sch.lib_symbols.append(libR)
+    sch.symbols.append(_placed(
+        "Device:R",
+        reference="R1",
+        uuid="r1",
+        value="10k",
+        properties_extra={
+            "ALTIUM_VALUE": "${VALUE}",
+            "BlankMeta": "~",
+            "Datasheet": "~",
+        },
+    ))
+    comps = collect_design_components(compile_design_subgraphs(sch))
+    assert comps[0].datasheet == ""
+    assert comps[0].fields["ALTIUM_VALUE"] == "10k"
+    assert comps[0].fields["BlankMeta"] == ""
+    assert comps[0].fields["Datasheet"] == ""
+    assert comps[0].properties["ALTIUM_VALUE"] == "10k"
+    assert comps[0].properties["BlankMeta"] == ""
 
 
 def test_collect_components_value_var_falls_back_to_project_text_vars():
@@ -283,6 +486,7 @@ def test_collect_components_filters_on_board_no():
     comps = collect_design_components(compiled)
     refs = [c.reference for c in comps]
     assert refs == ["R1"]
+    assert comps[0].properties["dnp"] == ""
 
 
 def test_collect_components_filters_hash_prefixed_references():

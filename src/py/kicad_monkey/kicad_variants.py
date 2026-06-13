@@ -587,7 +587,7 @@ def assemble(
         # walk_symbols yields the top-level list with prefix == "/<uuid>",
         # which resolve_symbol handles correctly.
         if hasattr(schematic, "walk_symbols"):
-            iterator = schematic.walk_symbols()
+            iterator = schematic.walk_symbols(include_off_board_sheets=False)
         else:
             iterator = (
                 (sym, None, schematic)

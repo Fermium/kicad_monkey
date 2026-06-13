@@ -186,6 +186,11 @@ def _comp_block(comp: KiCadNetlistComponent) -> list:
     out.append(["value", QuotedString(comp.value if comp.value else "~")])
     if comp.footprint:
         out.append(["footprint", QuotedString(comp.footprint)])
+    if comp.datasheet:
+        out.append(["datasheet", QuotedString(comp.datasheet)])
+    if comp.description:
+        out.append(["description", QuotedString(comp.description)])
+    out.append(_component_fields_block(comp.fields))
     out.append([
         "libsource",
         ["lib", QuotedString(comp.libsource_lib)],
@@ -193,19 +198,43 @@ def _comp_block(comp: KiCadNetlistComponent) -> list:
         ["description", QuotedString(comp.libsource_description)],
     ])
     # Non-standard properties — sorted for determinism.
-    for k in sorted(comp.properties.keys()):
+    for k, value in comp.properties.items():
         out.append([
             "property",
             ["name", QuotedString(k)],
-            ["value", QuotedString(comp.properties[k])],
+            ["value", QuotedString(value)],
         ])
     out.append([
         "sheetpath",
         ["names", QuotedString(comp.sheet_path_names or "/")],
         ["tstamps", QuotedString(comp.sheet_path_uuids or "/")],
     ])
-    if comp.instance_uuid:
-        out.append(["tstamps", QuotedString(comp.instance_uuid)])
+    tstamps = list(comp.instance_uuids or ())
+    if not tstamps and comp.instance_uuid:
+        tstamps = [comp.instance_uuid]
+    if tstamps:
+        out.append(["tstamps", *[QuotedString(tstamp) for tstamp in tstamps]])
+    out.append(_component_units_block(comp))
+    return out
+
+
+def _component_fields_block(fields: dict[str, str]) -> list:
+    out: list = ["fields"]
+    for name, value in (fields or {}).items():
+        field: list = ["field", ["name", QuotedString(name)]]
+        if value:
+            field.append(QuotedString(value))
+        out.append(field)
+    return out
+
+
+def _component_units_block(comp: KiCadNetlistComponent) -> list:
+    out: list = ["units"]
+    for unit in comp.units or ():
+        pins: list = ["pins"]
+        for pin in unit.pins:
+            pins.append(["pin", ["num", QuotedString(pin)]])
+        out.append(["unit", ["name", QuotedString(unit.name)], pins])
     return out
 
 

@@ -183,6 +183,7 @@ def _project_case(kicad_root: Path, project_dir: Path) -> dict[str, Any] | None:
         "reference_output_root": _rel(kicad_root, reference_output_root),
         "project_file": _rel(kicad_root, project_file),
         "top_schematic": _rel(kicad_root, top_sch),
+        "input_file": _rel(kicad_root, top_sch),
         "board_file": _rel(kicad_root, board),
         "schematics": [
             _rel(kicad_root, path)

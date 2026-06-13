@@ -62,6 +62,7 @@ def test_manifest_schema_and_required_real_world_cases():
     case_ids = {case["id"] for case in manifest["cases"]}
     assert {
         "real_world/charge_indicator",
+        "real_world/4-ch-backplane",
         "real_world/taillight",
         "real_world/speedy_processing_module",
         "real_world/cern_wren_eda_04903",
@@ -112,6 +113,7 @@ def test_real_world_domains_are_promoted():
     _manifest()
     for case_id in (
         "real_world/charge_indicator",
+        "real_world/4-ch-backplane",
         "real_world/taillight",
         "real_world/speedy_processing_module",
     ):

@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Dict,
@@ -46,8 +47,10 @@ from .kicad_netlist_compiler import (
     Subgraph,
     _append_unique_endpoint,
     _empty_graphical_map,
+    _expand_stacked_pin_notation,
     _is_power_symbol,
     _label_driver_endpoint,
+    _letter_sub_reference,
     _normalize_netlist_pin_number,
     _pin_kind,
     _power_pin_endpoint,
@@ -64,6 +67,7 @@ from .kicad_netlist_model import (
     KiCadNet,
     KiCadNetlist,
     KiCadNetlistComponent,
+    KiCadNetlistComponentUnit,
     KiCadNetlistTerminal,
 )
 from .kicad_schematic_connectivity import CoordKey
@@ -153,6 +157,8 @@ def _walk_children(
     parent_cs: CompiledSheet,
 ) -> Iterator[CompiledSheet]:
     for sheet in getattr(parent_sch, "sheets", ()):
+        if not getattr(sheet, "on_board", True):
+            continue
         child_sch = parent_sch.sub_schematics.get(sheet.sheet_file)
         if child_sch is None:
             continue
@@ -782,12 +788,14 @@ def _sheet_pin_suffix_indices(compiled: List[CompiledSheet]) -> Dict[int, int]:
             for ld in sg.label_drivers:
                 if ld.kind != KiCadDriverKind.SHEET_PIN:
                     continue
+                sheet_path = _offboard_sheet_pin_target_path(cs, ld) or cs.sheet_path_human
                 fake = Subgraph(
                     chosen_priority=KiCadDriverPriority.SHEET_PIN,
                     chosen_kind=KiCadDriverKind.SHEET_PIN,
                     chosen_name=ld.text,
+                    chosen_sheet_path=sheet_path,
                 )
-                base_name, _auto = name_net(fake, sheet_path=cs.sheet_path_human)
+                base_name, _auto = name_net(fake, sheet_path=sheet_path)
                 source_order = int(getattr(ld, "source_order", fallback_order) or 0)
                 grouped.setdefault(base_name, []).append((
                     source_order,
@@ -802,6 +810,37 @@ def _sheet_pin_suffix_indices(compiled: List[CompiledSheet]) -> Dict[int, int]:
         for suffix_idx, (_source_order, _fallback, label_id) in enumerate(entries):
             out[label_id] = suffix_idx
     return out
+
+
+def _offboard_sheet_pin_target_path(cs: CompiledSheet, ld) -> str:
+    """Return the child human path for an off-board sheet pin driver.
+
+    KiCad's board netlist excludes symbols under ``on_board=no`` sheets,
+    but a parent-side wire connected to that sheet's pin is still named
+    as if it entered the child sheet.
+    """
+    if ld.kind != KiCadDriverKind.SHEET_PIN or cs.schematic is None:
+        return ""
+
+    from .kicad_schematic_connectivity import snap_mm_to_iu
+
+    source_uuid = getattr(ld, "source_uuid", "") or ""
+    for sheet in getattr(cs.schematic, "sheets", ()) or ():
+        if getattr(sheet, "on_board", True):
+            continue
+        child_name = getattr(sheet, "sheet_name", "") or getattr(sheet, "sheet_file", "")
+        if not child_name:
+            continue
+        for pin in getattr(sheet, "pins", ()) or ():
+            uuid_match = source_uuid and source_uuid == (getattr(pin, "uuid", "") or "")
+            coord_match = (
+                not source_uuid
+                and getattr(pin, "name", "") == ld.text
+                and snap_mm_to_iu(float(pin.at_x), float(pin.at_y)) == ld.coord
+            )
+            if uuid_match or coord_match:
+                return f"{cs.sheet_path_human}{child_name}/"
+    return ""
 
 
 def _materialise_nets(
@@ -902,6 +941,12 @@ def _materialise_nets(
             # Depth: root "/" = 1 slash, "/sub/" = 2 slashes, etc.
             depth = sp_human.count("/")
             for idx, ld in enumerate(sg.label_drivers):
+                candidate_sheet_path = sp_human
+                if ld.kind == KiCadDriverKind.SHEET_PIN:
+                    candidate_sheet_path = (
+                        _offboard_sheet_pin_target_path(compiled[s_i], ld)
+                        or sp_human
+                    )
                 shape_rank = (
                     0 if ld.kind == KiCadDriverKind.SHEET_PIN
                     and ld.shape == "output"
@@ -915,11 +960,11 @@ def _materialise_nets(
                 if ld.kind == KiCadDriverKind.GLOBAL_LABEL:
                     full_name = ld.name
                 else:
-                    full_name = sp_human + ld.name
+                    full_name = candidate_sheet_path + ld.name
                 candidates.append((
                     -int(ld.priority), depth, shape_rank, 0,
-                    full_name, sp_human, idx,
-                    ld.kind, ld.name, sp_human,
+                    full_name, candidate_sheet_path, idx,
+                    ld.kind, ld.name, candidate_sheet_path,
                     id(ld) if ld.kind == KiCadDriverKind.SHEET_PIN else None,
                 ))
             pin_offset = len(sg.label_drivers)
@@ -1091,10 +1136,10 @@ def _materialise_nets(
 # ``(libparts ...)`` blocks the kicadsexpr emit needs. The walk
 # mirrors KiCad's own logic in ``netlist_exporter_xml.cpp::makeListOfNets``:
 #
-# * Components are deduped by symbol UUID — a multi-unit symbol placed on
-#   different sheets shows up once per *placement*, not once per unit. The
-#   ``instance_uuid`` field carries the per-placement UUID so the emit
-#   matches kicad-cli's ``(tstamps ...)`` line.
+# * Components are deduped by resolved ``(sheet_path, reference)`` after
+#   exact duplicate symbol objects are suppressed. KiCad emits one
+#   component row for a multi-unit symbol and puts every unit UUID in that
+#   row's ``(tstamps ...)`` list.
 # * Libparts are deduped by ``(lib, part)`` across every loaded schematic's
 #   ``lib_symbols`` cache. Pin metadata is taken from the union of the
 #   library symbol's subsymbols (KiCad emits one pin per number per
@@ -1106,7 +1151,20 @@ def _materialise_nets(
 
 # Standard property keys that are surfaced as top-level fields on a
 # ``(comp ...)`` rather than inside a ``(property ...)`` block.
-_STANDARD_COMPONENT_FIELDS = ("Reference", "Value", "Footprint", "Datasheet")
+_STANDARD_COMPONENT_FIELDS = (
+    "Reference",
+    "Value",
+    "Footprint",
+    "Datasheet",
+    "Description",
+)
+
+
+@dataclass
+class _ComponentCandidate:
+    unit: int
+    order: int
+    component: KiCadNetlistComponent
 
 
 # ---------------------------------------------------------------------------
@@ -1151,7 +1209,7 @@ def _expand_property_vars(
             continue
         if skip_key and pkey.lower() == skip_key.lower():
             continue
-        sym_props[pkey.lower()] = getattr(prop, "value", "") or ""
+        sym_props[pkey.lower()] = _blank_field_text(getattr(prop, "value", "") or "")
 
     proj_lc = {str(k).lower(): str(v) for k, v in (project_vars or {}).items()}
 
@@ -1178,12 +1236,222 @@ def _expand_property_vars(
     return out
 
 
+def _blank_field_text(text: object) -> str:
+    value = "" if text is None else str(text)
+    return "" if value == "~" else value
+
+
+def _component_shown_field_text(
+    text: object,
+    sym: object,
+    project_vars: Dict[str, str],
+    *,
+    key: str = "",
+) -> str:
+    value = _blank_field_text(text)
+    return _expand_property_vars(value, sym, project_vars, skip_key=key)
+
+
 def _split_lib_id(lib_id: str) -> Tuple[str, str]:
     """Split a ``"Lib:Part"`` lib_id. Return ``("", lib_id)`` when no colon."""
     if ":" in lib_id:
         head, tail = lib_id.split(":", 1)
         return head, tail
     return "", lib_id
+
+
+def _component_libsource(sym) -> Tuple[str, str]:
+    """Return KiCad's component-row ``libsource`` lib/part pair."""
+    lib_name = getattr(sym, "lib_name", "") or ""
+    if lib_name:
+        return "", lib_name
+    return _split_lib_id(getattr(sym, "lib_id", "") or "")
+
+
+def _symbol_property_value(
+    sym,
+    key: str,
+    project_vars: Optional[Dict[str, str]] = None,
+) -> str:
+    pv = project_vars or {}
+    get_value_fn = getattr(sym, "get_property_value", None)
+    if callable(get_value_fn):
+        return _component_shown_field_text(get_value_fn(key, ""), sym, pv, key=key)
+    for prop in getattr(sym, "properties", ()) or ():
+        if getattr(prop, "key", "") == key:
+            return _component_shown_field_text(
+                getattr(prop, "value", "") or "",
+                sym,
+                pv,
+                key=key,
+            )
+    return ""
+
+
+def _component_user_fields(
+    sym,
+    project_vars: Optional[Dict[str, str]] = None,
+) -> Dict[str, str]:
+    """User-visible placed-symbol fields used in KiCad component metadata."""
+    fields: Dict[str, str] = {}
+    pv = project_vars or {}
+    for prop in getattr(sym, "properties", ()) or ():
+        pkey = getattr(prop, "key", "") or ""
+        if not pkey or pkey in _STANDARD_COMPONENT_FIELDS:
+            continue
+        fields[pkey] = _component_shown_field_text(
+            getattr(prop, "value", "") or "",
+            sym,
+            pv,
+            key=pkey,
+        )
+    return fields
+
+
+def _component_units_from_lib_symbol(lib_sym) -> List[KiCadNetlistComponentUnit]:
+    if lib_sym is None:
+        return []
+
+    def _unit_count() -> int:
+        try:
+            return max(1, int(getattr(lib_sym, "unit_count", 1) or 1))
+        except (TypeError, ValueError):
+            return 1
+
+    def _unit_name(unit: int) -> str:
+        for subsymbol in getattr(lib_sym, "subsymbols", ()) or ():
+            sub_unit_value = getattr(subsymbol, "unit", 1)
+            sub_unit = int(sub_unit_value if sub_unit_value is not None else 1)
+            if sub_unit != unit:
+                continue
+            name = getattr(subsymbol, "unit_name", None)
+            if name is not None:
+                return str(name)
+        return _letter_sub_reference(unit)
+
+    def _pin_position(pin) -> Tuple[float, float]:
+        try:
+            x = float(getattr(pin, "at_x", 0.0) or 0.0)
+        except (TypeError, ValueError):
+            x = 0.0
+        try:
+            y = float(getattr(pin, "at_y", 0.0) or 0.0)
+        except (TypeError, ValueError):
+            y = 0.0
+        # KiCad sorts by SCH_PIN::GetPosition() in internal schematic
+        # coordinates.  Symbol file coordinates use the opposite Y axis.
+        return (x, -y)
+
+    units: List[KiCadNetlistComponentUnit] = []
+    for unit in range(1, _unit_count() + 1):
+        graphical_pins = []
+        for subsymbol in getattr(lib_sym, "subsymbols", ()) or ():
+            sub_unit_value = getattr(subsymbol, "unit", 1)
+            sub_unit = int(sub_unit_value if sub_unit_value is not None else 1)
+            if sub_unit not in (0, unit):
+                continue
+            graphical_pins.extend(getattr(subsymbol, "pins", ()) or ())
+
+        pin_numbers: List[str] = []
+        seen_numbers: set[str] = set()
+        for pin in sorted(graphical_pins, key=_pin_position):
+            number = str(getattr(pin, "number", "") or "")
+            expanded, valid = _expand_stacked_pin_notation(number)
+            candidate_numbers = expanded if valid and expanded else [number]
+            for candidate_number in candidate_numbers:
+                if candidate_number and candidate_number not in seen_numbers:
+                    seen_numbers.add(candidate_number)
+                    pin_numbers.append(candidate_number)
+
+        units.append(KiCadNetlistComponentUnit(
+            name=_unit_name(unit),
+            pins=pin_numbers,
+        ))
+    return units
+
+
+def _append_component_property(properties: Dict[str, str], key: str, value: str) -> None:
+    if key and key not in properties:
+        properties[key] = value or ""
+
+
+def _component_primary_and_tstamps(
+    candidates: List[_ComponentCandidate],
+) -> Tuple[_ComponentCandidate, List[str]]:
+    ordered = sorted(candidates, key=lambda c: c.order)
+    primary = ordered[0]
+    extras: List[_ComponentCandidate] = []
+
+    def _uuid(candidate: _ComponentCandidate) -> str:
+        return candidate.component.instance_uuid or ""
+
+    for candidate in ordered[1:]:
+        primary_uuid = _uuid(primary)
+        candidate_uuid = _uuid(candidate)
+        if primary_uuid and candidate_uuid and primary_uuid > candidate_uuid:
+            extras.append(primary)
+            primary = candidate
+        else:
+            extras.append(candidate)
+
+    uuids: List[str] = []
+    for candidate in extras + [primary]:
+        uid = candidate.component.instance_uuid
+        if uid and uid not in uuids:
+            uuids.append(uid)
+    return primary, uuids
+
+
+def _copy_component_fields_from_units(
+    primary: KiCadNetlistComponent,
+    candidates: List[_ComponentCandidate],
+) -> None:
+    sorted_candidates = sorted(candidates, key=lambda c: (c.unit <= 0, c.unit, c.order))
+
+    def _first_nonempty(attr: str) -> str:
+        for candidate in sorted_candidates:
+            value = getattr(candidate.component, attr, "") or ""
+            if value:
+                return value
+        return ""
+
+    primary.value = _first_nonempty("value")
+    primary.footprint = _first_nonempty("footprint")
+    primary.datasheet = _first_nonempty("datasheet")
+    primary.description = _first_nonempty("description")
+
+    fields: Dict[str, str] = {}
+    for candidate in sorted_candidates:
+        for key, value in (candidate.component.fields or {}).items():
+            fields.setdefault(key, value)
+    fields["Footprint"] = primary.footprint
+    fields["Datasheet"] = primary.datasheet
+    fields["Description"] = primary.description
+    primary.fields = fields
+
+
+def _copy_component_units_from_placed_units(
+    primary: KiCadNetlistComponent,
+    candidates: List[_ComponentCandidate],
+) -> None:
+    units = [
+        KiCadNetlistComponentUnit(name=unit.name, pins=list(unit.pins))
+        for unit in (primary.units or [])
+    ]
+
+    for candidate in candidates:
+        if candidate.unit <= 0 or candidate.unit > len(units):
+            continue
+        candidate_units = candidate.component.units or []
+        if candidate.unit > len(candidate_units):
+            continue
+        candidate_unit = candidate_units[candidate.unit - 1]
+        units[candidate.unit - 1] = KiCadNetlistComponentUnit(
+            name=candidate_unit.name,
+            pins=list(candidate_unit.pins),
+        )
+
+    primary.units = units
 
 
 def _natural_pin_key(num: str) -> Tuple[int, object]:
@@ -1194,27 +1462,78 @@ def _natural_pin_key(num: str) -> Tuple[int, object]:
         return (1, str(num))
 
 
+def _resolve_instance_unit(
+    sym,
+    sheet_path: str,
+    *,
+    legacy_unit_lookup: Optional[Dict[str, int]] = None,
+    canonical_path: Optional[str] = None,
+) -> int:
+    """Resolve the per-sheet-path unit for *sym* using KiCad's instance data."""
+
+    def _coerce_unit(value: object) -> int:
+        try:
+            if value is None or value == "":
+                return 1
+            if isinstance(value, int):
+                return value
+            return int(str(value))
+        except (TypeError, ValueError):
+            return 1
+
+    instances = getattr(sym, "instances", None) or []
+
+    if instances:
+        if canonical_path:
+            cp = canonical_path.rstrip("/")
+            for inst in instances:
+                if inst.path.rstrip("/") == cp:
+                    return _coerce_unit(getattr(inst, "unit", 1))
+
+        target = sheet_path.rstrip("/")
+        for inst in instances:
+            if inst.path.rstrip("/") == target:
+                return _coerce_unit(getattr(inst, "unit", 1))
+        if target:
+            for inst in instances:
+                ipath = inst.path.rstrip("/")
+                if ipath and (ipath.endswith(target) or target.endswith(ipath)):
+                    return _coerce_unit(getattr(inst, "unit", 1))
+
+    if legacy_unit_lookup:
+        sym_uuid = getattr(sym, "uuid", "") or ""
+        if sym_uuid:
+            key = f"{sheet_path.rstrip('/')}/{sym_uuid}"
+            unit = legacy_unit_lookup.get(key)
+            if unit is not None:
+                return _coerce_unit(unit)
+
+    if instances:
+        return _coerce_unit(getattr(instances[0], "unit", 1))
+    return _coerce_unit(getattr(sym, "unit", 1))
+
+
 def collect_design_components(
     compiled: List[CompiledSheet],
     project_vars: Optional[Dict[str, str]] = None,
 ) -> List[KiCadNetlistComponent]:
     """Walk every compiled sheet, emit one :class:`KiCadNetlistComponent`
-    per placed :class:`SchSymbol` *per CompiledSheet*.
+    per resolved schematic component placement.
 
-    Dedupe key: ``(sym.uuid, cs.sheet_path)``. The same library
-    schematic is reused across hierarchical sub-sheet instances, so a
+    Exact duplicate symbol UUIDs are suppressed first. Then candidates are
+    grouped by resolved ``(sheet_path, reference)`` so a
     single :class:`SchSymbol` object lands once per CompiledSheet —
-    each placement has its own per-instance reference number stored in
-    :attr:`SchSymbol.instances` keyed by sheet path. Synthetic test
-    fixtures often skip both UUIDs and the instances block; for those
-    we fall back to ``(sym.reference, cs.sheet_path)`` and the bare
-    ``sym.reference`` value.
+    multi-unit symbol emits one row with all unit UUIDs preserved in
+    ``instance_uuids`` for the emitted ``(tstamps ...)`` list.
     """
-    seen: set = set()
-    out: List[KiCadNetlistComponent] = []
+    seen_symbols: set = set()
+    groups: Dict[Tuple[str, str], List[_ComponentCandidate]] = {}
+    group_order: List[Tuple[str, str]] = []
     pv: Dict[str, str] = dict(project_vars or {})
     legacy_lookup = _build_legacy_instance_lookup(compiled)
+    legacy_unit_lookup = _build_legacy_unit_lookup(compiled)
     top_sch = compiled[0].schematic if compiled else None
+    order = 0
 
     for cs in compiled:
         sch = cs.schematic
@@ -1250,28 +1569,80 @@ def collect_design_components(
                 continue
 
             uid = sym.uuid or ""
-            key = (uid or sym.reference, cs.sheet_path)
-            if key in seen:
+            symbol_key = (uid or str(id(sym)), cs.sheet_path)
+            if symbol_key in seen_symbols:
                 continue
-            seen.add(key)
+            seen_symbols.add(symbol_key)
 
-            lib, part = _split_lib_id(sym.lib_id)
+            lib, part = _component_libsource(sym)
 
             description = ""
             if lib_sym is not None:
                 description = getattr(lib_sym, "description", "") or ""
 
-            # Non-standard properties — preserved verbatim into the comp's
-            # ``(property ...)`` blocks (kicad-cli emits user-defined
-            # property values literally, no ``${VAR}`` expansion).
+            # Non-standard fields use KiCad's shown-text path in the
+            # comp's ``(fields ...)`` and ``(property ...)`` blocks, so
+            # text variables resolve and ``~`` becomes an empty string.
             # Reference / Value / Footprint / Datasheet are surfaced as
             # top-level fields on the comp.
-            properties: Dict[str, str] = {}
-            for prop in getattr(sym, "properties", ()):
-                pkey = getattr(prop, "key", "")
-                if not pkey or pkey in _STANDARD_COMPONENT_FIELDS:
-                    continue
-                properties[pkey] = getattr(prop, "value", "") or ""
+            properties = _component_user_fields(sym, pv)
+            if cs.parent_sheet is not None:
+                for prop in getattr(cs.parent_sheet, "properties", ()) or ():
+                    _append_component_property(
+                        properties,
+                        getattr(prop, "key", "") or "",
+                        getattr(prop, "value", "") or "",
+                    )
+            else:
+                source_path = getattr(cs.schematic, "source_path", None)
+                if source_path is not None:
+                    _append_component_property(properties, "Sheetname", "")
+                    _append_component_property(
+                        properties,
+                        "Sheetfile",
+                        Path(str(source_path)).name,
+                    )
+
+            if (
+                not getattr(sym, "in_bom", True)
+                or (
+                    cs.parent_sheet is not None
+                    and not getattr(cs.parent_sheet, "in_bom", True)
+                )
+            ):
+                _append_component_property(properties, "exclude_from_bom", "")
+            if (
+                not getattr(sym, "on_board", True)
+                or (
+                    cs.parent_sheet is not None
+                    and not getattr(cs.parent_sheet, "on_board", True)
+                )
+            ):
+                _append_component_property(properties, "exclude_from_board", "")
+            if not getattr(sym, "in_pos_files", True):
+                _append_component_property(properties, "exclude_from_pos_files", "")
+            if (
+                getattr(sym, "dnp", False)
+                or (
+                    cs.parent_sheet is not None
+                    and getattr(cs.parent_sheet, "dnp", False)
+                )
+            ):
+                _append_component_property(properties, "dnp", "")
+
+            if lib_sym is not None:
+                get_lib_prop = getattr(lib_sym, "get_property_value", None)
+                if callable(get_lib_prop):
+                    keywords = get_lib_prop("ki_keywords", "")
+                    filters = get_lib_prop("ki_fp_filters", "")
+                    if keywords:
+                        _append_component_property(
+                            properties, "ki_keywords", str(keywords)
+                        )
+                    if filters:
+                        _append_component_property(
+                            properties, "ki_fp_filters", str(filters)
+                        )
 
             canonical = (
                 _canonical_instance_path(top_sch, cs.sheet_path)
@@ -1294,13 +1665,16 @@ def collect_design_components(
             # (kicad-cli emits them verbatim even when they contain
             # tokens).
             value = _expand_property_vars(
-                sym.value, sym, pv, skip_key="Value"
+                _blank_field_text(sym.value), sym, pv, skip_key="Value"
             )
 
-            out.append(KiCadNetlistComponent(
+            comp = KiCadNetlistComponent(
                 reference=reference,
                 value=value,
-                footprint=sym.footprint,
+                footprint=_symbol_property_value(sym, "Footprint", pv),
+                datasheet=_symbol_property_value(sym, "Datasheet", pv),
+                description=_symbol_property_value(sym, "Description", pv),
+                fields=_component_user_fields(sym, pv),
                 libsource_lib=lib,
                 libsource_part=part,
                 libsource_description=description,
@@ -1308,10 +1682,43 @@ def collect_design_components(
                 sheet_path_uuids=cs.sheet_path,
                 instance_uuid=uid,
                 properties=properties,
+                units=_component_units_from_lib_symbol(lib_sym),
                 in_bom=getattr(sym, "in_bom", True),
                 on_board=getattr(sym, "on_board", True),
                 dnp=getattr(sym, "dnp", False),
+            )
+            unit = _resolve_instance_unit(
+                sym,
+                cs.sheet_path,
+                legacy_unit_lookup=legacy_unit_lookup,
+                canonical_path=canonical,
+            )
+            group_key = (cs.sheet_path, reference)
+            if group_key not in groups:
+                groups[group_key] = []
+                group_order.append(group_key)
+            groups[group_key].append(_ComponentCandidate(
+                unit=unit,
+                order=order,
+                component=comp,
             ))
+            order += 1
+
+    out: List[KiCadNetlistComponent] = []
+    emitted_multi_unit_refs: set[str] = set()
+    for group_key in group_order:
+        candidates = groups[group_key]
+        primary_candidate, uuids = _component_primary_and_tstamps(candidates)
+        primary = primary_candidate.component
+        if len(primary.units or []) > 1:
+            ref_key = primary.reference.lower()
+            if ref_key in emitted_multi_unit_refs:
+                continue
+            emitted_multi_unit_refs.add(ref_key)
+        _copy_component_fields_from_units(primary, candidates)
+        _copy_component_units_from_placed_units(primary, candidates)
+        primary.instance_uuids = uuids
+        out.append(primary)
 
     return out
 

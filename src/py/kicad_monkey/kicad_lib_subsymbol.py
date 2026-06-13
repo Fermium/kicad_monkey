@@ -11,10 +11,10 @@ etc.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Optional
 
-from .kicad_base import find_all_elements, unquote_string
-from .kicad_sexpr import SexpList
+from .kicad_base import find_all_elements, find_element, unquote_string
+from .kicad_sexpr import QuotedString, SexpList
 
 if TYPE_CHECKING:
     from .kicad_geometry import BoundingBox, SvgRenderContext
@@ -46,6 +46,7 @@ class LibSubSymbol:
     name: str  # e.g., "LM324_1_0"
     unit: int = 1  # Unit number (1-based, 0 = all units)
     style: int = 0  # 0 = normal, 1 = De Morgan alternate
+    unit_name: Optional[str] = None  # Optional KiCad display name for this unit
 
     # Graphic elements
     arcs: List['SymArc'] = field(default_factory=list)
@@ -85,6 +86,12 @@ class LibSubSymbol:
                     pass
 
         # Parse graphic elements
+        unit_name_elem = find_element(sexp, 'unit_name')
+        unit_name = (
+            unquote_string(unit_name_elem[1])
+            if unit_name_elem and len(unit_name_elem) > 1
+            else None
+        )
         arcs = [SymArc.from_sexp(e) for e in find_all_elements(sexp, 'arc')]
         circles = [SymCircle.from_sexp(e) for e in find_all_elements(sexp, 'circle')]
         polylines = [SymPolyline.from_sexp(e) for e in find_all_elements(sexp, 'polyline')]
@@ -98,6 +105,7 @@ class LibSubSymbol:
             name=name,
             unit=unit,
             style=style,
+            unit_name=unit_name,
             arcs=arcs,
             circles=circles,
             polylines=polylines,
@@ -115,6 +123,9 @@ class LibSubSymbol:
         Note: Sub-symbol names are NOT quoted (only top-level symbols are).
         """
         result: SexpList = ['symbol', self.name]
+
+        if self.unit_name is not None:
+            result.append(['unit_name', QuotedString(self.unit_name)])
 
         for arc in self.arcs:
             result.append(arc.to_sexp())

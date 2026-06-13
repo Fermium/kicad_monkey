@@ -187,6 +187,14 @@ class KiCadNet:
 
 
 @dataclass
+class KiCadNetlistComponentUnit:
+    """Per-unit pin metadata emitted inside a component ``(units ...)`` block."""
+
+    name: str
+    pins: List[str] = field(default_factory=list)
+
+
+@dataclass
 class KiCadNetlistComponent:
     """One row of the ``(components …)`` block in the kicadsexpr emit.
 
@@ -196,13 +204,18 @@ class KiCadNetlistComponent:
     reference: str
     value: str = ""
     footprint: str = ""
+    datasheet: str = ""
+    description: str = ""
+    fields: Dict[str, str] = field(default_factory=dict)
     libsource_lib: str = ""
     libsource_part: str = ""
     libsource_description: str = ""
     sheet_path_names: str = ""
     sheet_path_uuids: str = ""
     instance_uuid: str = ""
+    instance_uuids: List[str] = field(default_factory=list)
     properties: Dict[str, str] = field(default_factory=dict)
+    units: List[KiCadNetlistComponentUnit] = field(default_factory=list)
     in_bom: bool = True
     on_board: bool = True
     dnp: bool = False
@@ -309,6 +322,7 @@ __all__ = [
     "KiCadNetlistTerminal",
     "KiCadNetEndpoint",
     "KiCadNet",
+    "KiCadNetlistComponentUnit",
     "KiCadNetlistComponent",
     "KiCadLibPartPin",
     "KiCadLibPart",

@@ -55,6 +55,7 @@ from kicad_monkey.kicad_sch_label import (
     SchHierarchicalLabel,
     SchLabel,
 )
+from kicad_monkey.kicad_sch_junction import SchJunction
 from kicad_monkey.kicad_sch_symbol import SchSymbol, SchSymbolPin
 from kicad_monkey.kicad_sch_sheet import SchSheet, SchSheetPin, SchSheetProperty
 from kicad_monkey.kicad_sch_wire import SchWire
@@ -523,6 +524,37 @@ def test_compile_two_pins_on_wire_form_one_subgraph():
     assert refs == ["R1", "R2"]
 
 
+def test_wire_endpoint_landing_mid_segment_without_junction_stays_separate():
+    sch = _empty_sch()
+    libR = _libsym("Device:R", _pin(0.0, 0.0, number="1"))
+    sch.lib_symbols.append(libR)
+    sch.symbols.append(_placed("Device:R", reference="R1", at_x=0.0, at_y=0.0))
+    sch.symbols.append(_placed("Device:R", reference="R2", at_x=5.0, at_y=5.0))
+    sch.wires.append(_wire((0.0, 0.0), (10.0, 0.0)))
+    sch.wires.append(_wire((5.0, 0.0), (5.0, 5.0)))
+
+    sgs = compile_sheet_subgraphs(sch, sheet_path="/")
+    multi_pin_sgs = [s for s in sgs if len(s.pin_drivers) >= 2]
+    assert multi_pin_sgs == []
+
+
+def test_junction_landing_mid_segment_forms_t_connection():
+    sch = _empty_sch()
+    libR = _libsym("Device:R", _pin(0.0, 0.0, number="1"))
+    sch.lib_symbols.append(libR)
+    sch.symbols.append(_placed("Device:R", reference="R1", at_x=0.0, at_y=0.0))
+    sch.symbols.append(_placed("Device:R", reference="R2", at_x=5.0, at_y=5.0))
+    sch.wires.append(_wire((0.0, 0.0), (10.0, 0.0)))
+    sch.wires.append(_wire((5.0, 0.0), (5.0, 5.0)))
+    sch.junctions.append(SchJunction(at_x=5.0, at_y=0.0))
+
+    sgs = compile_sheet_subgraphs(sch, sheet_path="/")
+    multi_pin_sgs = [s for s in sgs if len(s.pin_drivers) >= 2]
+    assert len(multi_pin_sgs) == 1
+    refs = sorted({pd.designator for pd in multi_pin_sgs[0].pin_drivers})
+    assert refs == ["R1", "R2"]
+
+
 def test_compile_local_label_overrides_pin_auto_name():
     sch = _two_resistors_with_wire()
     sch.labels.append(SchLabel(text="SIG", at_x=30.0, at_y=10.0))
@@ -769,6 +801,56 @@ def test_compile_isolated_pin_gets_auto_name():
     assert len(auto.terminals) == 1
     assert auto.terminals[0].designator == "R1"
     assert auto.terminals[0].pin == "1"
+
+
+def test_compile_isolated_one_pin_bidirectional_symbol_gets_unconnected_auto_name():
+    sch = _empty_sch()
+    libU = _libsym(
+        "Test:Bidi",
+        _pin(
+            0.0, 0.0,
+            number="1",
+            name="VREF",
+            electrical=PinElectricalType.BIDIRECTIONAL,
+        ),
+    )
+    sch.lib_symbols.append(libU)
+    sch.symbols.append(_placed("Test:Bidi", reference="U1", at_x=10.0, at_y=10.0))
+
+    nl = compile_sheet_netlist(sch, sheet_path="/")
+    auto = nl.get_net("unconnected-(U1-VREF-Pad1)")
+    assert auto is not None
+    assert auto.auto_named is True
+    assert [(t.designator, t.pin) for t in auto.terminals] == [("U1", "1")]
+    assert nl.get_net("Net-(U1-VREF)") is None
+
+
+def test_compile_isolated_named_bidirectional_pin_on_multi_pin_symbol_gets_normal_auto_name():
+    sch = _empty_sch()
+    libU = _libsym(
+        "Test:BidiPair",
+        _pin(
+            0.0, 0.0,
+            number="1",
+            name="VREF",
+            electrical=PinElectricalType.BIDIRECTIONAL,
+        ),
+        _pin(
+            5.0, 0.0,
+            number="2",
+            name="IO",
+            electrical=PinElectricalType.BIDIRECTIONAL,
+        ),
+    )
+    sch.lib_symbols.append(libU)
+    sch.symbols.append(_placed("Test:BidiPair", reference="U1", at_x=10.0, at_y=10.0))
+
+    nl = compile_sheet_netlist(sch, sheet_path="/")
+    auto = nl.get_net("Net-(U1-VREF)")
+    assert auto is not None
+    assert auto.auto_named is True
+    assert [(t.designator, t.pin) for t in auto.terminals] == [("U1", "1")]
+    assert nl.get_net("unconnected-(U1-VREF-Pad1)") is None
 
 
 def test_compile_hidden_no_connect_pins_at_same_coord_stay_separate():

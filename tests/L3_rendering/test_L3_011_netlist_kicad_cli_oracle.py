@@ -126,7 +126,25 @@ CASES: list[Path] = _manifest_real_world_projects() or (
 # Drift entries — see L3_010 for triage rules. Keyed by project stem
 # (file name without ``.kicad_pro``). ``xfail(strict=False)`` so a fix
 # elsewhere flips to XPASS without manual maintenance.
-KNOWN_GAPS: dict[str, str] = {}
+KNOWN_GAPS: dict[str, str] = {
+    "JumperlessV5r7": "one-pin unconnected net naming parity remains",
+    "nRF9151_Feather": "one-pin unconnected net naming parity remains",
+    "11-10084__speedy_processing_module__B": (
+        "one-pin unconnected net naming parity remains"
+    ),
+}
+
+
+KNOWN_COMPONENT_METADATA_GAPS: dict[str, str] = {
+    "CANBOB (MAGE-CANBOB-003)": "unit pin tie-order parity remains",
+    "EDA-04903-V1-0": "multi-unit tstamp order parity remains",
+    "EEZ DIB DCP405plus": "multi-unit tstamp order parity remains",
+    "cm0": "multi-unit tstamp and unit pin tie-order parity remain",
+    "icepi-zero": "unit pin tie-order parity remains",
+    "JumperlessV5r7": "multi-unit tstamp order parity remains",
+    "nRF9151_Feather": "unit pin tie-order and one metadata field parity remain",
+    "11-10084__speedy_processing_module__B": "unit pin tie-order parity remains",
+}
 
 
 # ---------------------------------------------------------------------------
@@ -212,6 +230,106 @@ def _component_summaries(export_sexp) -> set[tuple[str, str]]:
         value = get_value(comp, "value") or ""
         out.add((str(ref), str(value)))
     return out
+
+
+def _child_text(sexp, name: str) -> str:
+    value = get_value(sexp, name)
+    return "" if value is None else str(value)
+
+
+def _field_rows(comp) -> tuple[tuple[str, str], ...]:
+    fields = find_element(comp, "fields")
+    if fields is None:
+        return ()
+    rows: list[tuple[str, str]] = []
+    for field in find_all_elements(fields, "field"):
+        name = _child_text(field, "name")
+        value = str(field[2]) if len(field) > 2 else ""
+        rows.append((name, value))
+    return tuple(rows)
+
+
+def _property_rows(comp) -> tuple[tuple[str, str], ...]:
+    return tuple(
+        (_child_text(prop, "name"), _child_text(prop, "value"))
+        for prop in find_all_elements(comp, "property")
+    )
+
+
+def _tstamp_rows(comp) -> tuple[str, ...]:
+    tstamps = find_element(comp, "tstamps")
+    if tstamps is None:
+        return ()
+    return tuple(str(value) for value in tstamps[1:])
+
+
+def _unit_rows(comp) -> tuple[tuple[str, tuple[str, ...]], ...]:
+    units = find_element(comp, "units")
+    if units is None:
+        return ()
+    rows: list[tuple[str, tuple[str, ...]]] = []
+    for unit in find_all_elements(units, "unit"):
+        pins = find_element(unit, "pins")
+        pin_nums = (
+            tuple(_child_text(pin, "num") for pin in find_all_elements(pins, "pin"))
+            if pins is not None
+            else ()
+        )
+        rows.append((_child_text(unit, "name"), pin_nums))
+    return tuple(rows)
+
+
+def _component_metadata_rows(export_sexp) -> dict[tuple[str, str, str], tuple]:
+    out: dict[tuple[str, str, str], tuple] = {}
+    components_block = find_element(export_sexp, "components")
+    if components_block is None:
+        return out
+    for comp in find_all_elements(components_block, "comp"):
+        sheetpath = find_element(comp, "sheetpath") or []
+        libsource = find_element(comp, "libsource") or []
+        key = (
+            _child_text(comp, "ref"),
+            _child_text(sheetpath, "names"),
+            _child_text(sheetpath, "tstamps"),
+        )
+        out[key] = (
+            ("value", _child_text(comp, "value")),
+            ("footprint", _child_text(comp, "footprint")),
+            ("datasheet", _child_text(comp, "datasheet")),
+            ("description", _child_text(comp, "description")),
+            ("fields", _field_rows(comp)),
+            ("libsource", (
+                _child_text(libsource, "lib"),
+                _child_text(libsource, "part"),
+                _child_text(libsource, "description"),
+            )),
+            ("properties", _property_rows(comp)),
+            ("tstamps", _tstamp_rows(comp)),
+            ("units", _unit_rows(comp)),
+        )
+    return out
+
+
+def _format_component_metadata_diff(
+    ours: dict[tuple[str, str, str], tuple],
+    golden: dict[tuple[str, str, str], tuple],
+) -> str:
+    missing = sorted(set(golden) - set(ours))
+    extra = sorted(set(ours) - set(golden))
+    changed = [
+        key for key in sorted(set(ours) & set(golden))
+        if ours[key] != golden[key]
+    ]
+    lines = [
+        f"  missing component rows: {missing[:10]}",
+        f"  extra component rows:   {extra[:10]}",
+        f"  changed rows:           {changed[:10]}",
+    ]
+    for key in changed[:3]:
+        lines.append(f"  row {key}:")
+        lines.append(f"    ours:   {ours[key]}")
+        lines.append(f"    golden: {golden[key]}")
+    return "\n".join(lines)
 
 
 def _net_summaries(export_sexp) -> dict[str, set[tuple[str, str]]]:
@@ -343,3 +461,32 @@ def test_netlist_matches_kicad_cli_oracle(pro: Path, request):
             f"  only in ours:    {sorted(ours_compare[name] - golden_terms)}\n"
             f"  only in golden:  {sorted(golden_terms - ours_compare[name])}"
         )
+
+
+@pytest.mark.skipif(_CORPUS is None, reason="WN_TEST_CORPUS kicad/projects not present")
+@pytest.mark.skipif(_CLI is None, reason="kicad-cli not resolvable; set $KICAD_CLI or stage one")
+@pytest.mark.parametrize("pro", CASES, ids=lambda p: p.stem)
+def test_component_metadata_matches_kicad_cli_oracle(pro: Path, request):
+    stem = pro.stem
+    if stem in KNOWN_COMPONENT_METADATA_GAPS:
+        request.node.add_marker(
+            pytest.mark.xfail(
+                reason=KNOWN_COMPONENT_METADATA_GAPS[stem],
+                strict=False,
+            )
+        )
+
+    assert _CLI is not None and _REF_OUTPUT_DIR is not None  # for type-checker
+    golden_path = _emit_golden(pro, cli=_CLI, dest_dir=_REF_OUTPUT_DIR)
+    golden_text = golden_path.read_text(encoding="utf-8")
+
+    design = KiCadDesign.from_project_file(pro)
+    ours = _load_export(design.to_kicad_netlist_sexpr(date=""))
+    golden = _load_export(golden_text)
+
+    ours_component_metadata = _component_metadata_rows(ours)
+    golden_component_metadata = _component_metadata_rows(golden)
+    assert ours_component_metadata == golden_component_metadata, (
+        f"component metadata mismatch for {stem}\n"
+        f"{_format_component_metadata_diff(ours_component_metadata, golden_component_metadata)}"
+    )

@@ -204,6 +204,66 @@ def test_compile_design_subgraphs_yields_root_then_child():
     assert compiled[1].sheet_path_human == "/sub/"
 
 
+def test_compile_design_netlist_skips_off_board_child_but_keeps_parent_sheet_pin_net():
+    """KiCad excludes off-board child paths but keeps parent sheet-pin nets."""
+    libR = _libsym("Device:R", _pin(0.0, 0.0, number="1"))
+
+    active = KiCadSchematic()
+    active.uuid = "active-child"
+    active.lib_symbols.append(libR)
+    active.symbols.append(_placed("Device:R", reference="R_ON", at_x=10.0, at_y=0.0))
+    active.hierarchical_labels.append(
+        SchHierarchicalLabel(text="ON", at_x=10.0, at_y=0.0)
+    )
+
+    off_board = KiCadSchematic()
+    off_board.uuid = "off-child"
+    off_board.lib_symbols.append(libR)
+    off_board.symbols.append(
+        _placed("Device:R", reference="R_OFF", at_x=10.0, at_y=20.0)
+    )
+    off_board.hierarchical_labels.append(
+        SchHierarchicalLabel(text="OFF", at_x=10.0, at_y=20.0)
+    )
+
+    root = KiCadSchematic()
+    root.uuid = "root"
+    root.lib_symbols.append(libR)
+    root.symbols.append(_placed("Device:R", reference="R_ROOT_ON", at_x=0.0, at_y=0.0))
+    root.symbols.append(
+        _placed("Device:R", reference="R_ROOT_OFF", at_x=0.0, at_y=20.0)
+    )
+    root.wires.append(_wire((0.0, 0.0), (20.0, 0.0)))
+    root.wires.append(_wire((0.0, 20.0), (20.0, 20.0)))
+
+    active_sheet = _sheet(
+        "active.kicad_sch", "active", "active-sheet", _spin("ON", 20.0, 0.0)
+    )
+    off_sheet = _sheet(
+        "off.kicad_sch", "off", "off-sheet", _spin("OFF", 20.0, 20.0)
+    )
+    off_sheet.on_board = False
+    root.sheets.extend([active_sheet, off_sheet])
+    root.sub_schematics["active.kicad_sch"] = active
+    root.sub_schematics["off.kicad_sch"] = off_board
+
+    compiled = compile_design_subgraphs(root)
+    assert [cs.sheet_path_human for cs in compiled] == ["/", "/active/"]
+
+    nl = compile_design_netlist(root)
+    component_refs = {component.reference for component in nl.components}
+    terminal_refs = {
+        terminal.designator for net in nl.nets for terminal in net.terminals
+    }
+    assert {"R_ROOT_ON", "R_ROOT_OFF", "R_ON"} <= component_refs
+    assert "R_OFF" not in component_refs
+    assert {"R_ROOT_ON", "R_ROOT_OFF", "R_ON"} <= terminal_refs
+    assert "R_OFF" not in terminal_refs
+    off = nl.get_net("/off/OFF")
+    assert off is not None
+    assert {(t.designator, t.pin) for t in off.terminals} == {("R_ROOT_OFF", "1")}
+
+
 # ---------------------------------------------------------------------------
 # Sheet-pin ↔ hier-label pairing
 # ---------------------------------------------------------------------------

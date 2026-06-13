@@ -23,6 +23,9 @@ from pathlib import Path
 import pytest
 
 from kicad_monkey import KiCadSchematic
+from kicad_monkey.kicad_sch_sheet import SchSheet, SchSheetProperty
+from kicad_monkey.kicad_sch_symbol import SchSymbol
+from kicad_monkey.kicad_sym_property import SymProperty
 from kicad_monkey.testing.corpus import get_kicad_upstream_qa_dir
 
 
@@ -60,6 +63,65 @@ class TestHierarchicalLoad:
         # Sub-sheet's source_path resolves under the parent's directory.
         assert child.source_path is not None
         assert child.source_path.parent == sch.source_path.parent
+
+    def test_reused_sheet_file_loads_under_each_parent(self, tmp_path: Path) -> None:
+        """The same schematic file can be instantiated in multiple branches."""
+
+        def sheet(file_name: str, name: str, uuid: str) -> SchSheet:
+            sh = SchSheet(uuid=uuid)
+            sh.properties = [
+                SchSheetProperty(key="Sheetname", value=name),
+                SchSheetProperty(key="Sheetfile", value=file_name),
+            ]
+            return sh
+
+        def symbol(ref: str) -> SchSymbol:
+            sym = SchSymbol(lib_id="Device:R")
+            sym.properties = [
+                SymProperty(key="Reference", value=ref),
+                SymProperty(key="Value", value="10k"),
+            ]
+            return sym
+
+        grand = KiCadSchematic()
+        grand.uuid = "grand"
+        grand.symbols.append(symbol("R_GRAND"))
+
+        child_a = KiCadSchematic()
+        child_a.uuid = "child-a"
+        child_a.sheets.append(sheet("grand.kicad_sch", "grand", "grand-a"))
+
+        child_b = KiCadSchematic()
+        child_b.uuid = "child-b"
+        child_b.sheets.append(sheet("grand.kicad_sch", "grand", "grand-b"))
+
+        root = KiCadSchematic()
+        root.uuid = "root"
+        root.sheets.extend([
+            sheet("child_a.kicad_sch", "child_a", "sheet-a"),
+            sheet("child_b.kicad_sch", "child_b", "sheet-b"),
+        ])
+
+        (tmp_path / "root.kicad_sch").write_text(root.to_text(), encoding="utf-8")
+        (tmp_path / "child_a.kicad_sch").write_text(child_a.to_text(), encoding="utf-8")
+        (tmp_path / "child_b.kicad_sch").write_text(child_b.to_text(), encoding="utf-8")
+        (tmp_path / "grand.kicad_sch").write_text(grand.to_text(), encoding="utf-8")
+
+        sch = KiCadSchematic.from_file(tmp_path / "root.kicad_sch")
+        loaded_a = sch.sub_schematics["child_a.kicad_sch"]
+        loaded_b = sch.sub_schematics["child_b.kicad_sch"]
+        assert "grand.kicad_sch" in loaded_a.sub_schematics
+        assert "grand.kicad_sch" in loaded_b.sub_schematics
+
+        grand_prefixes = [
+            prefix
+            for sym, prefix, _owner in sch.walk_symbols()
+            if sym.reference == "R_GRAND"
+        ]
+        assert grand_prefixes == [
+            "/root/sheet-a/grand-a",
+            "/root/sheet-b/grand-b",
+        ]
 
 
 class TestWalkSymbols:

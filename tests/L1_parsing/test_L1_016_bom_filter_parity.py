@@ -28,6 +28,9 @@ from pathlib import Path
 import pytest
 
 from kicad_monkey import KiCadSchematic
+from kicad_monkey.kicad_sch_sheet import SchSheet, SchSheetProperty
+from kicad_monkey.kicad_sch_symbol import SchSymbol
+from kicad_monkey.kicad_sym_property import SymProperty
 from kicad_monkey.kicad_variants import (
     _is_virtual_ref,
     _instance_reference,
@@ -107,6 +110,54 @@ class TestHierarchicalAssembly:
                 assert eff.reference, (
                     f"sub-sheet symbol resolved to empty ref: lib_id={sym.lib_id}"
                 )
+
+    def test_assemble_skips_symbols_under_off_board_sheet(self) -> None:
+        """Sheet-level on_board=no removes the child sheet from assembly."""
+
+        def symbol(ref: str) -> SchSymbol:
+            sym = SchSymbol(lib_id="Device:R")
+            sym.properties = [
+                SymProperty(key="Reference", value=ref),
+                SymProperty(key="Value", value="10k"),
+            ]
+            return sym
+
+        active = KiCadSchematic()
+        active.uuid = "active-child"
+        active.symbols.append(symbol("R_ON"))
+
+        off_board = KiCadSchematic()
+        off_board.uuid = "off-child"
+        off_board.symbols.append(symbol("R_OFF"))
+
+        def sheet(file_name: str, name: str, uuid: str, on_board: bool) -> SchSheet:
+            sh = SchSheet(uuid=uuid, on_board=on_board)
+            sh.properties = [
+                SchSheetProperty(key="Sheetname", value=name),
+                SchSheetProperty(key="Sheetfile", value=file_name),
+            ]
+            return sh
+
+        root = KiCadSchematic()
+        root.uuid = "root"
+        root.sheets.extend([
+            sheet("active.kicad_sch", "active", "active-sheet", True),
+            sheet("off.kicad_sch", "off", "off-sheet", False),
+        ])
+        root.sub_schematics["active.kicad_sch"] = active
+        root.sub_schematics["off.kicad_sch"] = off_board
+
+        source_refs = {sym.reference for sym, _path, _owner in root.walk_symbols()}
+        assert source_refs == {"R_ON", "R_OFF"}
+
+        realized_refs = {
+            sym.reference
+            for sym, _path, _owner in root.walk_symbols(include_off_board_sheets=False)
+        }
+        assert realized_refs == {"R_ON"}
+
+        assembled_refs = {component.reference for component in assemble(root)}
+        assert assembled_refs == {"R_ON"}
 
 
 # ---------------------------------------------------------------------------

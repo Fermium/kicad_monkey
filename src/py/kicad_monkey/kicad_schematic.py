@@ -245,28 +245,46 @@ class KiCadSchematic:
             self._load_from_file(Path(path))
 
     def _load_from_file(
-        self, path: Path, _seen: Optional[set] = None,
+        self,
+        path: Path,
+        _seen: Optional[set[Path]] = None,
+        _cache: Optional[Dict[Path, "KiCadSchematic"]] = None,
     ) -> None:
         """Parse a .kicad_sch file into this instance and recurse into sheets.
 
-        ``_seen`` is the set of already-loaded resolved file paths used
-        to break cycles in pathological hierarchies.
+        ``_seen`` is the current recursion stack used to break cycles in
+        pathological hierarchies. ``_cache`` allows the same schematic file to
+        be instantiated under multiple parent sheets.
         """
+        try:
+            resolved_path = path.resolve()
+        except (OSError, ValueError):
+            resolved_path = path
         text = path.read_text(encoding='utf-8')
         parsed = self.from_text(text)
         # Copy all fields from the parsed instance
         self.__dict__.update(parsed.__dict__)
-        try:
-            self.source_path = path.resolve()
-        except (OSError, ValueError):
-            self.source_path = path
+        self.source_path = resolved_path
         # sub_schematics is an instance attribute on self by now (the
         # update above replaced it with parsed's empty dict); ensure
         # we have a fresh dict before recursing.
         self.sub_schematics = {}
-        self._load_sub_sheets(_seen=_seen)
+        if _seen is None:
+            _seen = set()
+        if _cache is None:
+            _cache = {}
+        _cache[self.source_path] = self
+        _seen.add(self.source_path)
+        try:
+            self._load_sub_sheets(_seen=_seen, _cache=_cache)
+        finally:
+            _seen.discard(self.source_path)
 
-    def _load_sub_sheets(self, _seen: Optional[set] = None) -> None:
+    def _load_sub_sheets(
+        self,
+        _seen: Optional[set[Path]] = None,
+        _cache: Optional[Dict[Path, "KiCadSchematic"]] = None,
+    ) -> None:
         """Walk ``self.sheets`` and load each ``Sheetfile`` reference.
 
         Missing files and cycles are skipped silently — KiCad itself
@@ -278,7 +296,9 @@ class KiCadSchematic:
             return
         if _seen is None:
             _seen = set()
-        _seen.add(self.source_path)
+        if _cache is None:
+            _cache = {}
+        _cache.setdefault(self.source_path, self)
         base_dir = self.source_path.parent
         for sheet in self.sheets:
             sf = sheet.sheet_file
@@ -292,13 +312,19 @@ class KiCadSchematic:
                 continue
             if child_path in _seen:
                 continue
+            child = _cache.get(child_path)
+            if child is not None:
+                self.sub_schematics[sf] = child
+                continue
             child = KiCadSchematic()
+            _cache[child_path] = child
             try:
-                child._load_from_file(child_path, _seen=_seen)
+                child._load_from_file(child_path, _seen=_seen, _cache=_cache)
             except Exception:  # pragma: no cover — defensive
                 # Don't let a malformed sub-sheet break parent load;
                 # callers that need strict loading can re-parse the
                 # child explicitly and surface the error themselves.
+                _cache.pop(child_path, None)
                 continue
             self.sub_schematics[sf] = child
 
@@ -726,6 +752,8 @@ class KiCadSchematic:
     @public_api
     def walk_symbols(
         self, _sheet_path: str = "",
+        *,
+        include_off_board_sheets: bool = True,
     ) -> Iterator[tuple['SchSymbol', str, 'KiCadSchematic']]:
         """Yield every placed symbol across the full sheet hierarchy.
 
@@ -748,11 +776,16 @@ class KiCadSchematic:
         for sym in self.symbols:
             yield (sym, prefix, self)
         for sheet in self.sheets:
+            if not include_off_board_sheets and not getattr(sheet, "on_board", True):
+                continue
             child = self.sub_schematics.get(sheet.sheet_file)
             if child is None:
                 continue
             child_prefix = prefix + "/" + sheet.uuid if sheet.uuid else prefix
-            yield from child.walk_symbols(_sheet_path=child_prefix)
+            yield from child.walk_symbols(
+                _sheet_path=child_prefix,
+                include_off_board_sheets=include_off_board_sheets,
+            )
 
     @public_api
     def walk_sheets(self) -> Iterator[tuple['SchSheet', 'KiCadSchematic']]:
