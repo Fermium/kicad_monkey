@@ -56,14 +56,93 @@ class PadCustomOptions:
         return result
 
 
+def _pad_prim_point(sexp: list, tag: str) -> Optional[Tuple[float, float]]:
+    el = find_element(sexp, tag)
+    if el and len(el) >= 3:
+        return (float(el[1]), float(el[2]))
+    return None
+
+
+def _sample_arc_3pt(start, mid, end, arc_error_mm=0.05):
+    """Sample a 3-point arc (start, mid, end) into points within arc_error_mm."""
+    import math
+    c = _circle_from_3pt(start, mid, end)
+    if c is None:
+        return [start, end]
+    cx, cy, r = c
+    if r <= 0:
+        return [start, end]
+    a0 = math.degrees(math.atan2(start[1] - cy, start[0] - cx))
+    am_ = math.degrees(math.atan2(mid[1] - cy, mid[0] - cx))
+    a1 = math.degrees(math.atan2(end[1] - cy, end[0] - cx))
+    if not (min(a0, a1) <= am_ <= max(a0, a1)):
+        a1 += 360.0 if a1 < a0 else -360.0
+    err = max(1e-4, min(arc_error_mm, r))
+    dphi = 2 * math.acos(max(-1.0, 1 - err / r))
+    n = max(2, int(math.ceil(math.radians(abs(a1 - a0)) / max(dphi, 1e-3))))
+    return [(cx + r * math.cos(math.radians(a0 + (a1 - a0) * i / n)),
+             cy + r * math.sin(math.radians(a0 + (a1 - a0) * i / n))) for i in range(n + 1)]
+
+
+def _tessellate_pts(pts_elem, arc_error_mm=0.05):
+    """Expand a KiCad ``(pts ...)`` element into a flat point list, tessellating
+    any embedded ``(arc (start ..)(mid ..)(end ..))`` segments. KiCad polygons
+    may interleave ``xy`` vertices and ``arc`` segments."""
+    out = []
+    for child in pts_elem[1:]:
+        if not isinstance(child, list) or not child:
+            continue
+        tag = str(child[0])
+        if tag == "xy" and len(child) >= 3:
+            out.append((float(child[1]), float(child[2])))
+        elif tag == "arc":
+            s = _pad_prim_point(child, "start")
+            m = _pad_prim_point(child, "mid")
+            e = _pad_prim_point(child, "end")
+            if s and m and e:
+                seg = _sample_arc_3pt(s, m, e, arc_error_mm)
+                out.extend(seg if not out else seg[1:])
+    return out
+
+
+def _circle_from_3pt(p1, p2, p3):
+    """Center+radius of the circle through three points, or None if collinear."""
+    (ax, ay), (bx, by), (cx, cy) = p1, p2, p3
+    d = 2 * (ax * (by - cy) + bx * (cy - ay) + cx * (ay - by))
+    if abs(d) < 1e-12:
+        return None
+    ux = ((ax * ax + ay * ay) * (by - cy) + (bx * bx + by * by) * (cy - ay)
+          + (cx * cx + cy * cy) * (ay - by)) / d
+    uy = ((ax * ax + ay * ay) * (cx - bx) + (bx * bx + by * by) * (ax - cx)
+          + (cx * cx + cy * cy) * (bx - ax)) / d
+    r = ((ax - ux) ** 2 + (ay - uy) ** 2) ** 0.5
+    return (ux, uy, r)
+
+
 @dataclass
 class PadCustomPrimitive:
-    """Custom pad primitive (currently modeled for gr_poly)."""
+    """Custom pad primitive.
+
+    Geometry is exposed for every KiCad primitive kind (gr_poly, gr_line,
+    gr_rect, gr_circle, gr_arc), matching ``pcb_io_kicad_sexpr_parser.cpp``
+    (parsePCB_SHAPE / pad primitive grammar):
+
+    - ``gr_line``  : (start x y) (end x y)
+    - ``gr_rect``  : (start x y) (end x y)
+    - ``gr_circle``: (center x y) (end x y)         end = a point on the circle
+    - ``gr_arc``   : (start x y) (mid x y) (end x y) | (start=center) (end=arc start) (angle deg)
+    - ``gr_poly``  : (pts (xy ...) ...)
+    """
 
     primitive_type: str
     points: List[Tuple[float, float]] = field(default_factory=list)
     width: Optional[float] = None
     fill: Optional[FillType] = None
+    start: Optional[Tuple[float, float]] = None
+    mid: Optional[Tuple[float, float]] = None
+    end: Optional[Tuple[float, float]] = None
+    center: Optional[Tuple[float, float]] = None
+    angle: Optional[float] = None
     _raw_sexp: Optional[list] = field(default=None, repr=False)
 
     @classmethod
@@ -75,9 +154,7 @@ class PadCustomPrimitive:
 
         pts_elem = find_element(sexp, "pts")
         if pts_elem:
-            for xy in find_all_elements(pts_elem, "xy"):
-                if len(xy) >= 3:
-                    points.append((float(xy[1]), float(xy[2])))
+            points = _tessellate_pts(pts_elem)   # handles xy + embedded arc segments
 
         width_val = get_value(sexp, "width")
         if width_val is not None:
@@ -93,11 +170,17 @@ class PadCustomPrimitive:
             elif fill_s == "no":
                 fill = FillType.NO
 
+        angle_val = get_value(sexp, "angle")
         return cls(
             primitive_type=primitive_type,
             points=points,
             width=width,
             fill=fill,
+            start=_pad_prim_point(sexp, "start"),
+            mid=_pad_prim_point(sexp, "mid"),
+            end=_pad_prim_point(sexp, "end"),
+            center=_pad_prim_point(sexp, "center"),
+            angle=float(angle_val) if angle_val is not None else None,
             _raw_sexp=sexp,
         )
 
@@ -106,10 +189,71 @@ class PadCustomPrimitive:
         """Return True when primitive should be rendered as filled geometry."""
         return self.fill in (FillType.YES, FillType.SOLID)
 
+    def sample_points(self, arc_error_mm: float = 0.05) -> List[Tuple[float, float]]:
+        """Tessellate this primitive into a list of (x, y) points in pad-local
+        coordinates (mm, KiCad Y-down). Lines/rects/polys are returned exactly;
+        circles/arcs are sampled to within ``arc_error_mm``.
+        """
+        import math
+
+        t = self.primitive_type
+        if t == "gr_poly":
+            return list(self.points)
+        if t == "gr_line":
+            return [p for p in (self.start, self.end) if p is not None]
+        if t == "gr_rect":
+            if self.start and self.end:
+                (x1, y1), (x2, y2) = self.start, self.end
+                return [(x1, y1), (x2, y1), (x2, y2), (x1, y2)]
+            return []
+
+        def _sample_arc(cx, cy, r, a0, a1):
+            if r <= 0:
+                return []
+            sweep = abs(a1 - a0)
+            err = max(1e-4, min(arc_error_mm, r))
+            dphi = 2 * math.acos(max(-1.0, 1 - err / r))
+            n = max(2, int(math.ceil(math.radians(sweep) / max(dphi, 1e-3))))
+            return [(cx + r * math.cos(math.radians(a0 + (a1 - a0) * i / n)),
+                     cy + r * math.sin(math.radians(a0 + (a1 - a0) * i / n)))
+                    for i in range(n + 1)]
+
+        if t == "gr_circle":
+            if self.center and self.end:
+                cx, cy = self.center
+                r = math.hypot(self.end[0] - cx, self.end[1] - cy)
+                return _sample_arc(cx, cy, r, 0.0, 360.0)
+            return []
+        if t == "gr_arc":
+            if self.start and self.mid and self.end:
+                c = _circle_from_3pt(self.start, self.mid, self.end)
+                if c is None:
+                    return [self.start, self.end]
+                cx, cy, r = c
+                a0 = math.degrees(math.atan2(self.start[1] - cy, self.start[0] - cx))
+                am_ = math.degrees(math.atan2(self.mid[1] - cy, self.mid[0] - cx))
+                a1 = math.degrees(math.atan2(self.end[1] - cy, self.end[0] - cx))
+                # ensure the sampled sweep passes through the mid point
+                if not (min(a0, a1) <= am_ <= max(a0, a1)):
+                    a1 += 360.0 if a1 < a0 else -360.0
+                return _sample_arc(cx, cy, r, a0, a1)
+            if self.start and self.end and self.angle is not None:
+                cx, cy = self.start                 # old form: start == center
+                sx, sy = self.end                   # end == arc start point
+                r = math.hypot(sx - cx, sy - cy)
+                a0 = math.degrees(math.atan2(sy - cy, sx - cx))
+                return _sample_arc(cx, cy, r, a0, a0 + self.angle)
+            return []
+        return list(self.points)
+
     def to_sexp(self) -> list:
-        # Keep unsupported primitive types verbatim for round-trip stability.
+        # Prefer the verbatim parsed sexp for round-trip stability: gr_poly may
+        # contain embedded arc segments that `points` has tessellated away, and
+        # other primitive kinds are not rebuilt from structured fields.
+        if self._raw_sexp is not None:
+            return self._raw_sexp
         if self.primitive_type != "gr_poly":
-            return self._raw_sexp if self._raw_sexp is not None else [self.primitive_type]
+            return [self.primitive_type]
 
         result: SexpList = [self.primitive_type]
         if self.points:
