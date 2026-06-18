@@ -201,8 +201,11 @@ class KiCadFootprint:
     @classmethod
     def from_sexp(cls, sexp: list) -> 'KiCadFootprint':
         """Parse from s-expression list."""
-        if sexp[0] != 'footprint':
-            raise ValueError(f"Expected 'footprint', got '{sexp[0]}'")
+        # KiCad ≤5 used the root token `module`; KiCad 6 renamed it to `footprint`.
+        # The child grammar (fp_line/fp_text/pad/…) is otherwise the same, so accept
+        # both — legacy `.kicad_mod` files (e.g. parts of the 4ms library) are module.
+        if sexp[0] not in ('footprint', 'module'):
+            raise ValueError(f"Expected 'footprint' or 'module', got '{sexp[0]}'")
 
         fp = cls()
         fp._raw_sexp = sexp
