@@ -366,12 +366,22 @@ def parse_maybe_absent_bool(sexp: list, name: str, default_when_empty: bool = Tr
 
 
 def get_at(sexp: list) -> Tuple[float, float, float]:
-    """Extract (x, y, angle) from 'at' element."""
+    """Extract (x, y, angle) from 'at' element.
+
+    KiCad's `(at X Y [ANGLE])` may carry a trailing `unlocked` flag in place of
+    or after the angle — `(at X Y unlocked)` or `(at X Y ANGLE unlocked)` — so the
+    angle slot is not guaranteed numeric. A non-numeric angle slot means no angle.
+    """
     at_elem = find_element(sexp, 'at')
     if at_elem:
         x = float(at_elem[1]) if len(at_elem) > 1 else 0.0
         y = float(at_elem[2]) if len(at_elem) > 2 else 0.0
-        angle = float(at_elem[3]) if len(at_elem) > 3 else 0.0
+        angle = 0.0
+        if len(at_elem) > 3:
+            try:
+                angle = float(at_elem[3])
+            except (ValueError, TypeError):
+                angle = 0.0
         return (x, y, angle)
     return (0.0, 0.0, 0.0)
 
